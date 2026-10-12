@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Calm Calendar</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar" aria-label="Menu">
+    <div class="brand"><span class="brand-dot" aria-hidden="true"></span><span class="brand-name">Calm Calendar</span></div>
+    <nav>
+      <button class="side-item is-active" data-panel="calendar"><span class="side-ico" aria-hidden="true">▦</span><span class="side-label">Calendar</span></button>
+      <button class="side-item" data-panel="capture"><span class="side-ico" aria-hidden="true">✎</span><span class="side-label">Talk to it</span></button>
+      <button class="side-item" data-panel="progress"><span class="side-ico" aria-hidden="true">✓</span><span class="side-label">Progress</span></button>
+      <button class="side-item" data-panel="settings"><span class="side-ico" aria-hidden="true">⚙</span><span class="side-label">Settings</span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="side-level" id="sideLevel" title="Today's level"></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <!-- CALENDAR PANEL -->
+    <section class="panel is-active" id="panel-calendar">
+      <header class="topbar">
+        <button id="monthTitle" class="month-title" title="Back to today">October 2026</button>
+        <div class="top-actions">
+          <div class="segmented" role="group" aria-label="Calendar view">
+            <button data-view="timeGridDay">Day</button>
+            <button data-view="timeGridWeek">Week</button>
+            <button data-view="dayGridMonth" class="is-active">Month</button>
+            <button data-view="year">Year</button>
+            <button data-view="listWeek">Agenda</button>
+          </div>
+          <button id="addBtn" class="add-btn" aria-label="Add a task">+</button>
+        </div>
+      </header>
+
+      <div id="ticker" aria-label="Day strip"></div>
+
+      <div id="checkinCard" class="checkin-card">
+        <div class="checkin-text">
+          <strong id="checkinQ">How are you feeling today?</strong>
+          <span id="checkinSub">Pick one. The day shapes itself around it. Change it any time.</span>
+        </div>
+        <div class="level-row" id="levelRow">
+          <button class="level-btn level-low" data-level="low"><span class="level-dot"></span><span class="level-name" data-level-name="low">Low</span></button>
+          <button class="level-btn level-steady" data-level="steady"><span class="level-dot"></span><span class="level-name" data-level-name="steady">Steady</span></button>
+          <button class="level-btn level-full" data-level="full"><span class="level-dot"></span><span class="level-name" data-level-name="full">Full</span></button>
+        </div>
+      </div>
+
+      <div id="upNext" class="up-next" hidden></div>
+
+      <div id="calendarWrap">
+        <div id="calendar"></div>
+        <div id="yearView" hidden></div>
+      </div>
+
+      <div id="dayList" class="day-list"></div>
+    </section>
+
+    <!-- CAPTURE PANEL -->
+    <section class="panel" id="panel-capture">
+      <header class="topbar"><h2>Talk to it</h2></header>
+      <p class="panel-lede">Dump it all here, any shape it comes in. Talking, a journal, a photo of your handwriting, messy notes. It gets sorted into a calm list for you.</p>
+      <div class="capture-box">
+        <textarea id="dumpText" rows="7" placeholder="Try: call the dentist tomorrow at 3pm, and then clean the kitchen. Pay the rent on friday!!! Water the plants every weekday."></textarea>
+        <div class="capture-actions">
+          <button id="voiceBtn" class="soft-btn">🎙 Speak</button>
+          <label class="soft-btn file-btn">Journal file<input type="file" id="journalFile" accept=".txt,.md,.csv" hidden></label>
+          <label class="soft-btn file-btn">Photo of notes<input type="file" id="photoFile" accept="image/*" hidden></label>
+          <button id="parseBtn" class="primary-btn">Make my list</button>
+        </div>
+        <p id="captureMsg" class="hint" role="status"></p>
+      </div>
+      <div id="draftArea" hidden>
+        <h3>Here is what I made from that. Fix any of it.</h3>
+        <div id="draftList"></div>
+        <div class="draft-actions">
+          <button id="draftAddAll" class="primary-btn">Add all to my calendar</button>
+          <button id="draftClear" class="soft-btn">Start again</button>
+        </div>
+        <details class="original-keep"><summary>Keep the original words</summary><pre id="originalText"></pre></details>
+      </div>
+    </section>
+
+    <!-- PROGRESS PANEL -->
+    <section class="panel" id="panel-progress">
+      <header class="topbar"><h2>Progress</h2></header>
+      <p class="panel-lede">What is done, and what is left. Done things stay where you can see them. Drag cards between the columns, or tap one to change it.</p>
+      <div id="progressSummary" class="progress-summary"></div>
+      <div class="board">
+        <div class="board-col" data-status="todo"><h3>To do</h3><div class="board-list" id="col-todo"></div></div>
+        <div class="board-col" data-status="doing"><h3>Doing</h3><div class="board-list" id="col-doing"></div></div>
+        <div class="board-col" data-status="done"><h3>Done</h3><div class="board-list" id="col-done"></div></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS PANEL -->
+    <section class="panel" id="panel-settings">
+      <header class="topbar"><h2>Settings</h2></header>
+      <div class="settings-group">
+        <h3>Morning check-in</h3>
+        <label class="row">Ask me at <input type="time" id="checkinTime" value="08:00"></label>
+        <label class="row">Low day is called <input type="text" id="nameLow" value="Low" maxlength="14"></label>
+        <label class="row">Steady day is called <input type="text" id="nameSteady" value="Steady" maxlength="14"></label>
+        <label class="row">Full day is called <input type="text" id="nameFull" value="Full" maxlength="14"></label>
+      </div>
+      <div class="settings-group">
+        <h3>Notifications</h3>
+        <p class="hint" id="notifStatus">Notifications are off.</p>
+        <label class="row check"><input type="checkbox" id="nCheckin"> Morning check-in reminder</label>
+        <label class="row check"><input type="checkbox" id="nStart"> Start nudge before each timed task</label>
+        <label class="row">Nudge lead-in (minutes) <input type="number" id="nSetup" value="5" min="0" max="60"></label>
+        <label class="row check"><input type="checkbox" id="nDigest"> A gentle round-up of what is left</label>
+        <label class="row">Round-up times <input type="text" id="nDigestTimes" value="12:30, 16:30" size="14"></label>
+        <label class="row check"><input type="checkbox" id="nDone"> End of day done note (only what got done)</label>
+        <label class="row">Done note at <input type="time" id="nDoneTime" value="20:00"></label>
+        <div class="draft-actions">
+          <button id="notifEnable" class="primary-btn">Turn on notifications</button>
+          <button id="notifTest" class="soft-btn">Send a test</button>
+          <button id="notifPause" class="soft-btn">Pause all for today</button>
+        </div>
+        <p class="hint">Notifications fire while the app is installed or open. A promise of wake-ups while the app is fully closed needs a small server, which this version does not use.</p>
+      </div>
+      <div class="settings-group">
+        <h3>Your tasks</h3>
+        <div class="draft-actions">
+          <button id="clearSamples" class="soft-btn">Remove the sample tasks</button>
+        </div>
+        <p class="hint">Everything lives on this device only. No account, no server, nothing leaves your phone or computer.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- QUICK ADD -->
+<div id="addSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3>Add a task</h3>
+    <label class="field">Say it in one sentence
+      <input type="text" id="quickText" placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes">
+    </label>
+    <div id="quickPreview" class="quick-preview" hidden></div>
+    <details class="details-fallback"><summary>Or fill in the details</summary>
+      <label class="field">Title <input type="text" id="fTitle"></label>
+      <div class="field-row">
+        <label class="field">Date <input type="date" id="fDate"></label>
+        <label class="field">Time <input type="time" id="fTime"></label>
+        <label class="field">Minutes <input type="number" id="fDur" value="25" min="5" step="5"></label>
+      </div>
+      <label class="field">Smallest version (for low days) <input type="text" id="fMin" placeholder="e.g. Just ring and rebook"></label>
+      <label class="field">Biggest version (for full days) <input type="text" id="fFull" placeholder="e.g. The whole deep clean"></label>
+      <label class="row check"><input type="checkbox" id="fEssential"> This one must not slip</label>
+    </details>
+    <div class="sheet-actions">
+      <button id="addCancel" class="soft-btn">Cancel</button>
+      <button id="addSave" class="primary-btn">Add task</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK DETAIL -->
+<div id="taskSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3 id="dTitle">Task</h3>
+    <p class="hint" id="dMeta"></p>
+    <div id="dSteps"></div>
+    <button id="dBreak" class="soft-btn">Break this into small steps</button>
+    <label class="field">Smallest version (low days) <input type="text" id="dMin"></label>
+    <label class="field">Biggest version (full days) <input type="text" id="dFull"></label>
+    <div class="field-row">
+      <label class="field">Date <input type="date" id="dDate"></label>
+      <label class="field">Time <input type="time" id="dTime"></label>
+      <label class="field">Minutes <input type="number" id="dDur" min="5" step="5"></label>
+    </div>
+    <label class="row check"><input type="checkbox" id="dEssential"> This one must not slip</label>
+    <details class="original-keep" id="dOriginalWrap" hidden><summary>The words this came from</summary><pre id="dOriginal"></pre></details>
+    <div class="sheet-actions wrap">
+      <button id="dDone" class="primary-btn">Done</button>
+      <button id="dDoing" class="soft-btn">Doing</button>
+      <button id="dNotToday" class="soft-btn">Not today</button>
+      <button id="dDelete" class="soft-btn danger">Delete</button>
+      <button id="dClose" class="soft-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- WELCOME -->
+<div id="welcome" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3>Welcome to your calm calendar</h3>
+    <p>Each morning it asks how you are feeling, in three levels. The day then shapes itself: small on a low day, full on a full day. Nothing is ever marked late or missed. Things that do not fit are parked, safe, and easy to find.</p>
+    <p>A few sample tasks are in today so you can see how it works. Remove them any time in Settings.</p>
+    <p>Notifications are gentle and you choose them. Want the morning check-in reminder?</p>
+    <div class="sheet-actions">
+      <button id="welcomeNotif" class="primary-btn">Turn on notifications</button>
+      <button id="welcomeSkip" class="soft-btn">Not now</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="fullcalendar.js"></script>
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
