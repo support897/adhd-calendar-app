@@ -56,6 +56,8 @@ check("low day shows essentials plus one tiny", low.visible.length >= 2 && low.v
 check("low day parks the big jobs", low.parked.some(t => t.title === "Clean the whole house") && low.parked.some(t => t.title === "Sort the garage"));
 check("low day keeps essentials visible", low.visible.some(t => t.title === "Pay the rent"));
 check("low day shrinks task with a min version", low.visible.some(t => t.shrunk && t.displayTitle === "Ring the doctor to rebook"));
+const taughtLow = L.adaptDay(dayTasks.concat([task("Water the plants", { minVersion: "Just the kitchen plants" })]), "low");
+check("low day keeps a taught-minimum task visible, shrunk", taughtLow.visible.some(t => t.shrunk && t.displayTitle === "Just the kitchen plants"));
 const steady = L.adaptDay(dayTasks, "steady");
 check("steady day caps at 6", steady.visible.length === 6 && steady.parked.length === 2);
 const full = L.adaptDay(dayTasks, "full", [task("Tomorrow thing", { date: "2026-10-13" })]);
