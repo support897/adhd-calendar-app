@@ -7,3 +7,12 @@ Base: https://apps.apple.com/us/app/fantastical-calendar/id718043190
 - It must also have another side bar menu for writing tasks but the tasks it's like talking to a person (ai) that the whole job is to make you feel less overwhelmed. You can upload journal, voice recordings and anything hand written or notes and then it automatically does the to do list and assigns color, time etc.
 - Side bar menu where you can see all tasks for each progress and what has been completed and left to go.
 - The whole point of this app is to help people with adhd, and people that feel overwhelmed and can't divide to do or do list so they feel like everything pilling up. Must be as Apple intuitive, interactive and easy to use. It must also have drag and drop. Do research in human psychology and adhd/overwhelmed to understand exactly how app should be designed to help user achieve as much as possible, even if they can't out in words what they must do and you must help them make to do and also adapt to how they feel each day. Search for GitHub repo to see if something similar already done and copy it + adapt it for mine"
+
+## Her additions (main chat, 12 Oct 2026 21:42 AEST)
+
+- Add these features into the app's side bar menus.
+- Notifications like the Meal Prep app, and let the user choose their own notifications.
+- Multiple ways of viewing the calendar.
+- Computer view AND phone view; installable (add to Home Screen).
+- Drag and drop.
+- Her bar for it: "Best calendar app ever".
