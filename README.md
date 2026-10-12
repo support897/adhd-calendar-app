@@ -1,4 +1,6 @@
-# Calm Calendar (ADHD Calendar App)
+# Pace (ADHD Calendar App)
+
+**Pace — your day, at your pace.** Renamed from Calm Calendar in v2 (13 Oct 2026), with a full brand, a fully collapsible menu, user-chosen colour themes (white, dark, blush, sky, mint, lavender) plus a cute mode, an SVG icon set and a sidebar progress ring. The on-device data key is unchanged, so v1 users keep their tasks.
 
 Ilse's project: a calendar app in the Fantastical aesthetic, built for people with ADHD and overwhelm. A morning "how are you feeling today" check in three levels and colours adapts the day (bare minimum on a low day); a talk-to-it side menu turns journals, voice recordings, handwriting and notes into an organised to-do list with colours and times; a progress menu shows what is done and what is left. Apple iPhone intuitive, interactive, drag and drop. Installable to the Home Screen. Data lives on the device only.
 
