@@ -2,6 +2,14 @@
 
 Built 12 Oct 2026, fully autonomous on Ilse's order ("work fully autonomous and don't stop until app fully tested, completed and approved"). Phases 2 to 8 of PHASE1-RESEARCH.md.
 
+## V2 — brand, collapsible menu, themes (13 Oct 2026, Ilse's order)
+- Brand end to end: the app is now **Pace** ("Your day, at your pace"). New modern logo: three rising steps in the three level colours (honey, green, blue), drawn as one SVG used for the Home Screen icon, the favicon, the sidebar lockup, the collapsed-menu button and the Settings brand footer. Title, manifest and welcome all carry the new name. The on-device data key is unchanged, so existing users keep every task through the rename.
+- Sidebar menus fully collapsible: the « button in the sidebar (and a Settings switch) hides the menu COMPLETELY, her standing rule for her apps; one floating Pace-mark button brings it back. The choice is remembered across restarts, on computer and phone alike. When open, the sidebar still sits beside the content at every width and narrows to a rail on phones.
+- User-chosen visuals in Settings ("How it looks"): White, Dark, Blush, Sky, Mint and Lavender themes (the whole app re-skins through CSS variables, FullCalendar included via its own theme variables), plus a Cute mode (rounder corners, filled level pills, pastel board columns, small playful touches). The saved look is painted before first render, so there is no flash of the wrong theme.
+- Icons: a small inline SVG icon set (calendar, talk, chart, gear, collapse, mic, file, camera, heart) replaces the old text glyphs and emoji in the menu and capture buttons.
+- More interactive: a progress ring in the sidebar showing today's done percentage at the adapted pace, panel and row entrance animations, a pop on the picked level and on completed tasks, press feedback on buttons, sheets that rise, a sliding toast, smooth DayTicker scrolling, and a ghost fade on the row being dragged.
+- Proof: the four v1 suites still pass untouched (37 logic, 27 browser, 7 drag, 6 recurrence) and a new v2 suite adds 19 checks (brand rendered, icons present, collapse hides the menu completely and persists, expand restores, dark and blush grounds measured by computed style and persistent, cute mode measured by its corner radius and persistent, phone rail beside content, phone collapse). 96 checks total, 0 errors. New proofs: dark-desktop.png, cute-blush.png, collapsed-desktop.png.
+
 ## Live
 https://adhd-calendar-app-beta.vercel.app — Vercel project adhd-calendar-app (team support-6499's projects), static site from this repo's main branch, deployed commit e3488a. (adhd-calendar-app.vercel.app was already taken by an unrelated project, so Vercel assigned the -beta domain.) Live core files verified byte-identical to the gated build (MD5 on index.html, styles.css, app.js, logic.js, manifest.webmanifest, service-worker.js).
 
