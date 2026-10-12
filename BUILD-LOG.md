@@ -2,6 +2,13 @@
 
 Built 12 Oct 2026, fully autonomous on Ilse's order ("work fully autonomous and don't stop until app fully tested, completed and approved"). Phases 2 to 8 of PHASE1-RESEARCH.md.
 
+## Live
+https://adhd-calendar-app-beta.vercel.app — Vercel project adhd-calendar-app (team support-6499's projects), static site from this repo's main branch, deployed commit e3488a. (adhd-calendar-app.vercel.app was already taken by an unrelated project, so Vercel assigned the -beta domain.) Live core files verified byte-identical to the gated build (MD5 on index.html, styles.css, app.js, logic.js, manifest.webmanifest, service-worker.js).
+
+## Gates (12 Oct 2026)
+- EFFICIENCY: PASS. It re-ran the logic tests itself, verified the FullCalendar byte size, and passed the lean route (reuse, $0, zero Ilse taps, durable verified pushes).
+- QUALITY: PASS on the repo build including the taught-minimum fix below, judged item by item against PROMPT.md with its own shame-word and dash scans at zero. Live spot check requested with the URL above.
+
 ## What shipped
 Self contained static files in the repo root. No server, no account, no keys, no cost. All data lives on the user's device (localStorage, key calmcal-v1).
 
