@@ -34,7 +34,9 @@ Self contained static files in the repo root. No server, no account, no keys, no
 - No external calendar sync (Google/Apple) in v1, as the plan recorded.
 
 ## Proof
-- Logic tests: node tests/run-tests.mjs → 36 pass, 0 fail (parser, adaptation caps, min-version shrinking, no-shame outputs, nudge maths).
+- Logic tests: node tests/run-tests.mjs → 37 pass, 0 fail (parser, adaptation caps, min-version shrinking, no-shame outputs, nudge maths).
 - Browser checks: 27 pass, 0 fail, 0 page errors (welcome, all 5 views, ticker sync, low/full day reshaping, done scoring, quick-add sentence, task sheet Not today, dump → 3 drafts → calendar, board, settings, notification permission granted, notification checker fires a start nudge and records it sent, phone width renders with the sidebar beside content narrowed to 78px, service worker cached all app files).
 - Drag checks: 7 pass, 0 fail (real mouse: week-view event dragged to a new day and saved; board card dragged To do → Doing; day-list row dragged onto a DayTicker day and saved).
+- Recurrence checks: 6 pass, 0 fail ("every weekday" captured, shows today and tomorrow, done recorded for one day only, taught smallest version shown shrunk on a Low day).
+- Post-build fix, found by the recurrence checks: a taught smallest version only shrank a task if the day's cap happened to show it, so a taught task could still be parked on a Low day. That broke the teach-my-levels promise in the Phase 1 research (a task with a minimum version shrinks instead of vanishing). adaptDay now treats every taught-minimum task as part of the bare minimum: visible and shrunk on Low days. All four suites re-ran green after the fix (77 checks total).
 - Tooling note: notification checks fail under the minimal headless shell (it cannot grant notification permission) and pass under full Chromium; that is a test-shell limit, recorded here, not an app limit.
