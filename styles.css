@@ -1,0 +1,217 @@
+/* Calm Calendar. Apple iPhone design language: flat grounds, hairline rows,
+   one calm type ladder, filled-circle markers, a real segmented control. */
+:root {
+  --ink: #1c1c1e;
+  --ink-2: #3a3a3c;
+  --ink-3: #8a8a8e;
+  --ground: #ffffff;
+  --ground-2: #f2f2f7;
+  --hair: #e5e5ea;
+  --blue: #007aff;
+  --green: #34a853;
+  --low: #d9a441;
+  --steady: #3fa46a;
+  --full: #2f7cf6;
+  --danger: #d9534f;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--ground);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; cursor: pointer; }
+input, textarea, select { font: inherit; color: var(--ink); }
+h2 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+h3 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
+
+#app { display: flex; min-height: 100vh; }
+
+/* Sidebar: stays beside the content at every width, narrowed on phones. */
+#sidebar {
+  width: 232px; flex: 0 0 auto;
+  border-right: 1px solid var(--hair);
+  background: var(--ground);
+  padding: 18px 12px;
+  display: flex; flex-direction: column; gap: 18px;
+  position: sticky; top: 0; height: 100vh;
+}
+.brand { display: flex; align-items: center; gap: 9px; padding: 2px 8px; font-weight: 700; font-size: 17px; }
+.brand-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--steady); flex: 0 0 auto; }
+#sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.side-item {
+  display: flex; align-items: center; gap: 10px;
+  border: 0; background: none; text-align: left;
+  padding: 10px; border-radius: 10px; color: var(--ink-2); font-size: 15px;
+}
+.side-item .side-ico { font-size: 16px; width: 20px; text-align: center; }
+.side-item.is-active { background: var(--ground-2); color: var(--ink); font-weight: 600; }
+.side-foot { margin-top: auto; }
+.side-level { font-size: 13px; color: var(--ink-3); padding: 0 8px; }
+.side-level strong { color: var(--ink); }
+
+#main { flex: 1 1 auto; min-width: 0; padding: 18px 22px 60px; max-width: 1060px; margin: 0 auto; width: 100%; }
+.panel { display: none; }
+.panel.is-active { display: block; }
+.panel-lede { color: var(--ink-2); font-size: 15px; line-height: 1.5; max-width: 620px; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.month-title { border: 0; background: none; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; padding: 4px 2px; color: var(--ink); }
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.segmented { display: inline-flex; background: #efeff4; border-radius: 10px; padding: 2px; gap: 2px; }
+.segmented button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.segmented button.is-active { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.16); }
+.add-btn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--blue); color: #fff; font-size: 24px; line-height: 1; }
+
+/* DayTicker */
+#ticker { display: flex; gap: 2px; overflow-x: auto; padding: 8px 2px 10px; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); scrollbar-width: none; position: sticky; top: 0; background: #fff; z-index: 30; }
+#ticker::-webkit-scrollbar { display: none; }
+.tick { flex: 0 0 auto; width: 52px; border: 0; background: none; padding: 5px 0 4px; border-radius: 10px; text-align: center; }
+.tick .tick-wd { display: block; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.tick .tick-num { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: 3px auto 4px; border-radius: 50%; font-size: 16px; font-weight: 500; }
+.tick.is-today .tick-num { background: var(--ink); color: #fff; font-weight: 700; }
+.tick.is-selected .tick-num { background: var(--ground-2); box-shadow: inset 0 0 0 2px var(--ink); }
+.tick.is-today.is-selected .tick-num { background: var(--ink); box-shadow: none; }
+.tick-pills { display: flex; gap: 2px; justify-content: center; min-height: 5px; padding: 0 6px; }
+.tick-pill { height: 5px; border-radius: 3px; flex: 1 1 0; max-width: 12px; }
+
+/* Check-in */
+.checkin-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 2px; border-bottom: 1px solid var(--hair); }
+.checkin-text strong { display: block; font-size: 18px; margin-bottom: 3px; }
+.checkin-text span { color: var(--ink-3); font-size: 14px; }
+.level-row { display: flex; gap: 8px; }
+.level-btn { display: flex; align-items: center; gap: 8px; border: 1px solid var(--hair); background: #fff; border-radius: 999px; padding: 9px 16px; font-size: 15px; font-weight: 500; }
+.level-btn .level-dot { width: 12px; height: 12px; border-radius: 50%; }
+.level-low .level-dot { background: var(--low); }
+.level-steady .level-dot { background: var(--steady); }
+.level-full .level-dot { background: var(--full); }
+.level-btn.is-active { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 700; }
+
+.up-next { padding: 14px 2px; border-bottom: 1px solid var(--hair); font-size: 15px; }
+.up-next .un-label { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 3px; }
+.up-next button { border: 0; background: none; color: var(--blue); font-size: 15px; padding: 0; margin-left: 8px; }
+
+/* Calendar (FullCalendar restyle to flat iPhone look) */
+#calendarWrap { padding-top: 12px; }
+.fc { font-size: 14px; }
+.fc .fc-toolbar { display: none; }
+.fc .fc-scrollgrid { border: 0; }
+.fc td, .fc th { border-color: var(--hair); }
+.fc .fc-daygrid-day-number { font-size: 13px; color: var(--ink-2); padding: 5px 7px; text-decoration: none; }
+.fc .fc-daygrid-day.fc-day-today, .fc .fc-timegrid-col.fc-day-today, .fc .fc-list-day.fc-day-today { background: rgba(0,0,0,0.018); }
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { background: var(--ink); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; margin: 3px; }
+.fc .fc-event { border: 0; border-radius: 5px; padding: 1px 5px; font-size: 12px; cursor: pointer; }
+.fc .fc-list-event:hover td { background: var(--ground-2); }
+.fc .fc-timegrid-slot { height: 44px; }
+.fc .fc-col-header-cell-cushion { color: var(--ink-3); font-size: 12px; text-decoration: none; text-transform: uppercase; }
+.fc .fc-list-day-cushion { background: var(--ground-2); }
+.fc a { text-decoration: none; }
+
+/* Year heat view */
+#yearView { padding: 8px 0; }
+.year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; }
+.mini-month h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.mini-month .mm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.mm-day { border: 0; border-radius: 4px; font-size: 10px; padding: 3px 0; background: var(--ground-2); color: var(--ink-3); }
+.mm-day.has-1 { background: #dcefe2; color: var(--ink-2); }
+.mm-day.has-2 { background: #a9d8bb; color: var(--ink); }
+.mm-day.has-3 { background: #5db584; color: #fff; }
+.mm-day.is-today { box-shadow: inset 0 0 0 2px var(--ink); font-weight: 700; }
+.mm-blank { background: none; }
+
+/* Day list under the calendar (the Fantastical list half) */
+.day-list { margin-top: 18px; border-top: 1px solid var(--hair); }
+.day-list h3 { padding-top: 14px; display: flex; justify-content: space-between; align-items: baseline; }
+.day-list h3 .dl-score { font-size: 13px; color: var(--ink-3); font-weight: 500; }
+.dl-progress { height: 6px; background: var(--ground-2); border-radius: 3px; overflow: hidden; margin: 4px 0 8px; }
+.dl-progress i { display: block; height: 100%; background: var(--steady); border-radius: 3px; }
+.task-row { display: flex; align-items: flex-start; gap: 11px; width: 100%; text-align: left; border: 0; background: none; padding: 11px 2px; border-bottom: 1px solid var(--hair); }
+.task-row .tr-dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 5px; flex: 0 0 auto; }
+.task-row .tr-main { flex: 1 1 auto; min-width: 0; }
+.task-row .tr-title { font-size: 16px; font-weight: 500; display: block; }
+.task-row .tr-meta { font-size: 13px; color: var(--ink-3); display: block; margin-top: 1px; }
+.task-row .tr-check { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--hair); background: #fff; color: var(--steady); font-size: 15px; flex: 0 0 auto; line-height: 1; }
+.task-row.is-done .tr-title { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
+.task-row.is-done .tr-check { background: var(--steady); border-color: var(--steady); color: #fff; }
+.parked-note { color: var(--ink-3); font-size: 14px; padding: 12px 2px; }
+.stretch-note { padding: 12px 2px; font-size: 15px; border-bottom: 1px solid var(--hair); }
+.stretch-note button { border: 0; background: none; color: var(--blue); font-size: 15px; padding: 0; margin-left: 8px; }
+.empty-note { color: var(--ink-3); font-size: 15px; padding: 16px 2px; }
+
+/* Capture */
+.capture-box textarea { width: 100%; border: 1px solid var(--hair); border-radius: 12px; padding: 13px; font-size: 16px; line-height: 1.5; background: #fff; resize: vertical; }
+.capture-actions, .draft-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.primary-btn { border: 0; background: var(--blue); color: #fff; border-radius: 10px; padding: 10px 18px; font-size: 15px; font-weight: 600; }
+.soft-btn { border: 1px solid var(--hair); background: #fff; color: var(--ink); border-radius: 10px; padding: 9px 14px; font-size: 15px; }
+.soft-btn.danger { color: var(--danger); }
+.file-btn { display: inline-block; cursor: pointer; }
+.hint { color: var(--ink-3); font-size: 13.5px; line-height: 1.45; }
+.draft-card { border: 1px solid var(--hair); border-radius: 12px; padding: 12px 14px; margin-top: 10px; display: flex; gap: 10px; align-items: flex-start; }
+.draft-card .tr-dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 5px; flex: 0 0 auto; }
+.draft-card input[type="text"] { border: 0; font-size: 16px; font-weight: 500; width: 100%; padding: 0; }
+.draft-card .dc-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.draft-card .dc-meta input { border: 1px solid var(--hair); border-radius: 7px; padding: 4px 7px; font-size: 13px; }
+.draft-card .dc-steps { font-size: 13.5px; color: var(--ink-2); margin: 7px 0 0; padding-left: 18px; }
+.draft-card .dc-del { border: 0; background: none; color: var(--danger); font-size: 14px; }
+.original-keep { margin-top: 14px; }
+.original-keep pre { white-space: pre-wrap; background: var(--ground-2); border-radius: 10px; padding: 12px; font-size: 13.5px; }
+
+/* Progress board */
+.progress-summary { display: flex; gap: 22px; flex-wrap: wrap; padding: 12px 2px 4px; font-size: 15px; }
+.progress-summary strong { font-size: 20px; display: block; }
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+.board-col { background: var(--ground-2); border-radius: 14px; padding: 12px; min-height: 200px; }
+.board-col h3 { font-size: 14px; color: var(--ink-2); }
+.board-list { display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+.p-card { background: #fff; border: 1px solid var(--hair); border-radius: 10px; padding: 10px 12px; cursor: grab; }
+.p-card .pc-title { font-size: 15px; font-weight: 500; display: block; }
+.p-card .pc-meta { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.p-card .pc-meta .tr-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.board-col.drag-over { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* Settings */
+.settings-group { border-top: 1px solid var(--hair); padding: 18px 0 8px; max-width: 560px; }
+.settings-group .row { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 15px; flex-wrap: wrap; }
+.settings-group input[type="time"], .settings-group input[type="number"], .settings-group input[type="text"] { border: 1px solid var(--hair); border-radius: 8px; padding: 6px 9px; font-size: 15px; }
+.row.check input { width: 19px; height: 19px; accent-color: var(--blue); }
+
+/* Sheets */
+.sheet { position: fixed; inset: 0; background: rgba(28,28,30,0.42); display: flex; align-items: flex-end; justify-content: center; z-index: 60; }
+.sheet-card { background: #fff; border-radius: 18px 18px 0 0; padding: 22px; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; }
+.sheet-card p { font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.field { display: block; font-size: 13px; color: var(--ink-3); margin-top: 12px; }
+.field input { display: block; width: 100%; margin-top: 5px; border: 1px solid var(--hair); border-radius: 9px; padding: 9px 11px; font-size: 16px; color: var(--ink); }
+.field-row { display: flex; gap: 10px; }
+.field-row .field { flex: 1; }
+.quick-preview { background: var(--ground-2); border-radius: 10px; padding: 11px 13px; font-size: 14.5px; margin-top: 12px; line-height: 1.5; }
+.details-fallback { margin-top: 12px; }
+.sheet-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+.sheet-actions.wrap { flex-wrap: wrap; justify-content: flex-start; }
+#dSteps .step-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--hair); font-size: 15px; }
+#dSteps .step-row input { width: 20px; height: 20px; accent-color: var(--steady); flex: 0 0 auto; }
+#dSteps .step-row.is-done span { color: var(--ink-3); text-decoration: line-through; }
+
+.toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 999px; padding: 11px 20px; font-size: 14.5px; z-index: 80; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+
+/* Phone: sidebar narrows, it never stacks away. Board stacks inside its panel only. */
+@media (max-width: 700px) {
+  #sidebar { width: 78px; padding: 14px 8px; }
+  .brand-name { display: none; }
+  .brand { justify-content: center; }
+  .side-item { flex-direction: column; gap: 4px; padding: 9px 2px; font-size: 11px; text-align: center; }
+  .side-item .side-label { display: block; }
+  .side-level { display: none; }
+  #main { padding: 14px 14px 50px; }
+  .month-title { font-size: 22px; }
+  .segmented button { padding: 6px 8px; font-size: 12px; }
+  .board { grid-template-columns: 1fr; }
+  .sheet { align-items: flex-end; }
+  .level-btn { padding: 9px 12px; }
+}
+@media (min-width: 701px) {
+  .sheet { align-items: center; }
+  .sheet-card { border-radius: 18px; }
+}
