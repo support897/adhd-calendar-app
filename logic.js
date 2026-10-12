@@ -165,14 +165,17 @@ function adaptDay(tasks, level, tomorrowTasks) {
   var visible = [], parked = [], stretch = null, i, t;
   if (level === "low") {
     var ess = sorted.filter(function (x) { return x.essential; });
-    var rest = sorted.filter(function (x) { return !x.essential; });
-    visible = ess.slice(0, 4);
-    if (visible.length < 4 && rest.length) {
+    /* A task the user taught a smallest version for is part of their bare
+       minimum by definition: it stays, shrunk, instead of vanishing. */
+    var taught = sorted.filter(function (x) { return !x.essential && x.minVersion; });
+    var rest = sorted.filter(function (x) { return !x.essential && !x.minVersion; });
+    visible = ess.slice(0, 4).concat(taught).slice(0, 6);
+    if (!taught.length && visible.length < 4 && rest.length) {
       var tiny = rest.slice().sort(function (a, b) { return a.durationMin - b.durationMin; })[0];
       visible.push(tiny);
       rest = rest.filter(function (x) { return x !== tiny; });
     }
-    parked = ess.slice(4).concat(rest);
+    parked = sorted.filter(function (x) { return visible.indexOf(x) === -1; });
   } else if (level === "full") {
     visible = sorted;
     if (tomorrowTasks && tomorrowTasks.length) {
