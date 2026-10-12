@@ -1,0 +1,9 @@
+# Her prompt (Apple Note, received 12 Oct 2026 21:41 AEST; started by her order in main chat)
+
+Base: https://apps.apple.com/us/app/fantastical-calendar/id718043190
+"make an app that follows the exact same calendar aesthetic and connection as this calendar, all of it and to end. Then besides calendar also add this features:
+
+- In the morning (whenever user chooses to set up timer) it asks how are you feeling today and there's three levels in different colors, and then depending on the level user is feeling calendar updates: it not feeling good just bare minimum task and so on. It can also ask user what's the bare minimum vs the highest so it can adapt to it. But based on default it must use logic and adapt tasks to it already. At any point through the day the user can change how they're feeling and tasks adapt to it then.
+- It must also have another side bar menu for writing tasks but the tasks it's like talking to a person (ai) that the whole job is to make you feel less overwhelmed. You can upload journal, voice recordings and anything hand written or notes and then it automatically does the to do list and assigns color, time etc.
+- Side bar menu where you can see all tasks for each progress and what has been completed and left to go.
+- The whole point of this app is to help people with adhd, and people that feel overwhelmed and can't divide to do or do list so they feel like everything pilling up. Must be as Apple intuitive, interactive and easy to use. It must also have drag and drop. Do research in human psychology and adhd/overwhelmed to understand exactly how app should be designed to help user achieve as much as possible, even if they can't out in words what they must do and you must help them make to do and also adapt to how they feel each day. Search for GitHub repo to see if something similar already done and copy it + adapt it for mine"
