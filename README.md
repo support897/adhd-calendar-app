@@ -6,4 +6,4 @@ Her full prompt: PROMPT.md. The research: PHASE1-RESEARCH.md. The build record, 
 
 Files: index.html, styles.css, app.js, logic.js (pure logic, unit tested), fullcalendar.js (FullCalendar v6.1.15 standard bundle, MIT), manifest.webmanifest, service-worker.js, icon.svg. Tests in tests/, screenshots in proofs/.
 
-Status: built and proven 12 Oct 2026 (37 logic tests, 27 browser checks, 7 drag checks, 6 recurrence checks, all passing, zero page errors). Gates: Efficiency PASS 12 Oct; Quality verdict pending at last note.
+Status: built, proven and LIVE 12 Oct 2026 (37 logic tests, 27 browser checks, 7 drag checks, 6 recurrence checks, all passing, zero page errors). Gates: Efficiency PASS and Quality PASS, both 12 Oct 2026. Live: https://adhd-calendar-app-beta.vercel.app
