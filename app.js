@@ -22,13 +22,15 @@ function defaultSettings() {
     checkinTime: "08:00",
     names: { low: "Low", steady: "Steady", full: "Full" },
     notif: { perm: "off", checkin: true, start: true, setup: 5, digest: true, digestTimes: ["12:30", "16:30"], done: false, doneTime: "20:00" },
-    pausedDate: null
+    pausedDate: null,
+    appearance: { theme: "white", cute: false },
+    sidebarCollapsed: false
   };
 }
 function load() {
   try {
     var raw = localStorage.getItem(STORE);
-    if (raw) { var s = JSON.parse(raw); s.settings = Object.assign(defaultSettings(), s.settings || {}); s.settings.notif = Object.assign(defaultSettings().notif, (s.settings || {}).notif || {}); return s; }
+    if (raw) { var s = JSON.parse(raw); s.settings = Object.assign(defaultSettings(), s.settings || {}); s.settings.notif = Object.assign(defaultSettings().notif, (s.settings || {}).notif || {}); s.settings.appearance = Object.assign(defaultSettings().appearance, (s.settings || {}).appearance || {}); return s; }
   } catch (e) {}
   return null;
 }
@@ -94,6 +96,38 @@ function adaptedFor(key) {
   return L.adaptDay(tasksOn(key), levelFor(key), tasksOn(L.addDays(key, 1)));
 }
 
+/* ---------- appearance + sidebar ---------- */
+var THEME_COLORS = { white: "#ffffff", dark: "#161618", blush: "#fff8fa", sky: "#f7fbff", mint: "#f6fcf8", lavender: "#faf8ff" };
+function applyAppearance() {
+  var a = state.settings.appearance;
+  var root = document.documentElement;
+  root.setAttribute("data-theme", a.theme || "white");
+  if (a.cute) root.setAttribute("data-cute", "1"); else root.removeAttribute("data-cute");
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", THEME_COLORS[a.theme] || "#ffffff");
+  document.querySelectorAll(".swatch").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-theme-set") === a.theme); });
+  $("cuteToggle").checked = !!a.cute;
+}
+function applySidebar() {
+  var root = document.documentElement;
+  if (state.settings.sidebarCollapsed) root.setAttribute("data-sb", "collapsed"); else root.removeAttribute("data-sb");
+  $("sbToggle").checked = !state.settings.sidebarCollapsed;
+}
+document.querySelectorAll(".swatch").forEach(function (b) {
+  b.addEventListener("click", function () { state.settings.appearance.theme = b.getAttribute("data-theme-set"); save(); applyAppearance(); });
+});
+$("cuteToggle").addEventListener("change", function () { state.settings.appearance.cute = $("cuteToggle").checked; save(); applyAppearance(); });
+$("sbCollapse").addEventListener("click", function () { state.settings.sidebarCollapsed = true; save(); applySidebar(); });
+$("sbExpand").addEventListener("click", function () { state.settings.sidebarCollapsed = false; save(); applySidebar(); });
+$("sbToggle").addEventListener("change", function () { state.settings.sidebarCollapsed = !$("sbToggle").checked; save(); applySidebar(); });
+function renderRing() {
+  var score = L.dayScore(adaptedFor(L.todayKey()));
+  var fg = $("ringFg");
+  if (fg) fg.style.strokeDashoffset = String(113 * (1 - score.pct / 100));
+  var pct = $("ringPct");
+  if (pct) pct.textContent = score.pct + "%";
+}
+
 /* ---------- toast ---------- */
 var toastTimer = null;
 function toast(msg) {
@@ -121,8 +155,10 @@ function renderTicker() {
     })(L.addDays(start, i));
   }
   var sel = el.querySelector('[data-date="' + selected + '"]');
-  if (sel) el.scrollLeft = sel.offsetLeft - el.clientWidth / 2 + 26;
+  if (sel) el.scrollTo({ left: sel.offsetLeft - el.clientWidth / 2 + 26, behavior: tickerBooted ? "smooth" : "auto" });
+  tickerBooted = true;
 }
+var tickerBooted = false;
 
 /* ---------- day list (the adapted plan) ---------- */
 function renderDayList() {
@@ -545,7 +581,7 @@ var recog = null;
 $("voiceBtn").addEventListener("click", function () {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { $("captureMsg").textContent = "Voice is not offered by this browser. Typing in the box works exactly the same."; return; }
-  if (recog) { recog.stop(); recog = null; $("voiceBtn").textContent = "🎙 Speak"; return; }
+  if (recog) { recog.stop(); recog = null; $("voiceBtn").querySelector("span").textContent = "Speak"; return; }
   recog = new SR(); recog.lang = "en-AU"; recog.interimResults = false;
   recog.onresult = function (ev) {
     var said = "";
@@ -553,9 +589,9 @@ $("voiceBtn").addEventListener("click", function () {
     $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + said.trim();
     $("captureMsg").textContent = "Got it. Check the words, then tap Make my list.";
   };
-  recog.onend = function () { recog = null; $("voiceBtn").textContent = "🎙 Speak"; };
+  recog.onend = function () { recog = null; $("voiceBtn").querySelector("span").textContent = "Speak"; };
   recog.onerror = function () { $("captureMsg").textContent = "Voice did not come through. Typing works the same."; };
-  recog.start(); $("voiceBtn").textContent = "⏹ Stop";
+  recog.start(); $("voiceBtn").querySelector("span").textContent = "Stop";
 });
 /* Handwriting photo: OCR runs from a free on-device library loaded only when asked. */
 $("photoFile").addEventListener("change", function (e) {
@@ -620,7 +656,11 @@ document.querySelectorAll(".board-col").forEach(function (col) {
 $("dayList").addEventListener("dragstart", function (e) {
   var row = e.target.closest ? e.target.closest(".task-row") : null;
   if (!row) return;
+  row.classList.add("dragging");
   e.dataTransfer.setData("text/plain", JSON.stringify({ id: row.getAttribute("data-id"), date: row.getAttribute("data-date") }));
+});
+$("dayList").addEventListener("dragend", function () {
+  $("dayList").querySelectorAll(".dragging").forEach(function (r) { r.classList.remove("dragging"); });
 });
 $("ticker").addEventListener("dragover", function (e) { e.preventDefault(); });
 $("ticker").addEventListener("drop", function (e) {
@@ -700,7 +740,7 @@ $("notifEnable").addEventListener("click", requestNotif);
 $("notifTest").addEventListener("click", function () {
   if (!("Notification" in window)) { toast("This browser does not offer notifications."); return; }
   if (Notification.permission !== "granted") { toast("Turn notifications on first, then the test can arrive."); return; }
-  try { new Notification("Your calm calendar", { body: "This is your test. Gentle, like the real ones." }); } catch (e) {}
+  try { new Notification("Pace", { body: "This is your test. Gentle, like the real ones." }); } catch (e) {}
 });
 $("notifPause").addEventListener("click", function () {
   state.settings.pausedDate = L.todayKey(); save(); toast("Paused for today. Silence is a fine choice.");
@@ -738,8 +778,10 @@ $("welcomeSkip").addEventListener("click", function () { state.welcomed = true; 
 $("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; requestNotif(); });
 
 /* ---------- boot ---------- */
-function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); refreshCalendar(); renderYear(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
+function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
 initCalendar();
+applyAppearance();
+applySidebar();
 bindSettings();
 renderTitle();
 selectDate(L.todayKey(), false);
