@@ -241,6 +241,21 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .stretch-note { padding: 12px 2px; font-size: 15px; border-bottom: 1px solid var(--hair); }
 .stretch-note button { border: 0; background: none; color: var(--accent); font-size: 15px; padding: 0; margin-left: 8px; }
 .empty-note { color: var(--ink-3); font-size: 15px; padding: 16px 2px; }
+.dock-note { display: flex; align-items: center; gap: 12px; }
+.dock-skip { flex: none; opacity: 0.92; }
+.dock-skip .skip-svg { width: 58px; height: auto; display: block; }
+
+/* Setup guide (Skip the Ferry) */
+.guide-card { position: relative; text-align: center; }
+.guide-x { position: absolute; top: 12px; right: 12px; }
+#guideArt .skip-svg { width: 148px; height: auto; margin: 6px auto 2px; display: block; }
+.guide-bubble { font-size: 19px; font-weight: 600; color: var(--ink); margin: 8px 0 4px; }
+.guide-dots { display: flex; gap: 7px; justify-content: center; margin: 14px 0 4px; }
+.g-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--hair); }
+.g-dot.is-on { background: var(--ink); }
+.guide-swatches { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+.g-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--hair); cursor: pointer; padding: 0; }
+.guide-card .sheet-actions { justify-content: center; }
 
 /* Capture */
 .capture-box textarea { width: 100%; border: 1px solid var(--hair); border-radius: 12px; padding: 13px; font-size: 16px; line-height: 1.5; background: var(--card); resize: vertical; }
