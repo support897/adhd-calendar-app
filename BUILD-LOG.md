@@ -101,3 +101,8 @@ Fixes routed by the Store Review desk's first full sweep (Pace 42 PASS / 8 FAIL)
   is the support URL in the pack.
 - SR-I1 signing stays Ilse's Vault step (SIGNING.md) — the AAB rebuild remains
   unsigned-but-ready until then.
+- Follow-up catch (same day): bundletool decompresses .gz assets in the AAB
+  and strips the suffix — the language file rides in the bundle as raw
+  eng.traineddata. app.js now passes gzip:false inside the Capacitor wrapper
+  (web unchanged); SW pace-v9. Both shapes test-proven (web 5/5, store-shape
+  simulation 5/5).
