@@ -8,4 +8,4 @@ Her full prompt: PROMPT.md. The research: PHASE1-RESEARCH.md. The build record, 
 
 Files: index.html, styles.css, app.js, logic.js (pure logic, unit tested), fullcalendar.js (FullCalendar v6.1.15 standard bundle, MIT), manifest.webmanifest, service-worker.js, icon.svg. Tests in tests/, screenshots in proofs/.
 
-Status: built, proven and LIVE. v1 (12 Oct 2026): Quality PASS + Efficiency PASS. v2 "Pace" (13 Oct 2026): Quality PASS + Efficiency PASS + QA Tester PASS (after a 2-bug QA fix loop, retest 24 of 24) — fully done under the three-gate law. Maker checks: 110, zero errors. Live: https://adhd-calendar-app-beta.vercel.app
+Status: built, proven and LIVE. v1 (12 Oct 2026): Quality PASS + Efficiency PASS. v2 "Pace" (13 Oct 2026): Quality PASS + Efficiency PASS + QA Tester PASS (after a 2-bug QA fix loop, retest 24 of 24) — fully done under the three-gate law. v3 (13 Oct 2026): To do + Habits sidebar panels (her order 22:12) + the App Checker's Visual Law text/icon cuts in the same build; maker checks 142, zero errors; the v3 gates are recorded in BUILD-LOG.md as they land. Live: https://adhd-calendar-app-beta.vercel.app
