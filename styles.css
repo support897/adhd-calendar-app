@@ -352,3 +352,48 @@ html[data-cute="1"] .add-btn { border-radius: 16px; }
   .sheet-card { border-radius: 18px; }
   html[data-cute="1"] .sheet-card { border-radius: 24px; }
 }
+
+/* ---------- to do + habits (v3) ---------- */
+.text-btn { background: none; border: 0; color: var(--accent); font-size: 14.5px; font-weight: 600; cursor: pointer; padding: 10px 2px; }
+.icon-only { padding: 10px 12px; }
+.empty-note .ico { vertical-align: -3px; margin-right: 7px; }
+.todo-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.todo-add input[type="text"] { flex: 1 1 200px; padding: 12px 14px; font-size: 16.5px; border: 1px solid var(--hair); border-radius: var(--radius); background: var(--card); color: var(--ink); }
+.todo-row { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 10px 12px; margin-top: 8px; animation: rise .25s ease both; }
+.todo-tick { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--ink-3); background: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.todo-tick .ico { width: 16px; height: 16px; }
+.todo-row.is-done .todo-tick { background: var(--green); border-color: var(--green); }
+.todo-text { flex: 1; font-size: 16.5px; overflow-wrap: anywhere; }
+.todo-row.is-done .todo-text { color: var(--ink-3); text-decoration: line-through; }
+.todo-cal, .todo-del { flex: none; background: none; border: 0; color: var(--ink-3); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; }
+.todo-cal.is-on { color: var(--accent); background: var(--seg); }
+.todo-del:hover { color: var(--danger); }
+.todo-draft-line { display: flex; gap: 10px; align-items: flex-start; background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 10px 12px; margin-top: 8px; font-size: 16px; cursor: pointer; }
+.todo-draft-line input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--accent); }
+.habit-row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 12px; margin-top: 8px; animation: rise .25s ease both; flex-wrap: wrap; }
+.habit-ico { flex: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #4c463c; }
+.habit-ico .ico { width: 22px; height: 22px; }
+.tint-0 { background: #f7e8c9; } .tint-1 { background: #dcefe2; } .tint-2 { background: #dde9fd; }
+.tint-3 { background: #fbe3ec; } .tint-4 { background: #e7e2fb; } .tint-5 { background: #dff3f0; }
+.habit-main { flex: 1 1 140px; display: flex; flex-direction: column; gap: 3px; min-width: 120px; }
+.habit-name { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.habit-streak { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); }
+.streak-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+.habit-week { display: flex; gap: 5px; }
+.week-dot { width: 17px; height: 17px; border-radius: 50%; border: 2px solid transparent; background: var(--seg); cursor: pointer; padding: 0; }
+.week-dot.is-done { background: var(--green); }
+.week-dot.is-today { box-shadow: 0 0 0 2px var(--seg); }
+.habit-tick { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink-3); background: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+@media (max-width: 700px) {
+  .habit-del { order: 3; margin-left: auto; }
+  .habit-week { order: 4; flex: 1 1 auto; gap: 7px; }
+  .habit-tick { order: 5; }
+}
+.habit-tick.is-done { background: var(--green); border-color: var(--green); animation: pop .3s ease; }
+.habit-del { flex: none; background: none; border: 0; color: var(--ink-3); cursor: pointer; padding: 6px; display: flex; }
+.habit-del:hover { color: var(--danger); }
+.habit-add { margin-top: 18px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.habit-add input[type="text"] { padding: 12px 14px; font-size: 16.5px; border: 1px solid var(--hair); border-radius: var(--radius); background: var(--ground); color: var(--ink); }
+.icon-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.icon-pick { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--hair); background: var(--ground); color: var(--ink-2); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.icon-pick.is-on { border-color: var(--accent); color: var(--accent); background: var(--seg); }
