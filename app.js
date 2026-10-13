@@ -15,6 +15,7 @@ var drafts = [];
 
 function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function icon(name) { return '<svg class="ico" aria-hidden="true"><use href="#' + name + '"/></svg>'; }
 function $(id) { return document.getElementById(id); }
 
 function defaultSettings() {
@@ -55,6 +56,20 @@ function load() {
     });
     if (!isObj(s.feelings)) s.feelings = {};
     if (!isObj(s.sent)) s.sent = {};
+    if (!Array.isArray(s.todos)) s.todos = [];
+    s.todos = s.todos.filter(function (t) { return isObj(t) && typeof t.text === "string"; });
+    s.todos.forEach(function (t) {
+      if (!t.id) t.id = uid();
+      t.done = !!t.done;
+      if (typeof t.calTaskId !== "string") t.calTaskId = null;
+    });
+    if (!Array.isArray(s.habits)) s.habits = [];
+    s.habits = s.habits.filter(function (h) { return isObj(h) && typeof h.name === "string"; });
+    s.habits.forEach(function (h) {
+      if (!h.id) h.id = uid();
+      if (L.HABIT_ICONS.indexOf(h.icon) === -1) h.icon = "star";
+      if (!isObj(h.days)) h.days = {};
+    });
     s.settings = Object.assign(defaultSettings(), isObj(s.settings) ? s.settings : {});
     s.settings.notif = Object.assign(defaultSettings().notif, isObj(s.settings.notif) ? s.settings.notif : {});
     if (!isObj(s.settings.names)) s.settings.names = defaultSettings().names;
@@ -88,7 +103,7 @@ function seed() {
     mk("Buy groceries for the week", tomorrow, null, 45, {}),
     mk("Call mum", tomorrow, "17:00", 15, {})
   ];
-  return { tasks: tasks, feelings: {}, settings: defaultSettings(), welcomed: false, sent: {} };
+  return { tasks: tasks, feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [] };
 }
 if (!state) { state = seed(); save(); }
 
@@ -207,11 +222,11 @@ function renderDayList() {
   var html = "<h3>" + d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }) +
     '<span class="dl-score">' + score.done + " of " + score.total + " done at your " + esc(names[level]) + " pace</span></h3>";
   html += '<div class="dl-progress"><i style="width:' + score.pct + '%"></i></div>';
-  if (!ad.visible.length && !ad.done.length) html += '<p class="empty-note">Nothing showing for this day. Add one small thing, or leave it empty. Empty is allowed.</p>';
+  if (!ad.visible.length && !ad.done.length) html += '<p class="empty-note">Nothing today. Empty is allowed.</p>';
   ad.visible.forEach(function (t) { html += rowHtml(t, false); });
   ad.done.forEach(function (t) { html += rowHtml(t, true); });
-  if (ad.stretch) html += '<div class="stretch-note">Feeling full. One more from tomorrow, only if you want it: <strong>' + esc(ad.stretch.title) + '</strong><button data-act="stretch" data-id="' + ad.stretch.id + '">Bring it to today</button></div>';
-  if (ad.parked.length) html += '<p class="parked-note">' + ad.parked.length + (ad.parked.length === 1 ? " thing is" : " things are") + " parked for this pace. Parked, not dropped. Raise the day’s level and they come back.</p>";
+  if (ad.stretch) html += '<div class="stretch-note">One more from tomorrow: <strong>' + esc(ad.stretch.title) + '</strong><button data-act="stretch" data-id="' + ad.stretch.id + '">Bring it to today</button></div>';
+  if (ad.parked.length) html += '<p class="parked-note">' + (ad.parked.length === 1 ? "1 thing" : ad.parked.length + " things") + " parked. Parked, not dropped. Raise the level to bring them back.</p>";
   $("dayList").innerHTML = html;
   bindRows($("dayList"));
 }
@@ -225,7 +240,7 @@ function rowHtml(t, done) {
   return '<div draggable="true" class="task-row' + (done ? " is-done" : "") + '" data-id="' + t.id + '" data-date="' + t.instanceDate + '">' +
     '<span class="tr-dot" style="background:' + t.color + '"></span>' +
     '<span class="tr-main"><span class="tr-title">' + esc(t.displayTitle || t.title) + '</span><span class="tr-meta">' + esc(meta.join(" · ")) + "</span></span>" +
-    '<button class="tr-check" data-check="' + t.id + '" aria-label="Mark done">' + (done ? "✓" : "") + "</button></div>";
+    '<button class="tr-check" data-check="' + t.id + '" aria-label="Mark done">' + (done ? icon("i-check") : "") + "</button></div>";
 }
 function bindRows(root) {
   root.querySelectorAll(".task-row").forEach(function (row) {
@@ -285,8 +300,9 @@ function renderUpNext() {
   var next = timed[0] || ad.visible[0];
   if (!next) { el.hidden = true; return; }
   el.hidden = false;
+  var firstStep = (next.steps && next.steps.some(function (s) { return !s.done; })) ? L.nextStepText(next) : "";
   el.innerHTML = '<span class="un-label">Up next</span><strong>' + esc(next.displayTitle || next.title) + "</strong> · about " + next.durationMin + " min" +
-    (next.time ? " · " + next.time : "") + "<br><span style='color:var(--ink-3)'>First step: " + esc(L.nextStepText(next)) + '</span><button data-un="' + next.id + '">Start</button>';
+    (next.time ? " · " + next.time : "") + (firstStep ? "<br><span style='color:var(--ink-3)'>" + esc(firstStep) + "</span>" : "") + '<button data-un="' + next.id + '">Start</button>';
   el.querySelector("[data-un]").addEventListener("click", function () {
     var t = baseTask(next.id); if (t) { t.status = "doing"; save(); refreshAll(); toast("Started. One step at a time."); }
   });
@@ -499,7 +515,7 @@ function openTask(id, instanceDate) {
 }
 function renderSteps(t) {
   var box = $("dSteps");
-  if (!t.steps || !t.steps.length) { box.innerHTML = '<p class="hint">No steps yet. This one is small enough to be a single step.</p>'; return; }
+  if (!t.steps || !t.steps.length) { box.innerHTML = '<p class="hint">No steps yet.</p>'; return; }
   box.innerHTML = t.steps.map(function (s, i) {
     return '<label class="step-row' + (s.done ? " is-done" : "") + '"><input type="checkbox" data-step="' + i + '"' + (s.done ? " checked" : "") + "><span>" + esc(s.text) + "</span></label>";
   }).join("");
@@ -629,26 +645,206 @@ $("voiceBtn").addEventListener("click", function () {
   recog.onerror = function () { $("captureMsg").textContent = "Voice did not come through. Typing works the same."; };
   recog.start(); $("voiceBtn").querySelector("span").textContent = "Stop";
 });
-/* Handwriting photo: OCR runs from a free on-device library loaded only when asked. */
-$("photoFile").addEventListener("change", function (e) {
-  var f = e.target.files[0]; if (!f) return;
-  $("captureMsg").textContent = "Reading your photo. This can take a little while the first time.";
+/* Handwriting photo: OCR runs from a free on-device library loaded only when
+   asked. Shared by Talk to it and To do; onText receives the words found. */
+function ocrPhoto(f, msgEl, onText) {
+  msgEl.textContent = "Reading your photo. This can take a little while the first time.";
   function run() {
     window.Tesseract.recognize(f, "eng").then(function (res) {
       var text = (res && res.data && res.data.text || "").trim();
-      if (text) { $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + text; $("captureMsg").textContent = "Here is what I could read. Fix any words, then tap Make my list."; }
-      else $("captureMsg").textContent = "I could not read words in that photo. Typing or speaking works the same.";
-    }).catch(function () { $("captureMsg").textContent = "Reading the photo did not work this time. Typing or speaking works the same."; });
+      if (text) onText(text);
+      else msgEl.textContent = "I could not read words in that photo. Typing or speaking works the same.";
+    }).catch(function () { msgEl.textContent = "Reading the photo did not work this time. Typing or speaking works the same."; });
   }
   if (window.Tesseract) run();
   else {
     var sc = document.createElement("script");
     sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js";
     sc.onload = run;
-    sc.onerror = function () { $("captureMsg").textContent = "The reading tool needs internet the first time. Typing or speaking works the same."; };
+    sc.onerror = function () { msgEl.textContent = "The reading tool needs internet the first time. Typing or speaking works the same."; };
     document.head.appendChild(sc);
   }
+}
+$("photoFile").addEventListener("change", function (e) {
+  var f = e.target.files[0]; if (!f) return;
+  ocrPhoto(f, $("captureMsg"), function (text) {
+    $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + text;
+    $("captureMsg").textContent = "Here is what I could read. Fix any words, then tap Make my list.";
+  });
 });
+
+/* ---------- to do: a fast list that lives happily beside the calendar ---------- */
+function addTodo(text) {
+  text = (text || "").trim();
+  if (!text) return null;
+  var item = { id: uid(), text: text, done: false, calTaskId: null };
+  state.todos.unshift(item);
+  return item;
+}
+function todoLinked(item) {
+  return !!(item.calTaskId && state.tasks.some(function (t) { return t.id === item.calTaskId; }));
+}
+function linkTodo(item) {
+  if (todoLinked(item)) return false;
+  var cat = L.categoryFor(item.text);
+  var task = { id: uid(), title: item.text, date: L.todayKey(), time: null, durationMin: 25, priority: 0, repeat: null, category: cat.id, color: cat.color, essential: false, status: "todo", steps: L.decompose(item.text, 25, false), minVersion: "", fullVersion: "", source: "todo", originalText: "", skipDates: [], doneDates: [] };
+  state.tasks.push(task);
+  item.calTaskId = task.id;
+  return true;
+}
+function renderTodos() {
+  var wrap = $("todoList"); if (!wrap) return;
+  wrap.innerHTML = "";
+  if (!state.todos.length) wrap.innerHTML = '<div class="empty-note">' + icon("i-todo") + "<span>Nothing here. Write one fast, above.</span></div>";
+  state.todos.forEach(function (item) {
+    var row = document.createElement("div");
+    row.className = "todo-row" + (item.done ? " is-done" : "");
+    row.innerHTML =
+      '<button class="todo-tick" data-act="tick" aria-label="Mark done">' + (item.done ? icon("i-check") : "") + "</button>" +
+      '<span class="todo-text"></span>' +
+      '<button class="todo-cal' + (todoLinked(item) ? " is-on" : "") + '" data-act="cal" aria-label="Put on the calendar" title="Put on the calendar">' + icon("i-calplus") + "</button>" +
+      '<button class="todo-del" data-act="del" aria-label="Delete">' + icon("i-trash") + "</button>";
+    row.querySelector(".todo-text").textContent = item.text;
+    row.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var act = b.getAttribute("data-act");
+        if (act === "tick") { item.done = !item.done; save(); renderTodos(); }
+        else if (act === "del") { state.todos = state.todos.filter(function (t) { return t.id !== item.id; }); save(); renderTodos(); }
+        else if (act === "cal") {
+          if (todoLinked(item)) {
+            state.tasks = state.tasks.filter(function (t) { return t.id !== item.calTaskId; });
+            item.calTaskId = null; save(); refreshAll(); toast("Off the calendar. Still on your list.");
+          } else if (linkTodo(item)) { save(); refreshAll(); toast("On today's calendar."); }
+        }
+      });
+    });
+    wrap.appendChild(row);
+  });
+  $("todoClearDone").hidden = !state.todos.some(function (t) { return t.done; });
+}
+function submitTodoInput() {
+  if (addTodo($("todoInput").value)) { $("todoInput").value = ""; save(); renderTodos(); }
+}
+$("todoAddBtn").addEventListener("click", submitTodoInput);
+$("todoInput").addEventListener("keydown", function (e) { if (e.key === "Enter") submitTodoInput(); });
+$("todoClearDone").addEventListener("click", function () {
+  state.todos = state.todos.filter(function (t) { return !t.done; });
+  save(); renderTodos(); toast("Done list cleared.");
+});
+$("todoCalAll").addEventListener("click", function () {
+  var n = 0;
+  state.todos.forEach(function (item) { if (!item.done && linkTodo(item)) n++; });
+  save(); refreshAll();
+  toast(n ? n + (n === 1 ? " item" : " items") + " on today's calendar." : "Everything is already on the calendar.");
+});
+var todoRecog = null;
+$("todoVoiceBtn").addEventListener("click", function () {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { $("todoMsg").textContent = "Voice is not offered by this browser. Typing works the same."; return; }
+  if (todoRecog) { todoRecog.stop(); todoRecog = null; $("todoVoiceBtn").querySelector("span").textContent = "Speak"; return; }
+  todoRecog = new SR(); todoRecog.lang = "en-AU"; todoRecog.interimResults = false;
+  todoRecog.onresult = function (ev) {
+    for (var i = 0; i < ev.results.length; i++) {
+      var said = ev.results[i][0].transcript.trim();
+      if (said && addTodo(said)) toast("Added: " + said);
+    }
+    save(); renderTodos();
+  };
+  todoRecog.onend = function () { todoRecog = null; $("todoVoiceBtn").querySelector("span").textContent = "Speak"; };
+  todoRecog.onerror = function () { $("todoMsg").textContent = "Voice did not come through. Typing works the same."; };
+  todoRecog.start(); $("todoVoiceBtn").querySelector("span").textContent = "Stop";
+});
+$("todoPhoto").addEventListener("change", function (e) {
+  var f = e.target.files[0]; if (!f) return;
+  ocrPhoto(f, $("todoMsg"), function (text) {
+    var lines = text.split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!lines.length) { $("todoMsg").textContent = "I could not read a list in that photo."; return; }
+    var list = $("todoDraftList"); list.innerHTML = "";
+    lines.forEach(function (line) {
+      var lab = document.createElement("label");
+      lab.className = "todo-draft-line";
+      var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = true; cb.value = line;
+      var sp = document.createElement("span"); sp.textContent = line;
+      lab.appendChild(cb); lab.appendChild(sp); list.appendChild(lab);
+    });
+    $("todoDraftArea").hidden = false;
+    $("todoMsg").textContent = "Here is what I could read. Untick anything that is not a to-do.";
+  });
+});
+$("todoDraftAdd").addEventListener("click", function () {
+  var n = 0;
+  $("todoDraftList").querySelectorAll("input[type=checkbox]:checked").forEach(function (cb) { if (addTodo(cb.value)) n++; });
+  $("todoDraftArea").hidden = true;
+  save(); renderTodos();
+  toast(n ? n + (n === 1 ? " to-do" : " to-dos") + " added." : "Nothing ticked, nothing added.");
+});
+$("todoDraftClear").addEventListener("click", function () { $("todoDraftArea").hidden = true; });
+
+/* ---------- habits: an icon, a tick, a run of dots ---------- */
+function habitIconId(key) { return key === "heart" ? "i-heart" : "i-h-" + key; }
+var habitPick = "star";
+function renderIconPicker() {
+  var wrap = $("habitIcons"); if (!wrap) return;
+  wrap.innerHTML = "";
+  L.HABIT_ICONS.forEach(function (key) {
+    var b = document.createElement("button");
+    b.className = "icon-pick" + (key === habitPick ? " is-on" : "");
+    b.setAttribute("aria-label", "Icon: " + key);
+    b.innerHTML = icon(habitIconId(key));
+    b.addEventListener("click", function () { habitPick = key; renderIconPicker(); });
+    wrap.appendChild(b);
+  });
+}
+function renderHabits() {
+  var wrap = $("habitList"); if (!wrap) return;
+  wrap.innerHTML = "";
+  if (!state.habits.length) wrap.innerHTML = '<div class="empty-note">' + icon("i-habits") + "<span>No habits yet. Name one and pick its icon below.</span></div>";
+  var today = L.todayKey();
+  state.habits.forEach(function (h, idx) {
+    var info = L.streakInfo(h.days, today);
+    var row = document.createElement("div");
+    row.className = "habit-row";
+    var dots = info.last7.map(function (d, i) {
+      return '<button class="week-dot' + (d.done ? " is-done" : "") + (i === 6 ? " is-today" : "") + '" data-key="' + d.key + '" aria-label="Toggle ' + d.key + '"></button>';
+    }).join("");
+    var streakDots = "";
+    for (var i = 0; i < Math.min(info.current, 10); i++) streakDots += '<span class="streak-dot"></span>';
+    row.innerHTML =
+      '<span class="habit-ico tint-' + (idx % 6) + '">' + icon(habitIconId(h.icon)) + "</span>" +
+      '<span class="habit-main"><span class="habit-name"></span>' +
+      '<span class="habit-streak">' + streakDots + (info.current ? '<span class="streak-num">' + info.current + " in a row</span>" : '<span class="streak-none">No run yet</span>') + "</span></span>" +
+      '<span class="habit-week">' + dots + "</span>" +
+      '<button class="habit-tick' + (h.days[today] ? " is-done" : "") + '" aria-label="Done today">' + (h.days[today] ? icon("i-check") : "") + "</button>" +
+      '<button class="habit-del" aria-label="Delete habit">' + icon("i-trash") + "</button>";
+    row.querySelector(".habit-name").textContent = h.name;
+    row.querySelectorAll(".week-dot").forEach(function (d) {
+      d.addEventListener("click", function () {
+        var k = d.getAttribute("data-key");
+        if (h.days[k]) delete h.days[k]; else h.days[k] = true;
+        save(); renderHabits();
+      });
+    });
+    row.querySelector(".habit-tick").addEventListener("click", function () {
+      if (h.days[today]) delete h.days[today]; else h.days[today] = true;
+      save(); renderHabits();
+    });
+    row.querySelector(".habit-del").addEventListener("click", function () {
+      state.habits = state.habits.filter(function (x) { return x.id !== h.id; });
+      save(); renderHabits(); toast("Habit removed.");
+    });
+    wrap.appendChild(row);
+  });
+  renderIconPicker();
+}
+function submitHabit() {
+  var name = $("habitName").value.trim();
+  if (!name) { toast("Give the habit a name first."); return; }
+  state.habits.push({ id: uid(), name: name, icon: habitPick, days: {} });
+  $("habitName").value = "";
+  save(); renderHabits();
+}
+$("habitAddBtn").addEventListener("click", submitHabit);
+$("habitName").addEventListener("keydown", function (e) { if (e.key === "Enter") submitHabit(); });
 
 /* ---------- progress board ---------- */
 function renderProgress() {
@@ -816,13 +1012,15 @@ $("welcomeSkip").addEventListener("click", function () { state.welcomed = true; 
 $("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; requestNotif(); });
 
 /* ---------- boot ---------- */
-function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
+function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
 initCalendar();
 applyAppearance();
 applySidebar();
 bindSettings();
 renderTitle();
 selectDate(L.todayKey(), false);
+renderTodos();
+renderHabits();
 checkNotifications();
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
 })();
