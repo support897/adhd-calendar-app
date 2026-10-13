@@ -84,3 +84,20 @@ Two new sidebar panels, built icon-first under her design law (least text, icons
 - GUIDE (Empty-Start law, Lab spec GUIDE-MASCOTS-001): Skip the Ferry — one SVG master, welcome/point/celebrate/goodbye poses, bubbles ≤6 words ("We cross at your pace."), step 2 applies themes for real, step 3 ends at the Add sheet, close in one tap, never blocks, reopens from Settings (Setup guide), and Skip waits at the empty-day dock only.
 - DATA NEVER DELETED: the normalise pass now REPAIRS a string-shaped todos value into a real item instead of dropping it (pinned in features-check).
 - Maker total: 165 checks, 0 failures (logic 44, features 38, browser 28, drag 7, recur 6, v2 28, qa 14).
+
+## 14 Oct 2026 — Store Review fix build (SW pace-v8)
+Fixes routed by the Store Review desk's first full sweep (Pace 42 PASS / 8 FAIL):
+- SR-E1/E2 privacy: privacy.html + a new support.html published from the app repo
+  (URLs in the store listing pack); both linked from Settings ("Help + privacy").
+- SR-A7 Tesseract: the OCR library is BUNDLED — vendor/tesseract holds
+  tesseract.js 5.0.5, its worker, the two LSTM core builds (SIMD + plain, WASM
+  embedded) and the English LSTM data (best_int). app.js calls recognize() with
+  local workerPath/corePath/langPath; no CDN string remains. New suite
+  tests/ocr-check.mjs reads a real generated image through the real photo input
+  and asserts zero external requests.
+- SR-H2 screenshots: all store shots re-shot on this build; To Do and Habits
+  join the set (6 per store).
+- SR-H6 support: support.html (email + the three questions people actually ask)
+  is the support URL in the pack.
+- SR-I1 signing stays Ilse's Vault step (SIGNING.md) — the AAB rebuild remains
+  unsigned-but-ready until then.
