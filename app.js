@@ -652,25 +652,26 @@ $("voiceBtn").addEventListener("click", function () {
   recog.onerror = function () { $("captureMsg").textContent = "Voice did not come through. Typing works the same."; };
   recog.start(); $("voiceBtn").querySelector("span").textContent = "Stop";
 });
-/* Handwriting photo: OCR runs from a free on-device library loaded only when
-   asked. Shared by Talk to it and To do; onText receives the words found. */
+/* Handwriting photo: OCR runs on-device with the Tesseract.js copy bundled
+   in vendor/tesseract (worker, LSTM core and English data are local too).
+   Shared by Talk to it and To do; onText receives the words found. */
+var OCR_OPTIONS = {
+  workerPath: "vendor/tesseract/worker.min.js",
+  corePath: "vendor/tesseract/core",
+  langPath: "vendor/tesseract/lang",
+  cacheMethod: "none"
+};
 function ocrPhoto(f, msgEl, onText) {
   msgEl.textContent = "Reading your photo. This can take a little while the first time.";
-  function run() {
-    window.Tesseract.recognize(f, "eng").then(function (res) {
-      var text = (res && res.data && res.data.text || "").trim();
-      if (text) onText(text);
-      else msgEl.textContent = "I could not read words in that photo. Typing or speaking works the same.";
-    }).catch(function () { msgEl.textContent = "Reading the photo did not work this time. Typing or speaking works the same."; });
+  if (!window.Tesseract) {
+    msgEl.textContent = "The reading tool did not load. Typing or speaking works the same.";
+    return;
   }
-  if (window.Tesseract) run();
-  else {
-    var sc = document.createElement("script");
-    sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js";
-    sc.onload = run;
-    sc.onerror = function () { msgEl.textContent = "The reading tool needs internet the first time. Typing or speaking works the same."; };
-    document.head.appendChild(sc);
-  }
+  window.Tesseract.recognize(f, "eng", OCR_OPTIONS).then(function (res) {
+    var text = (res && res.data && res.data.text || "").trim();
+    if (text) onText(text);
+    else msgEl.textContent = "I could not read words in that photo. Typing or speaking works the same.";
+  }).catch(function () { msgEl.textContent = "Reading the photo did not work this time. Typing or speaking works the same."; });
 }
 $("photoFile").addEventListener("change", function (e) {
   var f = e.target.files[0]; if (!f) return;
