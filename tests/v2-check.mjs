@@ -15,7 +15,7 @@ await page.goto("http://localhost:8915/", { waitUntil: "networkidle" });
 check("brand: page title is Pace", (await page.title()) === "Pace");
 check("brand: sidebar shows the Pace wordmark", /Pace/.test(await page.locator(".brand-name").textContent()));
 check("brand: logo mark renders in the sidebar", await page.locator(".brand .brand-mark").isVisible());
-check("icons: nav items use svg icons", (await page.locator(".side-item svg.ico").count()) === 4);
+check("icons: nav items use svg icons", (await page.locator(".side-item svg.ico").count()) === 6);
 await page.click("#welcomeSkip");
 check("ring: today's progress ring is in the sidebar", await page.locator(".side-ring").isVisible() && /%/.test(await page.locator("#ringPct").textContent()));
 
