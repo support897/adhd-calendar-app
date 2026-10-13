@@ -36,6 +36,25 @@ try {
     <symbol id="i-cam" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
     <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
   </defs>
+    <symbol id="i-todo" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+    <symbol id="i-habits" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></symbol>
+    <symbol id="i-calplus" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 13v6M9 16h6"/></symbol>
+    <symbol id="i-h-drop" viewBox="0 0 24 24"><path d="M12 2.7l5.66 5.66a8 8 0 1 1-11.31 0z"/></symbol>
+    <symbol id="i-h-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></symbol>
+    <symbol id="i-h-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+    <symbol id="i-h-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+    <symbol id="i-h-coffee" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><path d="M6 1v3M10 1v3M14 1v3"/></symbol>
+    <symbol id="i-h-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+    <symbol id="i-h-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+    <symbol id="i-h-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="i-h-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></symbol>
+    <symbol id="i-h-wind" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></symbol>
+    <symbol id="i-h-activity" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 </svg>
 <div id="app">
   <aside id="sidebar" aria-label="Menu">
@@ -47,6 +66,8 @@ try {
     <nav>
       <button class="side-item is-active" data-panel="calendar"><svg class="ico side-ico"><use href="#i-cal"/></svg><span class="side-label">Calendar</span></button>
       <button class="side-item" data-panel="capture"><svg class="ico side-ico"><use href="#i-chat"/></svg><span class="side-label">Talk to it</span></button>
+      <button class="side-item" data-panel="todo"><svg class="ico side-ico"><use href="#i-todo"/></svg><span class="side-label">To do</span></button>
+      <button class="side-item" data-panel="habits"><svg class="ico side-ico"><use href="#i-habits"/></svg><span class="side-label">Habits</span></button>
       <button class="side-item" data-panel="progress"><svg class="ico side-ico"><use href="#i-chart"/></svg><span class="side-label">Progress</span></button>
       <button class="side-item" data-panel="settings"><svg class="ico side-ico"><use href="#i-gear"/></svg><span class="side-label">Settings</span></button>
     </nav>
@@ -73,7 +94,7 @@ try {
             <button data-view="year">Year</button>
             <button data-view="listWeek">Agenda</button>
           </div>
-          <button id="addBtn" class="add-btn" aria-label="Add a task">+</button>
+          <button id="addBtn" class="add-btn" aria-label="Add a task"><svg class="ico"><use href="#i-plus"/></svg></button>
         </div>
       </header>
 
@@ -82,7 +103,7 @@ try {
       <div id="checkinCard" class="checkin-card">
         <div class="checkin-text">
           <strong id="checkinQ">How are you feeling today?</strong>
-          <span id="checkinSub">Pick one. The day shapes itself around it. Change it any time.</span>
+          <span id="checkinSub">The day adapts.</span>
         </div>
         <div class="level-row" id="levelRow">
           <button class="level-btn level-low" data-level="low"><span class="level-dot"></span><span class="level-name" data-level-name="low">Low</span></button>
@@ -104,7 +125,6 @@ try {
     <!-- CAPTURE PANEL -->
     <section class="panel" id="panel-capture">
       <header class="topbar"><h2>Talk to it</h2></header>
-      <p class="panel-lede">Dump it all here, any shape it comes in. Talking, a journal, a photo of your handwriting, messy notes. It gets sorted into a calm list for you.</p>
       <div class="capture-box">
         <textarea id="dumpText" rows="7" placeholder="Try: call the dentist tomorrow at 3pm, and then clean the kitchen. Pay the rent on friday!!! Water the plants every weekday."></textarea>
         <div class="capture-actions">
@@ -126,10 +146,42 @@ try {
       </div>
     </section>
 
+    <!-- TO DO PANEL -->
+    <section class="panel" id="panel-todo">
+      <header class="topbar"><h2>To do</h2><button id="todoCalAll" class="soft-btn"><svg class="ico"><use href="#i-calplus"/></svg><span>All to calendar</span></button></header>
+      <div class="todo-add">
+        <input id="todoInput" type="text" placeholder="Write it, fast" autocomplete="off" aria-label="New to-do">
+        <button id="todoAddBtn" class="primary-btn icon-only" aria-label="Add to-do"><svg class="ico"><use href="#i-plus"/></svg></button>
+        <button id="todoVoiceBtn" class="soft-btn"><svg class="ico"><use href="#i-mic"/></svg><span>Speak</span></button>
+        <label class="soft-btn file-btn"><svg class="ico"><use href="#i-cam"/></svg><span>Photo</span><input type="file" id="todoPhoto" accept="image/*" hidden></label>
+      </div>
+      <p id="todoMsg" class="hint" role="status"></p>
+      <div id="todoDraftArea" hidden>
+        <h3>From your photo. Tick the keepers.</h3>
+        <div id="todoDraftList"></div>
+        <div class="draft-actions">
+          <button id="todoDraftAdd" class="primary-btn">Add these</button>
+          <button id="todoDraftClear" class="soft-btn">Start again</button>
+        </div>
+      </div>
+      <div id="todoList"></div>
+      <button id="todoClearDone" class="text-btn" hidden>Clear done</button>
+    </section>
+
+    <!-- HABITS PANEL -->
+    <section class="panel" id="panel-habits">
+      <header class="topbar"><h2>Habits</h2></header>
+      <div id="habitList"></div>
+      <div class="habit-add">
+        <input id="habitName" type="text" placeholder="New habit" autocomplete="off" aria-label="New habit name">
+        <div id="habitIcons" class="icon-picker" role="radiogroup" aria-label="Pick an icon"></div>
+        <button id="habitAddBtn" class="primary-btn">Add habit</button>
+      </div>
+    </section>
+
     <!-- PROGRESS PANEL -->
     <section class="panel" id="panel-progress">
       <header class="topbar"><h2>Progress</h2></header>
-      <p class="panel-lede">What is done, and what is left. Done things stay where you can see them. Drag cards between the columns, or tap one to change it.</p>
       <div id="progressSummary" class="progress-summary"></div>
       <div class="board">
         <div class="board-col" data-status="todo"><h3>To do</h3><div class="board-list" id="col-todo"></div></div>
@@ -151,8 +203,8 @@ try {
           <button class="swatch" data-theme-set="mint"><span class="sw-dot" style="background:#a9dcc0"></span>Mint</button>
           <button class="swatch" data-theme-set="lavender"><span class="sw-dot" style="background:#c9bdf2"></span>Lavender</button>
         </div>
-        <label class="row check"><input type="checkbox" id="cuteToggle"> Cute mode <span class="hint">rounder, softer, a little playful</span></label>
-        <label class="row check"><input type="checkbox" id="sbToggle"> Menu open <span class="hint">untick to hide the menu completely; the small Pace mark brings it back</span></label>
+        <label class="row check"><input type="checkbox" id="cuteToggle"> Cute mode</label>
+        <label class="row check"><input type="checkbox" id="sbToggle"> Menu open <span class="hint">The Pace mark brings it back.</span></label>
       </div>
       <div class="settings-group">
         <h3>Morning check-in</h3>
@@ -176,14 +228,14 @@ try {
           <button id="notifTest" class="soft-btn">Send a test</button>
           <button id="notifPause" class="soft-btn">Pause all for today</button>
         </div>
-        <p class="hint">Notifications fire while the app is installed or open. A promise of wake-ups while the app is fully closed needs a small server, which this version does not use.</p>
+        <p class="hint">Reminders fire while the app is open.</p>
       </div>
       <div class="settings-group">
         <h3>Your tasks</h3>
         <div class="draft-actions">
           <button id="clearSamples" class="soft-btn">Remove the sample tasks</button>
         </div>
-        <p class="hint">Everything lives on this device only. No account, no server, nothing leaves your phone or computer.</p>
+        <p class="hint">On this device only.</p>
       </div>
       <div class="settings-group brand-foot">
         <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
@@ -197,8 +249,8 @@ try {
 <div id="addSheet" class="sheet" hidden>
   <div class="sheet-card">
     <h3>Add a task</h3>
-    <label class="field">Say it in one sentence
-      <input type="text" id="quickText" placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes">
+    <label class="field">
+      <input type="text" id="quickText" placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes" aria-label="Say it in one sentence">
     </label>
     <div id="quickPreview" class="quick-preview" hidden></div>
     <details class="details-fallback"><summary>Or fill in the details</summary>
@@ -236,11 +288,11 @@ try {
     <label class="row check"><input type="checkbox" id="dEssential"> This one must not slip</label>
     <details class="original-keep" id="dOriginalWrap" hidden><summary>The words this came from</summary><pre id="dOriginal"></pre></details>
     <div class="sheet-actions wrap">
-      <button id="dDone" class="primary-btn">Done</button>
-      <button id="dDoing" class="soft-btn">Doing</button>
-      <button id="dNotToday" class="soft-btn">Not today</button>
-      <button id="dDelete" class="soft-btn danger">Delete</button>
-      <button id="dClose" class="soft-btn">Close</button>
+      <button id="dDone" class="primary-btn"><svg class="ico"><use href="#i-check"/></svg>Done</button>
+      <button id="dDoing" class="soft-btn"><svg class="ico"><use href="#i-play"/></svg>Doing</button>
+      <button id="dNotToday" class="soft-btn"><svg class="ico"><use href="#i-h-moon"/></svg>Not today</button>
+      <button id="dDelete" class="soft-btn danger"><svg class="ico"><use href="#i-trash"/></svg>Delete</button>
+      <button id="dClose" class="soft-btn"><svg class="ico"><use href="#i-x"/></svg>Close</button>
     </div>
   </div>
 </div>
@@ -250,9 +302,7 @@ try {
   <div class="sheet-card">
     <h3>Welcome to Pace</h3>
     <p><strong>Your day, at your pace.</strong></p>
-    <p>Each morning it asks how you are feeling, in three levels. The day then shapes itself: small on a low day, full on a full day. Nothing is ever marked late or missed. Things that do not fit are parked, safe, and easy to find.</p>
-    <p>A few sample tasks are in today so you can see how it works. Remove them any time in Settings.</p>
-    <p>Notifications are gentle and you choose them. Want the morning check-in reminder?</p>
+    <p>The day shapes itself around you.</p>
     <div class="sheet-actions">
       <button id="welcomeNotif" class="primary-btn">Turn on notifications</button>
       <button id="welcomeSkip" class="soft-btn">Not now</button>
