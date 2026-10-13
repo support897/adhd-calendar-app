@@ -217,13 +217,30 @@ function digestText(visible) {
   return visible.length + (visible.length === 1 ? " small thing" : " small things") + " left today. Quickest: " + quickest.title + " (" + quickest.durationMin + " min).";
 }
 
+/* The habit icons a user can pick from (keys into the app's SVG sprite). */
+var HABIT_ICONS = ["drop", "sun", "moon", "heart", "book", "coffee", "music", "star", "zap", "smile", "wind", "activity"];
+
+/* Streak maths for Habits. days maps "YYYY-MM-DD" -> true. The current streak
+   counts back from today, or from yesterday if today is not ticked yet (the
+   day is not over, so the run is still alive). last7 is oldest first. */
+function streakInfo(days, today) {
+  days = days || {};
+  var last7 = [];
+  for (var i = 6; i >= 0; i--) { var k = addDays(today, -i); last7.push({ key: k, done: !!days[k] }); }
+  var cur = 0;
+  var k2 = days[today] ? today : addDays(today, -1);
+  while (days[k2]) { cur++; k2 = addDays(k2, -1); }
+  return { current: cur, last7: last7 };
+}
+
 var api = {
   pad: pad, toKey: toKey, parseKey: parseKey, addDays: addDays, todayKey: todayKey,
   toMin: toMin, toHHMM: toHHMM, nudgeTime: nudgeTime,
   categoryFor: categoryFor, estimateDuration: estimateDuration,
   isBig: isBig, decompose: decompose, parseItem: parseItem, parseDump: parseDump,
   sortDay: sortDay, adaptDay: adaptDay, dayScore: dayScore,
-  nextStepText: nextStepText, digestText: digestText, CATEGORIES: CATEGORIES
+  nextStepText: nextStepText, digestText: digestText, CATEGORIES: CATEGORIES,
+  HABIT_ICONS: HABIT_ICONS, streakInfo: streakInfo
 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.CalmLogic = api;
