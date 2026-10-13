@@ -70,5 +70,16 @@ check("no shame words anywhere in logic outputs", JSON.stringify([low, steady, f
 check("digest names the quickest", /Reply to one email/.test(L.digestText(steady.visible)));
 check("nextStep returns first undone step", L.nextStepText({ title: "X", steps: [{ text: "a", done: true }, { text: "b", done: false }] }) === "b");
 
+/* ---------- streakInfo (Habits) ---------- */
+const today = L.todayKey();
+const d = (n) => L.addDays(today, n);
+check("streak: empty days, no run, week all undone", (() => { const s = L.streakInfo({}, today); return s.current === 0 && s.last7.length === 7 && s.last7.every(x => !x.done) && s.last7[6].key === today; })());
+check("streak: today only is a run of 1", L.streakInfo({ [today]: true }, today).current === 1);
+check("streak: 3 back from today", L.streakInfo({ [today]: true, [d(-1)]: true, [d(-2)]: true }, today).current === 3);
+check("streak: gap yesterday stops the count even with older days", L.streakInfo({ [today]: true, [d(-2)]: true, [d(-3)]: true }, today).current === 1);
+check("streak: unticked today keeps yesterday's run alive", L.streakInfo({ [d(-1)]: true, [d(-2)]: true }, today).current === 2);
+check("streak: last7 flags the right days", (() => { const s = L.streakInfo({ [d(-6)]: true, [today]: true }, today); return s.last7[0].done === true && s.last7[5].done === false && s.last7[6].done === true; })());
+check("12 habit icons on the list", L.HABIT_ICONS.length === 12);
+
 console.log("RESULT pass=" + pass + " fail=" + fail);
 if (fail) process.exit(1);
