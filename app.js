@@ -27,10 +27,46 @@ function defaultSettings() {
     sidebarCollapsed: false
   };
 }
+function isObj(x) { return !!x && typeof x === "object" && !Array.isArray(x); }
+/* A clock time as HH:MM if it is a real time of day, else null. */
+function validClock(x) {
+  var m = /^(\d{1,2}):(\d{2})$/.exec(String(x == null ? "" : x).trim());
+  if (!m || +m[1] > 23 || +m[2] > 59) return null;
+  return L.pad(+m[1]) + ":" + m[2];
+}
 function load() {
   try {
     var raw = localStorage.getItem(STORE);
-    if (raw) { var s = JSON.parse(raw); s.settings = Object.assign(defaultSettings(), s.settings || {}); s.settings.notif = Object.assign(defaultSettings().notif, (s.settings || {}).notif || {}); s.settings.appearance = Object.assign(defaultSettings().appearance, (s.settings || {}).appearance || {}); return s; }
+    if (!raw) return null;
+    var s = JSON.parse(raw);
+    if (!isObj(s)) return null;
+    /* Normalise every field the app leans on. All of a user's data lives in
+       this one key; a wrong-shaped field must recover, never brick the app. */
+    if (!Array.isArray(s.tasks)) s.tasks = [];
+    s.tasks = s.tasks.filter(function (t) { return isObj(t) && typeof t.title === "string"; });
+    s.tasks.forEach(function (t) {
+      if (!t.id) t.id = uid();
+      if (typeof t.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(t.date)) t.date = L.todayKey();
+      if (!Array.isArray(t.skipDates)) t.skipDates = [];
+      if (!Array.isArray(t.doneDates)) t.doneDates = [];
+      if (!Array.isArray(t.steps)) t.steps = [];
+      if (typeof t.durationMin !== "number" || !(t.durationMin > 0)) t.durationMin = 25;
+      if (typeof t.status !== "string") t.status = "todo";
+    });
+    if (!isObj(s.feelings)) s.feelings = {};
+    if (!isObj(s.sent)) s.sent = {};
+    s.settings = Object.assign(defaultSettings(), isObj(s.settings) ? s.settings : {});
+    s.settings.notif = Object.assign(defaultSettings().notif, isObj(s.settings.notif) ? s.settings.notif : {});
+    if (!isObj(s.settings.names)) s.settings.names = defaultSettings().names;
+    ["low", "steady", "full"].forEach(function (k) {
+      if (typeof s.settings.names[k] !== "string" || !s.settings.names[k].trim()) s.settings.names[k] = defaultSettings().names[k];
+    });
+    s.settings.appearance = Object.assign(defaultSettings().appearance, isObj(s.settings.appearance) ? s.settings.appearance : {});
+    if (typeof s.settings.sidebarCollapsed !== "boolean") s.settings.sidebarCollapsed = !!s.settings.sidebarCollapsed;
+    var times = (Array.isArray(s.settings.notif.digestTimes) ? s.settings.notif.digestTimes : []).map(validClock).filter(Boolean);
+    s.settings.notif.digestTimes = times.length ? times : ["12:30"];
+    s.welcomed = !!s.welcomed;
+    return s;
   } catch (e) {}
   return null;
 }
@@ -695,9 +731,11 @@ function readSettings() {
   s.notif.checkin = $("nCheckin").checked; s.notif.start = $("nStart").checked;
   s.notif.setup = Math.max(0, Math.min(60, +$("nSetup").value || 5));
   s.notif.digest = $("nDigest").checked;
-  s.notif.digestTimes = $("nDigestTimes").value.split(",").map(function (x) { return x.trim(); }).filter(function (x) { return /^\d{2}:\d{2}$/.test(x); });
+  s.notif.digestTimes = $("nDigestTimes").value.split(",").map(validClock).filter(Boolean);
   if (!s.notif.digestTimes.length) s.notif.digestTimes = ["12:30"];
   s.notif.done = $("nDone").checked; s.notif.doneTime = $("nDoneTime").value || "20:00";
+  /* Show what was actually kept, so a fixed time is never a silent change. */
+  $("nDigestTimes").value = s.notif.digestTimes.join(", ");
   save(); renderCheckin();
 }
 ["checkinTime", "nameLow", "nameSteady", "nameFull", "nCheckin", "nStart", "nSetup", "nDigest", "nDigestTimes", "nDone", "nDoneTime"].forEach(function (id) {
