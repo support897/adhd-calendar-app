@@ -655,11 +655,16 @@ $("voiceBtn").addEventListener("click", function () {
 /* Handwriting photo: OCR runs on-device with the Tesseract.js copy bundled
    in vendor/tesseract (worker, LSTM core and English data are local too).
    Shared by Talk to it and To do; onText receives the words found. */
+/* In the store build, bundletool stores the language file decompressed as
+   eng.traineddata (it strips .gz); on the web the .gz is served as-is.
+   gzip:false makes Tesseract ask for the raw name the bundle carries. */
+var OCR_IN_APP = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform());
 var OCR_OPTIONS = {
   workerPath: "vendor/tesseract/worker.min.js",
   corePath: "vendor/tesseract/core",
   langPath: "vendor/tesseract/lang",
-  cacheMethod: "none"
+  cacheMethod: "none",
+  gzip: !OCR_IN_APP
 };
 function ocrPhoto(f, msgEl, onText) {
   msgEl.textContent = "Reading your photo. This can take a little while the first time.";
