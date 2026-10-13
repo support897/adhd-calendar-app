@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><style>
+  body { margin: 0; font-family: sans-serif; }
+  .row { display: flex; gap: 0; }
+  .cell { padding: 18px; text-align: center; }
+  .light { background: #ffffff; } .dark { background: #17150f; }
+  .cell p { margin: 10px 0 0; font-size: 15px; }
+  .light p { color: #333; } .dark p { color: #bbb; }
+  .sizes { display: flex; gap: 14px; align-items: end; justify-content: center; margin-top: 12px; }
+  img { display: block; }
+</style>
+<div class="row" id="rows"></div>
+<script>
+  const concepts = [["a", "A — Steps, full bleed"], ["b", "B — Three dots climbing"], ["c", "C — One stepped path"]];
+  const sizes = [100, 48, 32, 16];
+  document.getElementById("rows").innerHTML = concepts.map(([k, name]) => `
+    <div>
+      <div class="cell light"><img src="concept-${k}.svg" width="200" height="200"><p>${name}</p>
+        <div class="sizes">${sizes.map(s => `<img src="concept-${k}.svg" width="${s}" height="${s}">`).join("")}</div></div>
+      <div class="cell dark"><img src="concept-${k}.svg" width="200" height="200"><p>${name}</p>
+        <div class="sizes">${sizes.map(s => `<img src="concept-${k}.svg" width="${s}" height="${s}">`).join("")}</div></div>
+    </div>`).join("");
+</script>
