@@ -64,6 +64,7 @@ await page.click("#habitAddBtn");
 await page.waitForTimeout(250);
 check("habit added with its icon", (await page.locator(".habit-row").count()) === 1 && /Drink water/.test(await page.locator("#habitList").textContent()));
 check("habit shows 7 week dots", (await page.locator(".week-dot").count()) === 7);
+check("undone week dot has a real fill (pins the CSS token class)", (await page.evaluate(() => { const d = document.querySelector(".week-dot:not(.is-done)"); return d ? getComputedStyle(d).backgroundColor : "missing"; })) !== "rgba(0, 0, 0, 0)");
 check("fresh habit has no run yet", /No run yet/.test(await page.locator("#habitList").textContent()));
 await page.click(".habit-tick");
 await page.waitForTimeout(250);
