@@ -234,6 +234,7 @@ try {
         <h3>Your tasks</h3>
         <div class="draft-actions">
           <button id="clearSamples" class="soft-btn">Remove the sample tasks</button>
+          <button id="guideAgain" class="soft-btn">Setup guide</button>
         </div>
         <p class="hint">On this device only.</p>
       </div>
@@ -293,6 +294,21 @@ try {
       <button id="dNotToday" class="soft-btn"><svg class="ico"><use href="#i-h-moon"/></svg>Not today</button>
       <button id="dDelete" class="soft-btn danger"><svg class="ico"><use href="#i-trash"/></svg>Delete</button>
       <button id="dClose" class="soft-btn"><svg class="ico"><use href="#i-x"/></svg>Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP GUIDE (Skip the Ferry; Lab spec GUIDE-MASCOTS-001) -->
+<div id="guideSheet" class="sheet" hidden>
+  <div class="sheet-card guide-card">
+    <button id="guideClose" class="icon-btn guide-x" aria-label="Close guide"><svg class="ico"><use href="#i-x"/></svg></button>
+    <div id="guideArt" aria-hidden="true"></div>
+    <p id="guideBubble" class="guide-bubble"></p>
+    <div id="guideExtra"></div>
+    <div class="guide-dots" id="guideDots" aria-hidden="true"></div>
+    <div class="sheet-actions">
+      <button id="guideSkip" class="soft-btn">Skip</button>
+      <button id="guideNext" class="primary-btn">Next</button>
     </div>
   </div>
 </div>
