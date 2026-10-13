@@ -25,7 +25,7 @@ function defaultSettings() {
     notif: { perm: "off", checkin: true, start: true, setup: 5, digest: true, digestTimes: ["12:30", "16:30"], done: false, doneTime: "20:00" },
     pausedDate: null,
     appearance: { theme: "white", cute: false },
-    sidebarCollapsed: false
+    sidebarCollapsed: true
   };
 }
 function isObj(x) { return !!x && typeof x === "object" && !Array.isArray(x); }
@@ -56,6 +56,7 @@ function load() {
     });
     if (!isObj(s.feelings)) s.feelings = {};
     if (!isObj(s.sent)) s.sent = {};
+    if (typeof s.todos === "string" && s.todos) s.todos = [{ text: s.todos }];
     if (!Array.isArray(s.todos)) s.todos = [];
     s.todos = s.todos.filter(function (t) { return isObj(t) && typeof t.text === "string"; });
     s.todos.forEach(function (t) {
@@ -78,6 +79,8 @@ function load() {
     });
     s.settings.appearance = Object.assign(defaultSettings().appearance, isObj(s.settings.appearance) ? s.settings.appearance : {});
     if (typeof s.settings.sidebarCollapsed !== "boolean") s.settings.sidebarCollapsed = !!s.settings.sidebarCollapsed;
+    s.settings.sidebarCollapsed = true; // Sidebar Adaptive Law, final shape: hidden on EVERY load; opening is per-session only.
+    if (typeof s.settings.guideDone !== "boolean") s.settings.guideDone = !!s.settings.guideDone;
     var times = (Array.isArray(s.settings.notif.digestTimes) ? s.settings.notif.digestTimes : []).map(validClock).filter(Boolean);
     s.settings.notif.digestTimes = times.length ? times : ["12:30"];
     s.welcomed = !!s.welcomed;
@@ -93,7 +96,11 @@ function seed() {
     var cat = L.categoryFor(title);
     return Object.assign({ id: uid(), title: title, date: date, time: time, durationMin: dur, priority: 0, repeat: null, category: cat.id, color: cat.color, essential: false, status: "todo", steps: L.decompose(title, dur, false), minVersion: "", fullVersion: "", source: "sample", originalText: "", skipDates: [], doneDates: [] }, extra || {});
   }
-  var tasks = [
+  // Empty-Start Law (14 Oct): the store build starts EMPTY for every user.
+  // The store wrapper (Capacitor) is detectable at runtime; the web app
+  // keeps its samples. Existing saved data is never touched either way.
+  var storeBuild = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  var tasks = storeBuild ? [] : [
     mk("Doctor appointment", today, "10:00", 45, { essential: true, minVersion: "Ring the doctor to rebook" }),
     mk("Pay the electricity bill", today, null, 15, { essential: true, priority: 3 }),
     mk("Clean the kitchen", today, "16:00", 30, {}),
@@ -222,7 +229,7 @@ function renderDayList() {
   var html = "<h3>" + d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }) +
     '<span class="dl-score">' + score.done + " of " + score.total + " done at your " + esc(names[level]) + " pace</span></h3>";
   html += '<div class="dl-progress"><i style="width:' + score.pct + '%"></i></div>';
-  if (!ad.visible.length && !ad.done.length) html += '<p class="empty-note">Nothing today. Empty is allowed.</p>';
+  if (!ad.visible.length && !ad.done.length) html += '<div class="empty-note dock-note"><span class="dock-skip">' + skipSvg("goodbye") + '</span><span>Nothing today. Empty is allowed.</span></div>';
   ad.visible.forEach(function (t) { html += rowHtml(t, false); });
   ad.done.forEach(function (t) { html += rowHtml(t, true); });
   if (ad.stretch) html += '<div class="stretch-note">One more from tomorrow: <strong>' + esc(ad.stretch.title) + '</strong><button data-act="stretch" data-id="' + ad.stretch.id + '">Bring it to today</button></div>';
@@ -1008,8 +1015,66 @@ setInterval(checkNotifications, 30000);
 
 /* ---------- welcome ---------- */
 if (!state.welcomed) $("welcome").hidden = false;
-$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; });
-$("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; requestNotif(); });
+$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; maybeGuide(); });
+$("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; requestNotif(); maybeGuide(); });
+
+/* ---------- Skip the Ferry: the setup guide (Lab spec GUIDE-MASCOTS-001) ----------
+   One SVG master, four poses as prop/transform changes. Bubbles max 6 words.
+   Closing never blocks; the guide reopens from Settings. Skip waits at the
+   empty-state dock only, never on a working day. */
+function skipSvg(pose) {
+  var ink = "#26221D", honey = "#D9A441", green = "#3FA46A", blue = "#2F7CF6";
+  var flag = pose === "celebrate"
+    ? '<path d="M87 14 L106 19 L87 25 Z" fill="' + green + '" stroke="' + ink + '" stroke-width="2.5" stroke-linejoin="round"/>'
+    : '<g transform="rotate(' + (pose === "point" ? "16" : pose === "goodbye" ? "-14" : "0") + ' 86 34)"><path d="M86 16 L100 20.5 L86 25 Z" fill="' + green + '" stroke="' + ink + '" stroke-width="2.5" stroke-linejoin="round"/><line x1="86" y1="14" x2="86" y2="38" stroke="' + ink + '" stroke-width="3" stroke-linecap="round"/></g>';
+  var spray = pose === "celebrate" ? '<path d="M16 52 q-6 -6 -12 -5 M18 60 q-7 -2 -11 2" fill="none" stroke="' + blue + '" stroke-width="3" stroke-linecap="round"/>' : "";
+  var trail = pose === "goodbye" ? '<path d="M2 80 q6 -6 12 0 q6 6 12 0" fill="none" stroke="' + blue + '" stroke-width="3" stroke-linecap="round" opacity="0.55"/>' : "";
+  var tilt = pose === "celebrate" ? ' transform="rotate(2 60 60)"' : pose === "point" ? ' transform="rotate(-2 60 60)"' : "";
+  return '<svg viewBox="0 0 120 92" class="skip-svg" aria-hidden="true"><g' + tilt + '>' + spray +
+    '<path d="M22 56 L98 56 L88 74 L32 74 Z" fill="' + honey + '" stroke="' + ink + '" stroke-width="3" stroke-linejoin="round"/>' +
+    '<rect x="50" y="32" width="28" height="24" rx="4" fill="#ffffff" stroke="' + ink + '" stroke-width="3"/>' +
+    '<circle cx="59" cy="44" r="2.4" fill="' + ink + '"/><circle cx="69" cy="44" r="2.4" fill="' + ink + '"/>' +
+    '<path d="M60 50 q4 3 8 0" fill="none" stroke="' + ink + '" stroke-width="2.2" stroke-linecap="round"/>' + flag + '</g>' + trail +
+    '<path d="M28 82 q7 -6 14 0 q7 6 14 0 q7 -6 14 0 q7 6 14 0 q7 -6 14 0" fill="none" stroke="' + blue + '" stroke-width="3" stroke-linecap="round"/></svg>';
+}
+var GUIDE_STEPS = [
+  { pose: "welcome", bubble: "We cross at your pace.", next: "Next" },
+  { pose: "point", bubble: "Pick a look you like.", next: "Next", themes: true },
+  { pose: "celebrate", bubble: "Add one small thing.", next: "Add a task", last: true }
+];
+var guideStep = 0;
+function showGuide(step) {
+  guideStep = step;
+  var s = GUIDE_STEPS[step];
+  $("guideArt").innerHTML = skipSvg(s.pose);
+  $("guideBubble").textContent = s.bubble;
+  $("guideNext").textContent = s.next;
+  $("guideDots").innerHTML = GUIDE_STEPS.map(function (_, i) { return '<span class="g-dot' + (i === step ? " is-on" : "") + '"></span>'; }).join("");
+  var ex = $("guideExtra");
+  if (s.themes) {
+    ex.innerHTML = '<div class="guide-swatches">' + Object.keys(THEME_COLORS).map(function (t) {
+      return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + t + ' theme"></button>';
+    }).join("") + "</div>";
+    ex.querySelectorAll("[data-g-theme]").forEach(function (b) {
+      b.addEventListener("click", function () { state.settings.appearance.theme = b.getAttribute("data-g-theme"); save(); applyAppearance(); });
+    });
+  } else ex.innerHTML = "";
+  $("guideSheet").hidden = false;
+}
+function closeGuide() {
+  $("guideSheet").hidden = true;
+  if (!state.settings.guideDone) { state.settings.guideDone = true; save(); toast("See you at the dock."); }
+}
+function maybeGuide() { if (!state.settings.guideDone) showGuide(0); }
+$("guideClose").addEventListener("click", closeGuide);
+$("guideSkip").addEventListener("click", closeGuide);
+$("guideNext").addEventListener("click", function () {
+  var s = GUIDE_STEPS[guideStep];
+  if (s.last) { closeGuide(); $("addBtn").click(); }
+  else showGuide(guideStep + 1);
+});
+$("guideAgain").addEventListener("click", function () { showGuide(0); });
+if (state.welcomed && !state.settings.guideDone) maybeGuide();
 
 /* ---------- boot ---------- */
 function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
