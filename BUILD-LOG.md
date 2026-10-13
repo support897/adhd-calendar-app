@@ -23,6 +23,11 @@ https://adhd-calendar-app-beta.vercel.app — Vercel project adhd-calendar-app (
 - EFFICIENCY: PASS. It re-ran the logic tests itself, verified the FullCalendar byte size, and passed the lean route (reuse, $0, zero Ilse taps, durable verified pushes).
 - QUALITY: PASS on the repo build including the taught-minimum fix below, judged item by item against PROMPT.md with its own shame-word and dash scans at zero. Live spot check requested with the URL above.
 
+## Gates (13 Oct 2026, Pace v2 + QA fixes) — ALL THREE SEALS ON
+- QUALITY: PASS on v2 (build + live), and PASS on the QA fix delta (own hash pulls: live app.js 3d5802be, logic.js still 35b8c14f, byte-identical to the v1-passed build).
+- EFFICIENCY: PASS on v2, and PASS on the fix delta (verified in code; the full-suite re-run accepted as lean because the fix sits in load(), the whole app's blast radius).
+- QA TESTER: first run FAIL on the 2 bugs above (92 checks, 89 passed); retest PASS, 24 of 24, on the final live build (verdict: ~/workspace/qa-tester/pace-QA-RETEST-VERDICT.md). Pace v2 is fully done under the three-gate law.
+
 ## What shipped
 Self contained static files in the repo root. No server, no account, no keys, no cost. All data lives on the user's device (localStorage, key calmcal-v1).
 
