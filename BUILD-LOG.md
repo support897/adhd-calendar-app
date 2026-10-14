@@ -206,3 +206,13 @@ voice 8, mood 14, ocr 5). The desk's lesson, recorded: the figure
 quoted in the first gate briefs (243/243) was sent before the
 sweep output existed; corrections went to every desk that
 received it the same night.
+
+## v14 RIDERS (fixed + proven in-tree 15 Oct, ride the Law E build)
+QA's v13 audit notes 2 + 3, fixed the same night: (2) all-day/month
+block titles now end with an ellipsis instead of cutting mid-word
+("School holidays p…" — CSS, .fc-daygrid-event title chain); (3)
+after a final dictation lands, interim words no longer stomp the
+"check the words" nudge (the final hook owns the message from then
+on) — proven by a new voice-battery leg, 9/9. Notes 1 + 4 (the
+ticker doubling the grid's dates; the 108-element count) are one
+open design question, put to HQ by name — not patched over.
