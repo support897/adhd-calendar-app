@@ -83,6 +83,29 @@ let darkPage;
     return (hi + 0.05) / (lo + 0.05);
   });
   check("dark-photo mode: ink holds AA over the worst photo pixels (" + worst.map((x) => x.toFixed(2)).join(", ") + ")", Math.min(...worst) >= 4.5);
+  // ALL ink levels, both modes — the title ink passing is not the
+  // floor; the faintest hint ink is (App Checker B3, v14: ink-3 over
+  // a dark patch measured 3.42 before the photolight deepening).
+  for (const mode of ["dark", "light"]) {
+    const vs = await p.evaluate((m) => {
+      const root = document.documentElement;
+      const keep = { t: root.getAttribute("data-theme"), ph: root.getAttribute("data-photo") };
+      root.setAttribute("data-photo", m); root.setAttribute("data-theme", m === "dark" ? "photodark" : "photolight");
+      const out = { veil: getComputedStyle(document.body, "::after").backgroundColor,
+        ink: getComputedStyle(root).getPropertyValue("--ink").trim(),
+        ink2: getComputedStyle(root).getPropertyValue("--ink-2").trim(),
+        ink3: getComputedStyle(root).getPropertyValue("--ink-3").trim() };
+      root.setAttribute("data-theme", keep.t); if (keep.ph) root.setAttribute("data-photo", keep.ph); else root.removeAttribute("data-photo");
+      return out;
+    }, mode);
+    const [vr, vg, vb, va] = parse(vs.veil);
+    for (const [name, hex] of [["ink", vs.ink], ["ink-2", vs.ink2], ["ink-3", vs.ink3]]) {
+      const c = hex.startsWith("#") ? [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)] : parse(hex);
+      const il = lum(c[0], c[1], c[2]);
+      const w = [0, 255].map((px) => { const cl = lum(vr * va + px * (1 - va), vg * va + px * (1 - va), vb * va + px * (1 - va)); return (Math.max(cl, il) + 0.05) / (Math.min(cl, il) + 0.05); });
+      check("photo-" + mode + " " + name + " holds AA at the worst patch (" + w.map((x) => x.toFixed(2)).join(", ") + ")", Math.min(...w) >= 4.5);
+    }
+  }
 }
 // 4. A BRIGHT photo picks the light ink set + AA bound; switching to
 //    White never deletes the photo (Law B); Your-photo re-applies.
