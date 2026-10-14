@@ -188,10 +188,22 @@ function renderRing() {
 
 /* ---------- toast ---------- */
 var toastTimer = null;
-function toast(msg) {
-  var t = $("toast"); t.textContent = msg; t.hidden = false;
-  clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 3400);
+function toast(msg, undoFn) {
+  var t = $("toast"); t.innerHTML = ""; t.appendChild(document.createTextNode(msg));
+  clearTimeout(toastTimer);
+  if (typeof undoFn === "function") {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "toast-undo"; b.textContent = "Undo";
+    b.addEventListener("click", function () { clearTimeout(toastTimer); t.hidden = true; undoFn(); });
+    t.appendChild(b);
+    t.hidden = false;
+    toastTimer = setTimeout(function () { t.hidden = true; }, 6500);
+  } else {
+    t.hidden = false;
+    toastTimer = setTimeout(function () { t.hidden = true; }, 3400);
+  }
 }
+function restoreAt(arr, item, index) { arr.splice(Math.min(index, arr.length), 0, item); }
 
 /* ---------- ticker ---------- */
 function renderTicker() {
@@ -576,10 +588,14 @@ $("dDelete").addEventListener("click", function () {
   if (t.repeat) {
     t.skipDates = t.skipDates || [];
     if (t.skipDates.indexOf(currentInstanceDate) === -1) t.skipDates.push(currentInstanceDate);
-    toast("Removed for this day. The rest of the series stays.");
+    toast("Removed for this day. The rest of the series stays.", function () {
+      t.skipDates = t.skipDates.filter(function (d) { return d !== currentInstanceDate; });
+      save(); refreshAll(); toast("Back again.");
+    });
   } else {
+    var taskIdx = state.tasks.indexOf(t);
     state.tasks = state.tasks.filter(function (x) { return x.id !== currentTaskId; });
-    toast("Deleted.");
+    toast("Deleted.", function () { restoreAt(state.tasks, t, taskIdx); save(); refreshAll(); toast("Back again."); });
   }
   save(); $("taskSheet").hidden = true; refreshAll();
 });
@@ -722,11 +738,13 @@ function renderTodos() {
       b.addEventListener("click", function () {
         var act = b.getAttribute("data-act");
         if (act === "tick") { item.done = !item.done; save(); renderTodos(); }
-        else if (act === "del") { state.todos = state.todos.filter(function (t) { return t.id !== item.id; }); save(); renderTodos(); }
+        else if (act === "del") { var todoIdx = state.todos.indexOf(item); state.todos = state.todos.filter(function (t) { return t.id !== item.id; }); save(); renderTodos(); toast("Deleted.", function () { restoreAt(state.todos, item, todoIdx); save(); renderTodos(); toast("Back again."); }); }
         else if (act === "cal") {
           if (todoLinked(item)) {
+            var linked = baseTask(item.calTaskId); var linkedIdx = linked ? state.tasks.indexOf(linked) : -1;
             state.tasks = state.tasks.filter(function (t) { return t.id !== item.calTaskId; });
-            item.calTaskId = null; save(); refreshAll(); toast("Off the calendar. Still on your list.");
+            item.calTaskId = null; save(); refreshAll();
+            toast("Off the calendar. Still on your list.", linked ? function () { restoreAt(state.tasks, linked, linkedIdx); item.calTaskId = linked.id; save(); refreshAll(); toast("Back again."); } : undefined);
           } else if (linkTodo(item)) { save(); refreshAll(); toast("On today's calendar."); }
         }
       });
@@ -741,8 +759,10 @@ function submitTodoInput() {
 $("todoAddBtn").addEventListener("click", submitTodoInput);
 $("todoInput").addEventListener("keydown", function (e) { if (e.key === "Enter") submitTodoInput(); });
 $("todoClearDone").addEventListener("click", function () {
+  var cleared = []; state.todos.forEach(function (t, i) { if (t.done) cleared.push([t, i]); });
   state.todos = state.todos.filter(function (t) { return !t.done; });
-  save(); renderTodos(); toast("Done list cleared.");
+  save(); renderTodos();
+  toast("Done list cleared.", function () { cleared.forEach(function (p) { restoreAt(state.todos, p[0], p[1]); }); save(); renderTodos(); toast("Back again."); });
 });
 $("todoCalAll").addEventListener("click", function () {
   var n = 0;
@@ -842,8 +862,10 @@ function renderHabits() {
       save(); renderHabits();
     });
     row.querySelector(".habit-del").addEventListener("click", function () {
+      var habitIdx = state.habits.indexOf(h);
       state.habits = state.habits.filter(function (x) { return x.id !== h.id; });
-      save(); renderHabits(); toast("Habit removed.");
+      save(); renderHabits();
+      toast("Habit removed.", function () { restoreAt(state.habits, h, habitIdx); save(); renderHabits(); toast("Back again."); });
     });
     wrap.appendChild(row);
   });
@@ -951,8 +973,10 @@ function readSettings() {
   $(id).addEventListener("change", readSettings);
 });
 $("clearSamples").addEventListener("click", function () {
+  var samples = []; state.tasks.forEach(function (t, i) { if (t.source === "sample") samples.push([t, i]); });
   state.tasks = state.tasks.filter(function (t) { return t.source !== "sample"; });
-  save(); refreshAll(); toast("Sample tasks removed. This is fully yours now.");
+  save(); refreshAll();
+  toast("Sample tasks removed. This is fully yours now.", samples.length ? function () { samples.forEach(function (p) { restoreAt(state.tasks, p[0], p[1]); }); save(); refreshAll(); toast("Back again."); } : undefined);
 });
 
 /* ---------- notifications ---------- */
