@@ -217,6 +217,10 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .fc .fc-event { border: 0; border-radius: 8px; padding: 3px 8px; font-size: 12.5px; cursor: pointer; margin: 1px 3px; }
 .fc .fc-event.ev-calm { background: color-mix(in srgb, var(--ev-c, #5b6bd5) 15%, var(--card)); border-left: 3px solid var(--ev-c, #5b6bd5); color: var(--ink); }
 .fc .fc-event.ev-calm .fc-event-title { font-weight: 500; }
+/* All-day + month block events: a long title ends with an ellipsis,
+   never cut mid-word (QA v13 audit note 2). */
+.fc .fc-daygrid-event .fc-event-main { overflow: hidden; }
+.fc .fc-daygrid-event .fc-event-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fc .fc-event.ev-calm, .fc .fc-event.ev-calm .fc-event-main, .fc .fc-event.ev-calm .fc-event-title, .fc .fc-event.ev-calm .fc-event-time { color: var(--ink) !important; }
 .fc .fc-daygrid-day-frame { min-height: 106px; }
 .fc .fc-day-other .fc-daygrid-day-number { opacity: 0.45; }
