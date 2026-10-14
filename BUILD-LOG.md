@@ -135,3 +135,5 @@ never bare "Pace" in title/logo; paired form in listings.
   NO rating chip — none exists).
 - Law E backgrounds ride the NEXT build per the prep note (recorded;
   not silently folded into this one).
+
+<!-- deploy nudge 14 Oct: full-deployment refresh for the rebrand binaries -->
