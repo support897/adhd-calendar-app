@@ -337,6 +337,7 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 
 .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--ink); color: var(--ground); border-radius: 999px; padding: 11px 20px; font-size: 14.5px; z-index: 80; box-shadow: 0 6px 24px rgba(0,0,0,0.25); animation: toastIn 0.25s ease; max-width: calc(100vw - 32px); text-align: center; }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.toast-undo { margin-left: 12px; background: none; border: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }
 
 /* Cute mode: rounder, softer, a little playful. Chosen by the user. */
 html[data-cute="1"] { --radius: 16px; }
