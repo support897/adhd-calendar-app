@@ -2,7 +2,7 @@
    Design of record: IMPORT-DESIGN.md. Every app adopts this file
    unchanged; hosts change labels and tint only (IMPORT-ADOPTION.md).
 
-   Parser: vendored ical.js 2.1.0 (vendor/ical/, MPL-2.0) — the proven
+   Parser: vendored ical.js 1.5.0 UMD (vendor/ical/, MPL-2.0) — the proven
    RFC 5545 engine (Mozilla). This file is the thin house layer:
    parse -> plan (pure, testable) -> apply (registry + counts).
 
@@ -155,7 +155,7 @@
         return;
       }
       if (!ev.title) { plan.skipped.push({ title: "(no title)", why: "an event with no name" }); return; }
-      var rep = overridden[ev.uid] ? null : mapRepeat(ev);
+      var rep = (overridden[ev.uid] || opts.repeatModel === "none") ? null : mapRepeat(ev);
       if (rep) {
         var s0 = ev.start.toJSDate();
         var dur = Math.max(5, Math.round((ev.end.toJSDate() - s0) / 60000));
