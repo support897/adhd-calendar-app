@@ -120,7 +120,7 @@ check("guide shows Skip the Ferry", (await p4.locator("#guideArt .skip-svg").cou
 await p4.click("#guideNext");
 check("guide step 2 says who it helps (her line)", /helps people that are overwhelmed/.test(await p4.locator("#guideBubble").textContent()));
 await p4.click("#guideNext");
-check("guide step 3 offers the theme picks", /Pick a look/.test(await p4.locator("#guideBubble").textContent()) && (await p4.locator(".g-swatch").count()) === 6);
+check("guide step 3 offers the theme picks", /Pick a look/.test(await p4.locator("#guideBubble").textContent()) && (await p4.locator(".g-swatch").count()) === 7);
 await p4.locator('.g-swatch[data-g-theme="dark"]').click(); await p4.waitForTimeout(200);
 check("guide theme pick applies live", (await p4.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "dark");
 await p4.click("#guideNext");
