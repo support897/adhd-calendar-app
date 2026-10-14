@@ -106,3 +106,32 @@ Fixes routed by the Store Review desk's first full sweep (Pace 42 PASS / 8 FAIL)
   eng.traineddata. app.js now passes gzip:false inside the Capacitor wrapper
   (web unchanged); SW pace-v9. Both shapes test-proven (web 5/5, store-shape
   simulation 5/5).
+
+## REBRAND — "Pace Calendar" + Still Water (14 Oct 2026, Ilse blanket approval)
+Board approved (Lab claim locked 14 Oct: Bricolage Grotesque + Manrope,
+Still Water palette). Name locked "Pace Calendar" WITH mitigations —
+never bare "Pace" in title/logo; paired form in listings.
+- Skin: :root remapped to the board (Porcelain Mist ground, Pine Shade
+  ink AAA 11.40, Still Water primary large/icons only per CONTRAST.md
+  fences, Soft Apricot fills/marks only, Water Light tints; filled
+  buttons use a deepened shade #4858C4 so white text passes AA).
+  Dark look remapped to a pine night. Heat scale now periwinkle ramp.
+  Category data colours kept, two brand-coincidence hexes retinted.
+- Type: Bricolage Grotesque (display) + Manrope (UI) vendored as
+  variable TTFs in fonts/, SIL OFL; @font-face + SW-cached.
+- Mark: variant D (Ilse "Perfect approved") FINISHED as vector —
+  calendar page joined into Skip's hull like a cabin; icon.svg,
+  logo.svg, sidebar sprite all carry it. Store icons regenerated.
+- Guide: Skip's art of record finished from the variant B composition
+  (full ferry, calendar smaller inside him as cabin); poses unchanged.
+- Calm nav delta: sidebar group labels Plan / Lists / Add + app
+  (CALM-NAV-AUDIT.md delta of record — labels only, order regrouped).
+- Name wired: <title>, manifest, wordmark, Settings footer, welcome,
+  Capacitor appName, listing title "Pace Calendar — ADHD Planner" (28).
+- SW pace-v10 (fonts in the shell). Maker sweep 166/166 (v2 pins
+  updated to the new brand: title + dark ground rgb(20,31,27)).
+- Promo page built to the binding blueprint (promo.html + promo/
+  imagery from the re-shoot; founder block = slot, waits her why-line;
+  NO rating chip — none exists).
+- Law E backgrounds ride the NEXT build per the prep note (recorded;
+  not silently folded into this one).
