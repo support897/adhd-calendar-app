@@ -58,6 +58,14 @@ const fakeSR = (script) => `
   check("web path confirms receipt in plain words", /Got it/.test(m));
   await p.close();
 }
+// 2b. After a final lands, later interim words must not stomp the
+// "check the words" nudge (QA v13 audit note 3).
+{
+  const p = await freshPage(fakeSR([{ type: "final", text: "ring the dentist tomorrow" }, { type: "interim", text: "and also water the" }]));
+  await p.click("#voiceBtn"); await p.waitForTimeout(500);
+  check("the check-the-words nudge survives later interim words", /Check the words/.test(await p.textContent("#captureMsg")));
+  await p.close();
+}
 // 3. Web error codes speak their real cause.
 {
   const p = await freshPage(fakeSR([{ type: "error", code: "not-allowed" }]));
