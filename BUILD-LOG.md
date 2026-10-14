@@ -229,3 +229,27 @@ the same as a figure quoted from hope." Both filings (the sweep
 figure, the "real-voice proof") stated a result before its
 evidence existed; both were caught and corrected by this desk
 the same night, and stand as lessons, not findings.
+
+## LAW E BUILD (pace-v14, 15 Oct 2026)
+Backgrounds, per the law: Settings → How it looks now offers WHITE
+(porcelain) · BLACK (pine night) · BRAND (the Still Water wash)
+· the existing user looks · UPLOAD YOUR OWN PHOTO. A photo is
+downscaled on-device and stored as user data (Law B): switching
+looks never deletes it; a "Your photo" chip re-applies it; Remove
+is the user's own delete and carries Undo (Law B2). Contrast
+adapts from the photo's own brightness: bright photo → porcelain
+veil (80%) + pine ink; dark photo → pine-night veil (88%) + light
+ink. Proof: tests/backgrounds-check.mjs 14/14 incl. worst-case AA
+computed from the live CSS (veil over pure black AND pure white
+pixels: 10.31 dark mode, 7.12 light mode, floor 4.5).
+Riders (all fixed + proven before this build, from QA's v13
+audit): all-day titles ellipsis · dictation nudge survives
+interim words · tap targets (mood 44, add 46, segments 38).
+Maker: Pace build desk.
+Caught by the sweep before shipping (recorded plainly): the
+first Law E draft reused the id "photoFile" for the settings
+upload — an id the Talk-to-it photo input already owns. Both
+handlers bound to one element and OCR timed out. Renamed to
+bgPhotoFile/bgPhotoBtn; ocr 5/5, backgrounds 14/14, features
+39/39 after the fix. Full sweep after all fixes: 262/262
+across 15 suites.
