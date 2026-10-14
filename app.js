@@ -21,7 +21,7 @@ function $(id) { return document.getElementById(id); }
 function defaultSettings() {
   return {
     checkinTime: "08:00",
-    names: { low: "Low", steady: "Steady", full: "Full" },
+    names: { low: "Bad", steady: "Ok", full: "Good" },
     notif: { perm: "off", checkin: true, start: true, setup: 5, digest: true, digestTimes: ["12:30", "16:30"], done: false, doneTime: "20:00" },
     pausedDate: null,
     appearance: { theme: "white", cute: false },
@@ -345,9 +345,9 @@ document.querySelectorAll(".level-btn").forEach(function (b) {
   b.addEventListener("click", function () {
     var level = b.getAttribute("data-level");
     state.feelings[selected] = level; save();
-    if (level === "low") toast("Small day. The rest is parked, safe.");
-    else if (level === "full") toast("Full day. Everything is on the table.");
-    else toast("Steady day. A small, capped list.");
+    if (level === "low") toast("Bad day. Small list — the rest is parked, safe.");
+    else if (level === "full") toast("Good day. A little more is on the table.");
+    else toast("Ok day. A small, capped list.");
     refreshAll();
   });
 });
@@ -374,6 +374,20 @@ function initCalendar() {
     firstDay: 1,
     headerToolbar: false,
     editable: true,
+    dayMaxEvents: 3,
+    slotMinTime: "06:00:00",
+    slotMaxTime: "22:00:00",
+    scrollTime: "07:30:00",
+    eventDidMount: function (info) {
+      var c = info.event.backgroundColor || "#5b6bd5";
+      info.el.classList.add("ev-calm");
+      info.el.style.setProperty("--ev-c", c);
+      if (info.el.classList.contains("fc-daygrid-event") || info.el.classList.contains("fc-timegrid-event")) {
+        info.el.style.background = "color-mix(in srgb, " + c + " 15%, var(--card))";
+        info.el.style.borderLeft = "3px solid " + c;
+        info.el.style.color = "var(--ink)";
+      }
+    },
     eventDurationEditable: true,
     longPressDelay: 250,
     events: fcEvents(),
@@ -652,22 +666,85 @@ $("journalFile").addEventListener("change", function (e) {
   r.onload = function () { $("dumpText").value = String(r.result || ""); $("captureMsg").textContent = "Journal loaded. Tap Make my list when you are ready."; };
   r.readAsText(f);
 });
-/* Voice: browser speech recognition where the browser offers it. Typing always works. */
-var recog = null;
-$("voiceBtn").addEventListener("click", function () {
+/* Voice engine: ONE engine for every Speak button. In the store app it
+   uses the device recogniser (Capacitor SpeechRecognition plugin —
+   the WebView offers no web speech of its own, which is why dictation
+   "did not work at all" there). In a browser it uses Web Speech with
+   live words while you talk. Errors say what actually went wrong.
+   Typing always works exactly the same. */
+var voiceSession = null;
+function voiceErrorText(code) {
+  if (code === "not-allowed" || code === "service-not-allowed") return "The microphone is blocked. Allow the mic for Pace, then tap Speak again. Typing works the same.";
+  if (code === "audio-capture") return "No microphone could be found. Typing works the same.";
+  if (code === "no-speech") return "I did not hear anything. Try again, a little closer. Typing works the same.";
+  if (code === "network") return "Voice typing needs the internet on this device. Typing works the same.";
+  if (code === "aborted") return "";
+  return "Voice did not come through. Typing works the same.";
+}
+function nativeSpeech() {
+  try {
+    var C = window.Capacitor;
+    if (C && typeof C.isNativePlatform === "function" && C.isNativePlatform() && C.Plugins && C.Plugins.SpeechRecognition) return C.Plugins.SpeechRecognition;
+  } catch (e) {}
+  return null;
+}
+/* hooks: { msg(text), final(text), btn } — final fires per finished phrase. */
+function toggleVoice(hooks) {
+  if (voiceSession) { voiceSession.stop(); return; }
+  var btn = hooks.btn, span = btn.querySelector("span");
+  var done = function () { voiceSession = null; if (span) span.textContent = "Speak"; };
+  var nat = nativeSpeech();
+  if (nat) {
+    var stopped = false;
+    voiceSession = { stop: function () { stopped = true; try { nat.stop(); } catch (e) {} done(); } };
+    if (span) span.textContent = "Stop";
+    hooks.msg("Listening… talk away, then tap Stop.");
+    nat.requestPermissions().then(function (perm) {
+      if (perm && perm.speechRecognition && perm.speechRecognition !== "granted") { hooks.msg(voiceErrorText("not-allowed")); done(); return null; }
+      var partialH = null;
+      if (typeof nat.addListener === "function") {
+        nat.addListener("partialResults", function (d) { if (!stopped && d && d.matches && d.matches[0]) hooks.msg("Listening… " + d.matches[0]); }).then(function (h) { partialH = h; });
+      }
+      return nat.start({ language: "en-AU", partialResults: true, popup: false, maxResults: 1 }).then(function (res) {
+        if (partialH && partialH.remove) partialH.remove();
+        var said = res && res.matches && res.matches[0] ? String(res.matches[0]).trim() : "";
+        if (said) hooks.final(said); else if (!stopped) hooks.msg(voiceErrorText("no-speech"));
+        done();
+      });
+    }).catch(function () { if (!stopped) hooks.msg(voiceErrorText("")); done(); });
+    return;
+  }
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { $("captureMsg").textContent = "Voice is not offered by this browser. Typing in the box works exactly the same."; return; }
-  if (recog) { recog.stop(); recog = null; $("voiceBtn").querySelector("span").textContent = "Speak"; return; }
-  recog = new SR(); recog.lang = "en-AU"; recog.interimResults = false;
-  recog.onresult = function (ev) {
-    var said = "";
-    for (var i = 0; i < ev.results.length; i++) said += ev.results[i][0].transcript + "\n";
-    $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + said.trim();
-    $("captureMsg").textContent = "Got it. Check the words, then tap Make my list.";
+  if (!SR) { hooks.msg("Voice is not offered by this browser. Typing in the box works exactly the same."); return; }
+  var rec = new SR();
+  rec.lang = "en-AU"; rec.interimResults = true; rec.continuous = true;
+  var heardFinal = false;
+  voiceSession = { stop: function () { try { rec.stop(); } catch (e) {} } };
+  if (span) span.textContent = "Stop";
+  hooks.msg("Listening… talk away, then tap Stop.");
+  rec.onresult = function (ev) {
+    var interim = "";
+    for (var i = ev.resultIndex; i < ev.results.length; i++) {
+      var r = ev.results[i], txt = r[0].transcript;
+      if (r.isFinal) { var t = txt.trim(); if (t) { heardFinal = true; hooks.final(t); } }
+      else interim += txt;
+    }
+    if (interim.trim()) hooks.msg("Listening… " + interim.trim());
+    else if (heardFinal) hooks.msg("Got it. Keep talking, or tap Stop.");
   };
-  recog.onend = function () { recog = null; $("voiceBtn").querySelector("span").textContent = "Speak"; };
-  recog.onerror = function () { $("captureMsg").textContent = "Voice did not come through. Typing works the same."; };
-  recog.start(); $("voiceBtn").querySelector("span").textContent = "Stop";
+  rec.onerror = function (ev) { var m = voiceErrorText(ev && ev.error); if (m) hooks.msg(m); };
+  rec.onend = function () { done(); };
+  try { rec.start(); } catch (e) { hooks.msg(voiceErrorText("")); done(); }
+}
+$("voiceBtn").addEventListener("click", function () {
+  toggleVoice({
+    btn: $("voiceBtn"),
+    msg: function (t) { $("captureMsg").textContent = t; },
+    final: function (said) {
+      $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + said;
+      $("captureMsg").textContent = "Got it. Check the words, then tap Make my list.";
+    }
+  });
 });
 /* Handwriting photo: OCR runs on-device with the Tesseract.js copy bundled
    in vendor/tesseract (worker, LSTM core and English data are local too).
@@ -771,22 +848,12 @@ $("todoCalAll").addEventListener("click", function () {
   save(); refreshAll();
   toast(n ? n + (n === 1 ? " item" : " items") + " on today's calendar." : "Everything is already on the calendar.");
 });
-var todoRecog = null;
 $("todoVoiceBtn").addEventListener("click", function () {
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { $("todoMsg").textContent = "Voice is not offered by this browser. Typing works the same."; return; }
-  if (todoRecog) { todoRecog.stop(); todoRecog = null; $("todoVoiceBtn").querySelector("span").textContent = "Speak"; return; }
-  todoRecog = new SR(); todoRecog.lang = "en-AU"; todoRecog.interimResults = false;
-  todoRecog.onresult = function (ev) {
-    for (var i = 0; i < ev.results.length; i++) {
-      var said = ev.results[i][0].transcript.trim();
-      if (said && addTodo(said)) toast("Added: " + said);
-    }
-    save(); renderTodos();
-  };
-  todoRecog.onend = function () { todoRecog = null; $("todoVoiceBtn").querySelector("span").textContent = "Speak"; };
-  todoRecog.onerror = function () { $("todoMsg").textContent = "Voice did not come through. Typing works the same."; };
-  todoRecog.start(); $("todoVoiceBtn").querySelector("span").textContent = "Stop";
+  toggleVoice({
+    btn: $("todoVoiceBtn"),
+    msg: function (t) { $("todoMsg").textContent = t; },
+    final: function (said) { if (addTodo(said)) { save(); renderTodos(); toast("Added: " + said); } }
+  });
 });
 $("todoPhoto").addEventListener("change", function (e) {
   var f = e.target.files[0]; if (!f) return;
@@ -1065,16 +1132,19 @@ function skipSvg(pose) {
   var tilt = pose === "celebrate" ? ' transform="rotate(2 120 110)"' : pose === "point" ? ' transform="rotate(-2 120 110)"' : "";
   return '<svg viewBox="0 0 240 196" class="skip-svg" aria-hidden="true"><g' + tilt + '>' + spray +
     '<path d="M22 118 H218 L186 164 H54 Z" fill="' + hull + '" stroke="' + ink + '" stroke-width="7" stroke-linejoin="round"/>' +
-    '<rect x="80" y="46" width="80" height="78" rx="10" fill="' + cream + '" stroke="' + ink + '" stroke-width="7"/>' +
+    '<rect x="80" y="46" width="80" height="78" rx="13" fill="' + cream + '" stroke="' + ink + '" stroke-width="7"/>' +
     '<circle cx="98" cy="40" r="8" fill="none" stroke="' + ink + '" stroke-width="6"/>' +
     '<circle cx="142" cy="40" r="8" fill="none" stroke="' + ink + '" stroke-width="6"/>' +
     '<circle cx="102" cy="64" r="4.5" fill="' + dotGreen + '"/><circle cx="120" cy="64" r="4.5" fill="' + dotGreen + '"/><circle cx="138" cy="64" r="4.5" fill="' + apricot + '"/>' +
-    '<circle cx="108" cy="88" r="5.5" fill="' + ink + '"/><circle cx="132" cy="88" r="5.5" fill="' + ink + '"/>' +
-    '<path d="M110 100 q10 8 20 0" fill="none" stroke="' + ink + '" stroke-width="5" stroke-linecap="round"/>' + flag + '</g>' + trail +
+    '<circle cx="108" cy="88" r="6.8" fill="' + ink + '"/><circle cx="132" cy="88" r="6.8" fill="' + ink + '"/>' +
+    '<circle cx="105.8" cy="85.8" r="2.1" fill="#fff"/><circle cx="129.8" cy="85.8" r="2.1" fill="#fff"/>' +
+    '<circle cx="93" cy="98" r="4.6" fill="' + apricot + '" opacity="0.55"/><circle cx="147" cy="98" r="4.6" fill="' + apricot + '" opacity="0.55"/>' +
+    '<path d="M108 99 q12 10 24 0" fill="none" stroke="' + ink + '" stroke-width="5" stroke-linecap="round"/>' + flag + '</g>' + trail +
     '<path d="M16 182 q16 -12 32 0 t32 0 t32 0 t32 0 t32 0 t32 0" fill="none" stroke="' + wave + '" stroke-width="8" stroke-linecap="round"/></svg>';
 }
 var GUIDE_STEPS = [
   { pose: "welcome", bubble: "We cross at your pace.", next: "Next" },
+  { pose: "welcome", bubble: "This calendar helps people that are overwhelmed, or with ADHD and problems getting things done.", next: "Next" },
   { pose: "point", bubble: "Pick a look you like.", next: "Next", themes: true },
   { pose: "celebrate", bubble: "Add one small thing.", next: "Add a task", last: true }
 ];
