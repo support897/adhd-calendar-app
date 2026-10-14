@@ -92,3 +92,11 @@ Imagery slots (promo/shot-month.png, shot-day.png, shot-habits.png,
 og.png) fill from the rebrand re-shoot. PUBLISH FENCE: the FAQ import
 answer describes "Bring my calendar in" — if the page goes live before
 the import build lands, soften that answer first; never overclaim.
+
+## LAW E — BUILD ASSIGNMENT (filed 14 Oct 2026)
+Law E (backgrounds: WHITE · BLACK · BRAND COLOURS · UPLOAD OWN IMAGE,
+adaptive contrast, AA floor, veil over photos) rides its OWN build:
+**pace-v13**, on Meal Prep's proven pattern (their v17–v19 line:
+theme set + veil-from-luminance + AA battery). Deliberately NOT folded
+into v12 (import) — one feature per gate. The v12 ship note to Quality
+files this assignment in words; this note is the on-disk record.
