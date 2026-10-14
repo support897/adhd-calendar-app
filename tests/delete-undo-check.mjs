@@ -1,17 +1,15 @@
-// LAW B2 fix build (pace-v11): every user-data delete carries ONE safety
-// step — an Undo in the toast. Runs against the STAGED v11 bytes
-// (stage-v11/) so the held v12 import wiring in the working tree cannot
-// leak into the proof. Run: node tests/delete-undo-check.mjs
+// LAW B2 (shipped in pace-v11): every user-data delete carries ONE
+// safety step — an Undo in the toast. Runs against the app tree.
+// Run: node tests/delete-undo-check.mjs
 import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
 import http from "http"; import { readFile } from "fs/promises"; import { extname } from "path";
 const APP = "/home/hatch/workspace/adhd-calendar-app";
-const STAGE = APP + "/stage-v11";
+const STAGE = APP;
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".ttf": "font/ttf", ".gz": "application/gzip", ".png": "image/png" };
 const srv = http.createServer(async (req, res) => {
   try {
     let p = req.url.split("?")[0]; if (p === "/") p = "/index.html";
-    const staged = ["/app.js", "/styles.css", "/service-worker.js", "/index.html"].includes(p);
-    const data = await readFile((staged ? STAGE : APP) + p);
+    const data = await readFile(STAGE + p);
     res.writeHead(200, { "Content-Type": MIME[extname(p)] || "application/octet-stream" }); res.end(data);
   } catch { res.writeHead(404); res.end(); }
 });
