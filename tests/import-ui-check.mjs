@@ -63,6 +63,7 @@ if (await p.locator("#welcomeSkip").isVisible().catch(() => false)) await p.clic
 await p.waitForTimeout(500);
 await p.click("#guideNext"); await p.waitForTimeout(300);
 await p.click("#guideNext"); await p.waitForTimeout(300);
+await p.click("#guideNext"); await p.waitForTimeout(300);
 check("ui: last guide step offers the import", await p.locator("#guideImport").isVisible());
 await p.click("#guideImport");
 check("ui: the offer opens the import sheet", await p.locator("#importSheet").isVisible());
