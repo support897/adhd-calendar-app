@@ -84,6 +84,7 @@ function load() {
     var times = (Array.isArray(s.settings.notif.digestTimes) ? s.settings.notif.digestTimes : []).map(validClock).filter(Boolean);
     s.settings.notif.digestTimes = times.length ? times : ["12:30"];
     s.welcomed = !!s.welcomed;
+    s.imports = (Array.isArray(s.imports) ? s.imports : []).filter(function (r) { return r && typeof r === "object" && typeof r.key === "string"; }).map(function (r) { return { key: r.key, source: String(r.source || "calendar"), at: String(r.at || ""), count: Math.max(0, Math.round(+r.count) || 0) }; });
     return s;
   } catch (e) {}
   return null;
@@ -110,7 +111,7 @@ function seed() {
     mk("Buy groceries for the week", tomorrow, null, 45, {}),
     mk("Call mum", tomorrow, "17:00", 15, {})
   ];
-  return { tasks: tasks, feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [] };
+  return { tasks: tasks, feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
 }
 if (!state) { state = seed(); save(); }
 
@@ -1084,6 +1085,7 @@ function showGuide(step) {
   $("guideArt").innerHTML = skipSvg(s.pose);
   $("guideBubble").textContent = s.bubble;
   $("guideNext").textContent = s.next;
+  $("guideImport").hidden = !s.last || DEMO_SESSION;
   $("guideDots").innerHTML = GUIDE_STEPS.map(function (_, i) { return '<span class="g-dot' + (i === step ? " is-on" : "") + '"></span>'; }).join("");
   var ex = $("guideExtra");
   if (s.themes) {
@@ -1109,6 +1111,66 @@ $("guideNext").addEventListener("click", function () {
   else showGuide(guideStep + 1);
 });
 $("guideAgain").addEventListener("click", function () { showGuide(0); });
+
+/* ---------- bring my calendar in (shared module: IMPORT-DESIGN.md) ---------- */
+var DEMO_SESSION = /[?&]demo=1\b/.test(location.search) || !!(state.settings && state.settings.demo);
+var IMPORT_GUIDE = {
+  google: "In Google Calendar: Settings \u2192 your calendar \u2192 \u201CSecret address in iCal format\u201D. Copy it, paste it below.",
+  apple: "On iCloud.com: Calendar \u2192 the share icon beside a calendar \u2192 Public Calendar gives a link. Or export a .ics file from the Calendar app and choose it below.",
+  outlook: "In Outlook on the web: Settings \u2192 Calendar \u2192 Shared calendars \u2192 publish, and copy the ICS link. Paste it below.",
+  file: "Pick the .ics file your old calendar exported. It is read once, copied in, and the file itself is never changed."
+};
+var IMPORT_LABELS = { google: "Google Calendar", apple: "Apple / iCloud", outlook: "Outlook", file: "a calendar file" };
+var importSource = "google";
+function openImport() { if (DEMO_SESSION) return; $("importResult").textContent = ""; $("importSheet").hidden = false; }
+function shapeToTask(s) {
+  var cat = L.categoryFor(s.title);
+  var words = [s.location, s.notes].filter(Boolean).join(" \u2014 ");
+  return { id: uid(), title: s.title, date: s.date, time: s.time, durationMin: s.durationMin, priority: 0, repeat: s.repeat, category: cat.id, color: cat.color, essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "", source: "import", originalText: words, skipDates: [], doneDates: [], importUid: s.importUid, importKey: s.importKey };
+}
+function runImport(text, label) {
+  var parsed = window.CI.parseICS(text);
+  if (parsed.error || !parsed.events.length) { $("importResult").textContent = "That didn\u2019t read as a calendar. Nothing was brought in."; return; }
+  var plan = window.CI.planImport(parsed, state.tasks, { sourceLabel: label });
+  var res = window.CI.applyImport(state, plan, label, shapeToTask);
+  save(); refreshAll();
+  var bits = [res.added + (res.added === 1 ? " event" : " events") + " brought in"];
+  if (res.liveRepeats) bits.push(res.liveRepeats + " repeating");
+  if (res.dupes) bits.push(res.dupes + " already here");
+  if (res.skipped) bits.push(res.skipped + " couldn\u2019t be read");
+  $("importResult").textContent = bits.join(" \u00B7 ") + ".";
+  toast(res.added ? "Calendar brought in." : "Nothing new to bring in.");
+}
+if (DEMO_SESSION) { $("importBtn").hidden = true; $("importOpen2").hidden = true; }
+$("importBtn").addEventListener("click", openImport);
+$("importOpen2").addEventListener("click", openImport);
+$("guideImport").addEventListener("click", function () { closeGuide(); openImport(); });
+$("importClose").addEventListener("click", function () { $("importSheet").hidden = true; });
+document.querySelectorAll(".import-src").forEach(function (b) {
+  b.addEventListener("click", function () {
+    importSource = b.getAttribute("data-src");
+    document.querySelectorAll(".import-src").forEach(function (x) { x.classList.toggle("is-active", x === b); });
+    $("importGuide").textContent = IMPORT_GUIDE[importSource];
+  });
+});
+$("importGo").addEventListener("click", function () {
+  var url = $("importUrl").value.trim();
+  if (!url) { $("importResult").textContent = "Paste a calendar link first \u2014 or choose a file below."; return; }
+  $("importResult").textContent = "Fetching\u2026";
+  fetch(url).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.text(); })
+    .then(function (t) { runImport(t, IMPORT_LABELS[importSource]); })
+    .catch(function () { $("importResult").textContent = "That link couldn\u2019t be fetched \u2014 some calendars block links. Export a .ics file from it instead; that always works."; });
+});
+$("importFileBtn").addEventListener("click", function () { $("importFile").click(); });
+$("importFile").addEventListener("change", function () {
+  var f = $("importFile").files && $("importFile").files[0];
+  if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () { runImport(String(rd.result || ""), importSource === "file" ? "a calendar file" : IMPORT_LABELS[importSource]); };
+  rd.onerror = function () { $("importResult").textContent = "That file couldn\u2019t be read."; };
+  rd.readAsText(f);
+  $("importFile").value = "";
+});
 if (state.welcomed && !state.settings.guideDone) maybeGuide();
 
 /* ---------- boot ---------- */
