@@ -729,8 +729,10 @@ function toggleVoice(hooks) {
       if (r.isFinal) { var t = txt.trim(); if (t) { heardFinal = true; hooks.final(t); } }
       else interim += txt;
     }
-    if (interim.trim()) hooks.msg("Listening… " + interim.trim());
-    else if (heardFinal) hooks.msg("Got it. Keep talking, or tap Stop.");
+    /* Once a final has landed, the message belongs to the final hook
+       (the "check the words" nudge) — interim previews must not stomp
+       it (QA v13 audit note 3). */
+    if (!heardFinal && interim.trim()) hooks.msg("Listening… " + interim.trim());
   };
   rec.onerror = function (ev) { var m = voiceErrorText(ev && ev.error); if (m) hooks.msg(m); };
   rec.onend = function () { done(); };
