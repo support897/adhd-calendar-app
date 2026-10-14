@@ -137,3 +137,14 @@ never bare "Pace" in title/logo; paired form in listings.
   not silently folded into this one).
 
 <!-- deploy nudge 14 Oct: full-deployment refresh for the rebrand binaries -->
+
+## LAW B2 FIX BUILD (pace-v11, 14 Oct 2026)
+App Checker's live v10 re-probe found task delete firing instantly with
+no safety step (LAW B2). Fix: every destructive delete now carries an
+Undo in the toast (6.5s window) — task delete, recurring remove-for-day,
+to-do delete, clear-done, habit delete, to-do calendar unlink, and
+remove-samples. An un-undone delete persists (the window is the safety,
+not a block); plain toasts carry no Undo. Built on the exact v10 bytes
+(staged apart from the held v12 import wiring). Proof:
+tests/delete-undo-check.mjs 13/13 + the full 166 sweep = 179/179.
+Maker: Pace build desk.
