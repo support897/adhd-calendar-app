@@ -1,46 +1,56 @@
-/* Pace. Apple iPhone design language: flat grounds, hairline rows,
-   one calm type ladder, filled-circle markers, a real segmented control.
-   Colours come from the theme the user picks in Settings (white, dark,
-   blush, sky, mint, lavender) plus an optional cute mode. */
+/* Pace Calendar. Still Water brand (board approved 14 Oct 2026):
+   Porcelain Mist ground, Still Water periwinkle, Soft Apricot accent,
+   Pine Shade ink. Contrast fences (brand-board/CONTRAST.md): body text
+   is Pine on Porcelain (AAA 11.40); Still Water is large text + icons
+   only; Apricot is fills + marks only. Type: Bricolage Grotesque for
+   display, Manrope for UI/body — both vendored, SIL OFL.
+   User looks (dark, blush, sky, mint, lavender) + cute mode remain
+   the user's choice in Settings. */
+@font-face { font-family: "Bricolage Grotesque"; src: url("fonts/BricolageGrotesque.ttf") format("truetype"); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "Manrope"; src: url("fonts/Manrope.ttf") format("truetype"); font-weight: 200 800; font-display: swap; }
 :root {
-  --ink: #1c1c1e;
-  --ink-2: #3a3a3c;
-  --ink-3: #8a8a8e;
-  --ground: #ffffff;
-  --ground-2: #f2f2f7;
+  --font-ui: "Manrope", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Bricolage Grotesque", "Manrope", -apple-system, sans-serif;
+  --ink: #21392e;
+  --ink-2: #3d5548;
+  --ink-3: #54685c;
+  --ground: #f3f5fa;
+  --ground-2: #e7ebf5;
   --card: #ffffff;
-  --hair: #e5e5ea;
-  --seg: #efeff4;
+  --hair: #d9deee;
+  --seg: #e7ebf5;
   --seg-active: #ffffff;
-  --today-tint: rgba(0,0,0,0.018);
-  --accent: #007aff;
-  --blue: #007aff;
-  --green: #34a853;
-  --low: #d9a441;
-  --steady: #3fa46a;
-  --full: #2f7cf6;
-  --danger: #d9534f;
-  --heat-1: #dcefe2;
-  --heat-2: #a9d8bb;
-  --heat-3: #5db584;
+  --today-tint: rgba(91,107,213,0.06);
+  --accent: #5b6bd5;
+  --accent-strong: #4858c4;
+  --blue: #5b6bd5;
+  --green: #35704e;
+  --low: #f0a868;
+  --steady: #8b99e4;
+  --full: #5b6bd5;
+  --danger: #c4504b;
+  --heat-1: #d9deee;
+  --heat-2: #8b99e4;
+  --heat-3: #5b6bd5;
   --radius: 10px;
 }
 html[data-theme="dark"] {
-  --ink: #f2f2f7;
-  --ink-2: #d1d1d6;
-  --ink-3: #98989f;
-  --ground: #161618;
-  --ground-2: #232326;
-  --card: #232326;
-  --hair: #333336;
-  --seg: #232326;
-  --seg-active: #48484a;
-  --today-tint: rgba(255,255,255,0.05);
-  --accent: #0a84ff;
-  --blue: #0a84ff;
-  --heat-1: #1e3a29;
-  --heat-2: #2c5c40;
-  --heat-3: #3f8f60;
+  --ink: #edf1ec;
+  --ink-2: #c9d4cc;
+  --ink-3: #93a69b;
+  --ground: #141f1b;
+  --ground-2: #1d2b25;
+  --card: #1d2b25;
+  --hair: #2e4238;
+  --seg: #1d2b25;
+  --seg-active: #3a4f44;
+  --today-tint: rgba(174,184,236,0.07);
+  --accent: #aeb8ec;
+  --accent-strong: #8b99e4;
+  --blue: #aeb8ec;
+  --heat-1: #26355c;
+  --heat-2: #3d4f9e;
+  --heat-3: #5b6bd5;
 }
 html[data-theme="blush"] {
   --ground: #fff8fa;
@@ -57,8 +67,8 @@ html[data-theme="sky"] {
   --card: #ffffff;
   --hair: #d8e6f7;
   --seg: #e2edfb;
-  --accent: #2f7cf6;
-  --blue: #2f7cf6;
+  --accent: #5b6bd5;
+  --blue: #5b6bd5;
 }
 html[data-theme="mint"] {
   --ground: #f6fcF8;
@@ -82,7 +92,7 @@ html[data-theme="lavender"] {
 [hidden] { display: none !important; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-ui);
   color: var(--ink);
   background: var(--ground);
   -webkit-font-smoothing: antialiased;
@@ -91,8 +101,8 @@ body {
 button { font: inherit; cursor: pointer; }
 button:active { transform: scale(0.97); }
 input, textarea, select { font: inherit; color: var(--ink); }
-h2 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
-h3 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
+h2 { font-family: var(--font-display); font-size: 27px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 8px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .ico { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -4px; }
 
@@ -112,7 +122,7 @@ html[data-sb="collapsed"] #sidebar { display: none; }
 .brand { display: flex; align-items: center; gap: 9px; padding: 2px 4px 2px 8px; font-weight: 700; font-size: 18px; }
 .brand-mark { width: 26px; height: 26px; flex: 0 0 auto; }
 .brand-mark.sm { width: 22px; height: 22px; }
-.brand-name { flex: 1 1 auto; letter-spacing: -0.01em; }
+.brand-name { flex: 1 1 auto; letter-spacing: -0.01em; font-family: var(--font-display); font-weight: 800; font-size: 19px; }
 .icon-btn { border: 0; background: none; color: var(--ink-3); padding: 6px; border-radius: 8px; display: inline-flex; }
 .icon-btn:hover { background: var(--ground-2); color: var(--ink); }
 .icon-btn .ico { width: 18px; height: 18px; }
@@ -135,6 +145,8 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 }
 .side-item .side-ico { width: 20px; height: 20px; }
 .side-item.is-active { background: var(--ground-2); color: var(--ink); font-weight: 600; }
+.side-group { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); padding: 14px 10px 4px; }
+.side-group:first-child { padding-top: 2px; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
 .side-ring { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
 .ring { width: 44px; height: 44px; transform: rotate(-90deg); flex: 0 0 auto; }
