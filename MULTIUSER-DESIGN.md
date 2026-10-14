@@ -191,4 +191,9 @@ registry, B is sparse, C carries the contrast look). The import
 isolation battery (tests/import-isolation-check.mjs, 8 checks, NS-2)
 runs against them today at the module level; the PZ legs (own world /
 no bleed / server-side choices) execute against the real accounts when
-the phase lands, with QA's journey halves driving TU-C.
+the phase lands, with QA's journey halves driving TU-C. The accounts
+phase also files Pace's DELETION SURFACE INVENTORY (DSI): every code
+path that can delete server-side data, each traced to a user's own
+deliberate action — the store-required account deletion (the §5 sweep)
+is the only whole-account door; an untraceable or system-initiated
+delete path is a FAIL on sight, per the standard.
