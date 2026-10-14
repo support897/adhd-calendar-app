@@ -1029,19 +1029,24 @@ $("welcomeNotif").addEventListener("click", function () { state.welcomed = true;
    Closing never blocks; the guide reopens from Settings. Skip waits at the
    empty-state dock only, never on a working day. */
 function skipSvg(pose) {
-  var ink = "#26221D", honey = "#D9A441", green = "#3FA46A", blue = "#2F7CF6";
-  var flag = pose === "celebrate"
-    ? '<path d="M87 14 L106 19 L87 25 Z" fill="' + green + '" stroke="' + ink + '" stroke-width="2.5" stroke-linejoin="round"/>'
-    : '<g transform="rotate(' + (pose === "point" ? "16" : pose === "goodbye" ? "-14" : "0") + ' 86 34)"><path d="M86 16 L100 20.5 L86 25 Z" fill="' + green + '" stroke="' + ink + '" stroke-width="2.5" stroke-linejoin="round"/><line x1="86" y1="14" x2="86" y2="38" stroke="' + ink + '" stroke-width="3" stroke-linecap="round"/></g>';
-  var spray = pose === "celebrate" ? '<path d="M16 52 q-6 -6 -12 -5 M18 60 q-7 -2 -11 2" fill="none" stroke="' + blue + '" stroke-width="3" stroke-linecap="round"/>' : "";
-  var trail = pose === "goodbye" ? '<path d="M2 80 q6 -6 12 0 q6 6 12 0" fill="none" stroke="' + blue + '" stroke-width="3" stroke-linecap="round" opacity="0.55"/>' : "";
-  var tilt = pose === "celebrate" ? ' transform="rotate(2 60 60)"' : pose === "point" ? ' transform="rotate(-2 60 60)"' : "";
-  return '<svg viewBox="0 0 120 92" class="skip-svg" aria-hidden="true"><g' + tilt + '>' + spray +
-    '<path d="M22 56 L98 56 L88 74 L32 74 Z" fill="' + honey + '" stroke="' + ink + '" stroke-width="3" stroke-linejoin="round"/>' +
-    '<rect x="50" y="32" width="28" height="24" rx="4" fill="#ffffff" stroke="' + ink + '" stroke-width="3"/>' +
-    '<circle cx="59" cy="44" r="2.4" fill="' + ink + '"/><circle cx="69" cy="44" r="2.4" fill="' + ink + '"/>' +
-    '<path d="M60 50 q4 3 8 0" fill="none" stroke="' + ink + '" stroke-width="2.2" stroke-linecap="round"/>' + flag + '</g>' + trail +
-    '<path d="M28 82 q7 -6 14 0 q7 6 14 0 q7 -6 14 0 q7 6 14 0 q7 -6 14 0" fill="none" stroke="' + blue + '" stroke-width="3" stroke-linecap="round"/></svg>';
+  /* Skip's guide art of record (variant B composition, finished as vector
+     14 Oct 2026): full ferry, the calendar smaller inside him as his
+     cabin, board palette. Poses are prop/transform changes on one master. */
+  var ink = "#21392E", hull = "#5B6BD5", cream = "#FAF4E4", flagGreen = "#2F7D4F", dotGreen = "#35704E", apricot = "#F0A868", wave = "#AEB8EC";
+  var flagRot = pose === "point" ? "14" : pose === "goodbye" ? "-12" : "0";
+  var flag = '<g transform="rotate(' + flagRot + ' 120 30)"><line x1="120" y1="8" x2="120" y2="48" stroke="' + ink + '" stroke-width="6.5" stroke-linecap="round"/><path d="M120 10 L149 19.5 L120 29 Z" fill="' + flagGreen + '"/></g>';
+  var spray = pose === "celebrate" ? '<path d="M27 103 q-9 -9 -17 -7 M29 115 q-10 -3 -15 3" fill="none" stroke="' + apricot + '" stroke-width="5" stroke-linecap="round"/>' : "";
+  var trail = pose === "goodbye" ? '<path d="M2 172 q8 -8 16 0 q8 8 16 0" fill="none" stroke="' + wave + '" stroke-width="5" stroke-linecap="round" opacity="0.55"/>' : "";
+  var tilt = pose === "celebrate" ? ' transform="rotate(2 120 110)"' : pose === "point" ? ' transform="rotate(-2 120 110)"' : "";
+  return '<svg viewBox="0 0 240 196" class="skip-svg" aria-hidden="true"><g' + tilt + '>' + spray +
+    '<path d="M22 118 H218 L186 164 H54 Z" fill="' + hull + '" stroke="' + ink + '" stroke-width="7" stroke-linejoin="round"/>' +
+    '<rect x="80" y="46" width="80" height="78" rx="10" fill="' + cream + '" stroke="' + ink + '" stroke-width="7"/>' +
+    '<circle cx="98" cy="40" r="8" fill="none" stroke="' + ink + '" stroke-width="6"/>' +
+    '<circle cx="142" cy="40" r="8" fill="none" stroke="' + ink + '" stroke-width="6"/>' +
+    '<circle cx="102" cy="64" r="4.5" fill="' + dotGreen + '"/><circle cx="120" cy="64" r="4.5" fill="' + dotGreen + '"/><circle cx="138" cy="64" r="4.5" fill="' + apricot + '"/>' +
+    '<circle cx="108" cy="88" r="5.5" fill="' + ink + '"/><circle cx="132" cy="88" r="5.5" fill="' + ink + '"/>' +
+    '<path d="M110 100 q10 8 20 0" fill="none" stroke="' + ink + '" stroke-width="5" stroke-linecap="round"/>' + flag + '</g>' + trail +
+    '<path d="M16 182 q16 -12 32 0 t32 0 t32 0 t32 0 t32 0 t32 0" fill="none" stroke="' + wave + '" stroke-width="8" stroke-linecap="round"/></svg>';
 }
 var GUIDE_STEPS = [
   { pose: "welcome", bubble: "We cross at your pace.", next: "Next" },
