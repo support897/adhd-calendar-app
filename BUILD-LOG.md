@@ -216,3 +216,10 @@ after a final dictation lands, interim words no longer stomp the
 on) — proven by a new voice-battery leg, 9/9. Notes 1 + 4 (the
 ticker doubling the grid's dates; the 108-element count) are one
 open design question, put to HQ by name — not patched over.
+QA addendum (sha 0279e4c3) rider, same treatment: the two most-
+touched first-screen controls sat 2–3px under the 44pt guidance —
+mood buttons now min-height 44 (measured 74×44 on the phone build),
+the add button 46×46 (measured); view segments raised 29 → 38px
+(measured 47×38) as a disclosed secondary-control choice (above
+the WCAG floor, under the guidance, deliberate for a five-way
+switcher in a calm topbar). Sidebar items were already 57px.
