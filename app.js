@@ -24,7 +24,7 @@ function defaultSettings() {
     names: { low: "Bad", steady: "Ok", full: "Good" },
     notif: { perm: "off", checkin: true, start: true, setup: 5, digest: true, digestTimes: ["12:30", "16:30"], done: false, doneTime: "20:00" },
     pausedDate: null,
-    appearance: { theme: "white", cute: false },
+    appearance: { theme: "white", cute: false, photo: null, photoMode: "light", bgChoice: "theme" },
     sidebarCollapsed: true
   };
 }
@@ -78,6 +78,12 @@ function load() {
       if (typeof s.settings.names[k] !== "string" || !s.settings.names[k].trim()) s.settings.names[k] = defaultSettings().names[k];
     });
     s.settings.appearance = Object.assign(defaultSettings().appearance, isObj(s.settings.appearance) ? s.settings.appearance : {});
+    /* Law E: the user's own background photo is USER DATA (Law B) —
+       a wrong-shaped value repairs to "no photo", never deletes by
+       surprise beyond its own field. */
+    if (typeof s.settings.appearance.photo !== "string" || s.settings.appearance.photo.indexOf("data:image/") !== 0 || s.settings.appearance.photo.length > 4200000) s.settings.appearance.photo = null;
+    if (s.settings.appearance.photoMode !== "dark") s.settings.appearance.photoMode = "light";
+    if (s.settings.appearance.bgChoice !== "photo" || !s.settings.appearance.photo) s.settings.appearance.bgChoice = "theme";
     if (typeof s.settings.sidebarCollapsed !== "boolean") s.settings.sidebarCollapsed = !!s.settings.sidebarCollapsed;
     s.settings.sidebarCollapsed = true; // Sidebar Adaptive Law, final shape: hidden on EVERY load; opening is per-session only.
     if (typeof s.settings.guideDone !== "boolean") s.settings.guideDone = !!s.settings.guideDone;
@@ -156,15 +162,32 @@ function adaptedFor(key) {
 }
 
 /* ---------- appearance + sidebar ---------- */
-var THEME_COLORS = { white: "#ffffff", dark: "#161618", blush: "#fff8fa", sky: "#f7fbff", mint: "#f6fcf8", lavender: "#faf8ff" };
+var THEME_COLORS = { white: "#ffffff", dark: "#161618", blush: "#fff8fa", sky: "#f7fbff", mint: "#f6fcf8", lavender: "#faf8ff", brand: "#dce1f6", photolight: "#f3f5fa", photodark: "#141f1b" };
 function applyAppearance() {
   var a = state.settings.appearance;
   var root = document.documentElement;
-  root.setAttribute("data-theme", a.theme || "white");
+  var photoOn = a.bgChoice === "photo" && typeof a.photo === "string" && !!a.photo;
+  if (photoOn) {
+    root.setAttribute("data-theme", a.photoMode === "dark" ? "photodark" : "photolight");
+    root.setAttribute("data-photo", a.photoMode);
+    root.style.setProperty("--photo", 'url("' + a.photo + '")');
+  } else {
+    root.setAttribute("data-theme", a.theme || "white");
+    root.removeAttribute("data-photo");
+    root.style.removeProperty("--photo");
+  }
   if (a.cute) root.setAttribute("data-cute", "1"); else root.removeAttribute("data-cute");
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", THEME_COLORS[a.theme] || "#ffffff");
-  document.querySelectorAll(".swatch").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-theme-set") === a.theme); });
+  if (meta) meta.setAttribute("content", THEME_COLORS[root.getAttribute("data-theme")] || "#ffffff");
+  document.querySelectorAll(".swatch[data-theme-set]").forEach(function (b) { b.classList.toggle("is-active", !photoOn && b.getAttribute("data-theme-set") === a.theme); });
+  var pa = $("photoApply");
+  if (pa) {
+    pa.hidden = !a.photo;
+    pa.classList.toggle("is-active", photoOn);
+    var dot = $("photoDot");
+    if (dot && a.photo) { dot.style.backgroundImage = 'url("' + a.photo + '")'; dot.style.backgroundSize = "cover"; dot.style.backgroundPosition = "center"; }
+  }
+  var pr = $("photoRemove"); if (pr) pr.hidden = !a.photo;
   $("cuteToggle").checked = !!a.cute;
 }
 function applySidebar() {
@@ -172,10 +195,64 @@ function applySidebar() {
   if (state.settings.sidebarCollapsed) root.setAttribute("data-sb", "collapsed"); else root.removeAttribute("data-sb");
   $("sbToggle").checked = !state.settings.sidebarCollapsed;
 }
-document.querySelectorAll(".swatch").forEach(function (b) {
-  b.addEventListener("click", function () { state.settings.appearance.theme = b.getAttribute("data-theme-set"); save(); applyAppearance(); });
+document.querySelectorAll(".swatch[data-theme-set]").forEach(function (b) {
+  b.addEventListener("click", function () { state.settings.appearance.theme = b.getAttribute("data-theme-set"); state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); });
 });
 $("cuteToggle").addEventListener("change", function () { state.settings.appearance.cute = $("cuteToggle").checked; save(); applyAppearance(); });
+/* Law E — the user's own photo as the background. The photo is user
+   data: picking another look never deletes it; only Remove does,
+   and Remove carries Undo (Law B2). A soft veil + an ink set chosen
+   from the photo's own brightness keep every word readable (AA). */
+$("bgPhotoBtn").addEventListener("click", function () { $("bgPhotoFile").click(); });
+$("bgPhotoFile").addEventListener("change", function () {
+  var f = $("bgPhotoFile").files && $("bgPhotoFile").files[0];
+  $("bgPhotoFile").value = "";
+  if (!f) return;
+  var url = URL.createObjectURL(f);
+  var img = new Image();
+  img.onload = function () {
+    URL.revokeObjectURL(url);
+    var scale = Math.min(1, 1440 / Math.max(img.width, img.height));
+    var w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+    var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    var cx = cv.getContext("2d"); cx.drawImage(img, 0, 0, w, h);
+    var tiny = document.createElement("canvas"); tiny.width = 24; tiny.height = 24;
+    var tx = tiny.getContext("2d"); tx.drawImage(cv, 0, 0, 24, 24);
+    var px = tx.getImageData(0, 0, 24, 24).data, lum = 0;
+    for (var i = 0; i < px.length; i += 4) lum += (0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]) / 255;
+    lum /= (px.length / 4);
+    var prev = { photo: state.settings.appearance.photo, photoMode: state.settings.appearance.photoMode, bgChoice: state.settings.appearance.bgChoice };
+    state.settings.appearance.photo = cv.toDataURL("image/jpeg", 0.85);
+    state.settings.appearance.photoMode = lum >= 0.45 ? "light" : "dark";
+    state.settings.appearance.bgChoice = "photo";
+    save();
+    var kept = false;
+    try { kept = (JSON.parse(localStorage.getItem(STORE)).settings.appearance.photo || "").length > 1000; } catch (e) {}
+    if (!kept) {
+      state.settings.appearance.photo = prev.photo; state.settings.appearance.photoMode = prev.photoMode; state.settings.appearance.bgChoice = prev.bgChoice;
+      save(); applyAppearance();
+      toast("That photo is too big to keep on this device. A smaller one will fit.");
+      return;
+    }
+    applyAppearance();
+    toast("Your photo is the background now. A soft veil keeps the words readable.");
+  };
+  img.onerror = function () { URL.revokeObjectURL(url); toast("That file did not read as a photo. Nothing changed."); };
+  img.src = url;
+});
+$("photoApply").addEventListener("click", function () {
+  if (!state.settings.appearance.photo) return;
+  state.settings.appearance.bgChoice = "photo"; save(); applyAppearance();
+});
+$("photoRemove").addEventListener("click", function () {
+  var a = state.settings.appearance;
+  var kept = { photo: a.photo, photoMode: a.photoMode };
+  a.photo = null; a.bgChoice = "theme"; save(); applyAppearance();
+  toast("Photo removed.", function () {
+    state.settings.appearance.photo = kept.photo; state.settings.appearance.photoMode = kept.photoMode; state.settings.appearance.bgChoice = "photo";
+    save(); applyAppearance();
+  });
+});
 $("sbCollapse").addEventListener("click", function () { state.settings.sidebarCollapsed = true; save(); applySidebar(); });
 $("sbExpand").addEventListener("click", function () { state.settings.sidebarCollapsed = false; save(); applySidebar(); });
 $("sbToggle").addEventListener("change", function () { state.settings.sidebarCollapsed = !$("sbToggle").checked; save(); applySidebar(); });
@@ -1161,11 +1238,14 @@ function showGuide(step) {
   $("guideDots").innerHTML = GUIDE_STEPS.map(function (_, i) { return '<span class="g-dot' + (i === step ? " is-on" : "") + '"></span>'; }).join("");
   var ex = $("guideExtra");
   if (s.themes) {
-    ex.innerHTML = '<div class="guide-swatches">' + Object.keys(THEME_COLORS).map(function (t) {
+    /* The guide offers a curated set of looks (the photo modes are
+       not picks; Brand joined the set with Law E). */
+    var GUIDE_THEMES = ["white", "dark", "blush", "sky", "mint", "lavender", "brand"];
+    ex.innerHTML = '<div class="guide-swatches">' + GUIDE_THEMES.map(function (t) {
       return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + t + ' theme"></button>';
     }).join("") + "</div>";
     ex.querySelectorAll("[data-g-theme]").forEach(function (b) {
-      b.addEventListener("click", function () { state.settings.appearance.theme = b.getAttribute("data-g-theme"); save(); applyAppearance(); });
+      b.addEventListener("click", function () { state.settings.appearance.theme = b.getAttribute("data-g-theme"); state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); });
     });
   } else ex.innerHTML = "";
   $("guideSheet").hidden = false;
