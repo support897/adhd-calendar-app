@@ -219,11 +219,19 @@ try {
         <h3>How it looks</h3>
         <div class="swatches" role="group" aria-label="Colour theme">
           <button class="swatch" data-theme-set="white"><span class="sw-dot" style="background:#ffffff;border:1px solid var(--hair)"></span>White</button>
-          <button class="swatch" data-theme-set="dark"><span class="sw-dot" style="background:#1c1c1e"></span>Dark</button>
+          <button class="swatch" data-theme-set="dark"><span class="sw-dot" style="background:#1c1c1e"></span>Black</button>
+          <button class="swatch" data-theme-set="brand"><span class="sw-dot" style="background:#8b99e4"></span>Brand</button>
           <button class="swatch" data-theme-set="blush"><span class="sw-dot" style="background:#f7c8d8"></span>Blush</button>
           <button class="swatch" data-theme-set="sky"><span class="sw-dot" style="background:#a9cdf7"></span>Sky</button>
           <button class="swatch" data-theme-set="mint"><span class="sw-dot" style="background:#a9dcc0"></span>Mint</button>
           <button class="swatch" data-theme-set="lavender"><span class="sw-dot" style="background:#c9bdf2"></span>Lavender</button>
+          <button class="swatch" id="photoApply" hidden><span class="sw-dot" id="photoDot"></span>Your photo</button>
+        </div>
+        <div class="row bg-photo-row">
+          <button type="button" class="soft-btn" id="bgPhotoBtn">Upload your own photo</button>
+          <input type="file" id="bgPhotoFile" accept="image/*" hidden>
+          <button type="button" class="mini-btn" id="photoRemove" hidden>Remove photo</button>
+          <span class="hint">A soft veil keeps every word readable over a photo.</span>
         </div>
         <label class="row check"><input type="checkbox" id="cuteToggle"> Cute mode</label>
         <label class="row check"><input type="checkbox" id="sbToggle"> Menu open <span class="hint">The Pace mark brings it back.</span></label>
