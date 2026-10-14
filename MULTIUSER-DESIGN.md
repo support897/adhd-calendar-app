@@ -169,3 +169,26 @@ mode, the store package's shape (accounts ship as an app update on top).
   14 Oct): a bare-string ENTRY inside the todos array is still dropped by
   the load filter (the field-level string heals). The accounts build adds
   the entry-level heal (string entry → item) with its pinning test.
+
+## §10 — The standing test cast (Security spec, 14 Oct 2026)
+
+Three synthetic users + the demo session, per Security's TEST-PLAN:
+TU-A (content-rich — the victim in attack cases) · TU-B (second user /
+attacker) · TU-C (personalisation contrast). Identities under accounts:
+sec-pace-a@example.com / sec-pace-b@example.com / sec-pace-c@example.com,
+display names "Test User A/B/C" — plainly synthetic, never real people,
+never real data. Residency for Pace: standing accounts in the TEST
+project, minted at P2 when HQ calls the build; credentials are created
+through the app's own doors and live only in the running desk's
+handling — never in repos, reports, or chat. The demo session is the
+fourth identity (anonymous auth, its own users/{uid} space, excluded
+from the SAVED leg by recorded decision).
+
+Build-side preparation (done 14 Oct, ahead of the build): the cast's
+seeded states live in tests/fixtures/users/ (tu-a/b/c.state.json —
+content marked TEST in the seed itself; A holds tasks + an import
+registry, B is sparse, C carries the contrast look). The import
+isolation battery (tests/import-isolation-check.mjs, 8 checks, NS-2)
+runs against them today at the module level; the PZ legs (own world /
+no bleed / server-side choices) execute against the real accounts when
+the phase lands, with QA's journey halves driving TU-C.
