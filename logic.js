@@ -22,8 +22,8 @@ function nudgeTime(task, setupMin) {
 var CATEGORIES = [
   { id: "money",   words: ["pay", "bill", "invoice", "bank", "tax", "rent", "budget", "quote", "price", "refund"], color: "#C9920E" },
   { id: "health",  words: ["doctor", "dentist", "medicine", "tablet", "gym", "walk", "run", "yoga", "therapist", "physio", "vet", "appointment"], color: "#E85D75" },
-  { id: "work",    words: ["work", "meeting", "email", "report", "client", "boss", "presentation", "spreadsheet", "call the office"], color: "#2F7CF6" },
-  { id: "home",    words: ["clean", "tidy", "wash", "laundry", "kitchen", "bedroom", "bins", "garden", "cook", "dishes", "vacuum", "mop"], color: "#3FA46A" },
+  { id: "work",    words: ["work", "meeting", "email", "report", "client", "boss", "presentation", "spreadsheet", "call the office"], color: "#5B6BD5" },
+  { id: "home",    words: ["clean", "tidy", "wash", "laundry", "kitchen", "bedroom", "bins", "garden", "cook", "dishes", "vacuum", "mop"], color: "#35704E" },
   { id: "people",  words: ["call", "visit", "birthday", "friend", "mum", "mom", "dad", "kids", "school", "pick up", "pickup", "message", "text"], color: "#F2994A" },
   { id: "errands", words: ["shop", "groceries", "buy", "post office", "pharmacy", "petrol", "fuel", "drop off", "collect"], color: "#20A39E" },
   { id: "rest",    words: ["rest", "nap", "read", "bath", "breathe", "meditate", "break", "sit outside"], color: "#8E7CC3" }
