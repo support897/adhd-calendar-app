@@ -115,6 +115,7 @@ try {
             <button data-view="year">Year</button>
             <button data-view="listWeek">Agenda</button>
           </div>
+          <button id="importBtn" class="add-btn ghost" aria-label="Bring my calendar in" title="Bring my calendar in"><svg class="ico"><use href="#i-calplus"/></svg></button>
           <button id="addBtn" class="add-btn" aria-label="Add a task"><svg class="ico"><use href="#i-plus"/></svg></button>
         </div>
       </header>
@@ -256,6 +257,7 @@ try {
         <div class="draft-actions">
           <button id="clearSamples" class="soft-btn">Remove the sample tasks</button>
           <button id="guideAgain" class="soft-btn">Setup guide</button>
+          <button id="importOpen2" class="soft-btn">Bring my calendar in</button>
         </div>
         <p class="hint">On this device only.</p>
       </div>
@@ -336,7 +338,33 @@ try {
     <div class="guide-dots" id="guideDots" aria-hidden="true"></div>
     <div class="sheet-actions">
       <button id="guideSkip" class="soft-btn">Skip</button>
+      <button id="guideImport" class="soft-btn" hidden>Bring my old calendar in</button>
       <button id="guideNext" class="primary-btn">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- BRING MY CALENDAR IN (shared module: calendar-import.js + IMPORT-DESIGN.md) -->
+<div id="importSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3>Bring my calendar in</h3>
+    <p class="hint">Read-only — this copies your events into Pace Calendar. Nothing in your old calendar changes, and importing again never doubles anything.</p>
+    <div class="import-sources" role="group" aria-label="Where is your calendar?">
+      <button class="soft-btn import-src is-active" data-src="google">Google Calendar</button>
+      <button class="soft-btn import-src" data-src="apple">Apple / iCloud</button>
+      <button class="soft-btn import-src" data-src="outlook">Outlook</button>
+      <button class="soft-btn import-src" data-src="file">A calendar file</button>
+    </div>
+    <p class="hint" id="importGuide">In Google Calendar: Settings → your calendar → “Secret address in iCal format”. Copy it, paste it below.</p>
+    <label class="row">Paste the calendar link <input type="url" id="importUrl" placeholder="https://… .ics" autocomplete="off"></label>
+    <div class="draft-actions">
+      <button id="importGo" class="primary-btn">Bring it in</button>
+      <button id="importFileBtn" class="soft-btn">Choose a file instead</button>
+      <input type="file" id="importFile" accept=".ics,text/calendar" hidden>
+    </div>
+    <p class="hint" id="importResult" role="status"></p>
+    <div class="sheet-actions">
+      <button id="importClose" class="soft-btn">Done</button>
     </div>
   </div>
 </div>
@@ -359,6 +387,8 @@ try {
 <script src="fullcalendar.js"></script>
 <script src="logic.js"></script>
 <script src="vendor/tesseract/tesseract.min.js"></script>
+<script src="vendor/ical/ical.min.js"></script>
+<script src="calendar-import.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
