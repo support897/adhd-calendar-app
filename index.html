@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f3f5fa">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Pace</title>
+<title>Pace Calendar</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -25,7 +25,25 @@ try {
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="i-logo" viewBox="0 0 100 100"><path d="M20 74 H42 V54 H60 V34 H80" fill="none" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" stroke="#D9A441"/><path d="M42 61 V54 H60" fill="none" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" stroke="#3FA46A"/><path d="M60 47 V34 H80" fill="none" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" stroke="#2F7CF6"/></symbol>
+    <symbol id="i-logo" viewBox="0 0 240 240">  <!-- Pace Calendar mark: variant D finished (Ilse approved 14 Oct 2026).
+       Calendar page joined into Skip's hull like a cabin. Board palette. -->
+  <path d="M24 210 q16 -13 32 0 t32 0 t32 0 t32 0 t32 0 t32 0" fill="none" stroke="#AEB8EC" stroke-width="9" stroke-linecap="round"/>
+  <path d="M38 146 H202 L172 198 H68 Z" fill="#5B6BD5" stroke="#21392E" stroke-width="7" stroke-linejoin="round"/>
+  <line x1="120" y1="16" x2="120" y2="58" stroke="#21392E" stroke-width="6.5" stroke-linecap="round"/>
+  <rect x="64" y="56" width="112" height="114" rx="12" fill="#FAF4E4" stroke="#21392E" stroke-width="7"/>
+  <path d="M64 68 a12 12 0 0 1 12 -12 h88 a12 12 0 0 1 12 12 v15 H64 Z" fill="#5B6BD5"/>
+  <line x1="64" y1="83" x2="176" y2="83" stroke="#21392E" stroke-width="5"/>
+  <circle cx="90" cy="50" r="10" fill="none" stroke="#21392E" stroke-width="6.5"/>
+  <circle cx="150" cy="50" r="10" fill="none" stroke="#21392E" stroke-width="6.5"/>
+  <path d="M120 15 L151 24.5 L120 34 Z" fill="#2F7D4F"/>
+  <g fill="#21392E">
+    <circle cx="84" cy="103" r="4.2"/><circle cx="96" cy="103" r="4.2"/><circle cx="108" cy="103" r="4.2"/><circle cx="120" cy="103" r="4.2"/><circle cx="132" cy="103" r="4.2"/><circle cx="144" cy="103" r="4.2"/><circle cx="156" cy="103" r="4.2"/>
+    <circle cx="84" cy="121" r="4.2"/><circle cx="96" cy="121" r="4.2"/><circle cx="108" cy="121" r="4.2"/><circle cx="120" cy="121" r="4.2"/><circle cx="132" cy="121" r="4.2"/><circle cx="144" cy="121" r="4.2"/>
+  </g>
+  <circle cx="156" cy="121" r="4.2" fill="#F0A868"/>
+  <circle cx="106" cy="143" r="5.2" fill="#21392E"/><circle cx="134" cy="143" r="5.2" fill="#21392E"/>
+  <path d="M110 153 q10 8 20 0" fill="none" stroke="#21392E" stroke-width="5" stroke-linecap="round"/>
+</symbol>
     <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></symbol>
     <symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
@@ -60,15 +78,18 @@ try {
   <aside id="sidebar" aria-label="Menu">
     <div class="brand">
       <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
-      <span class="brand-name">Pace</span>
+      <span class="brand-name">Pace Calendar</span>
       <button id="sbCollapse" class="icon-btn" aria-label="Hide the menu" title="Hide the menu"><svg class="ico"><use href="#i-chevl"/></svg></button>
     </div>
     <nav>
+      <div class="side-group">Plan</div>
       <button class="side-item is-active" data-panel="calendar"><svg class="ico side-ico"><use href="#i-cal"/></svg><span class="side-label">Calendar</span></button>
-      <button class="side-item" data-panel="capture"><svg class="ico side-ico"><use href="#i-chat"/></svg><span class="side-label">Talk to it</span></button>
+      <button class="side-item" data-panel="progress"><svg class="ico side-ico"><use href="#i-chart"/></svg><span class="side-label">Progress</span></button>
+      <div class="side-group">Lists</div>
       <button class="side-item" data-panel="todo"><svg class="ico side-ico"><use href="#i-todo"/></svg><span class="side-label">To do</span></button>
       <button class="side-item" data-panel="habits"><svg class="ico side-ico"><use href="#i-habits"/></svg><span class="side-label">Habits</span></button>
-      <button class="side-item" data-panel="progress"><svg class="ico side-ico"><use href="#i-chart"/></svg><span class="side-label">Progress</span></button>
+      <div class="side-group">Add + app</div>
+      <button class="side-item" data-panel="capture"><svg class="ico side-ico"><use href="#i-chat"/></svg><span class="side-label">Talk to it</span></button>
       <button class="side-item" data-panel="settings"><svg class="ico side-ico"><use href="#i-gear"/></svg><span class="side-label">Settings</span></button>
     </nav>
     <div class="side-foot">
@@ -247,7 +268,7 @@ try {
       </div>
       <div class="settings-group brand-foot">
         <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
-        <div><strong>Pace</strong><span>Your day, at your pace.</span></div>
+        <div><strong>Pace Calendar</strong><span>Your day, at your pace.</span></div>
       </div>
     </section>
   </main>
@@ -323,7 +344,7 @@ try {
 <!-- WELCOME -->
 <div id="welcome" class="sheet" hidden>
   <div class="sheet-card">
-    <h3>Welcome to Pace</h3>
+    <h3>Welcome to Pace Calendar</h3>
     <p><strong>Your day, at your pace.</strong></p>
     <p>The day shapes itself around you.</p>
     <div class="sheet-actions">
