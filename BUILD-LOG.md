@@ -259,3 +259,9 @@ fail, under the 44pt guidance is a named finding, and a named
 finding on a secondary control may close by deliberate recorded
 decision when every primary action meets the guidance (mood 44,
 add 46, sidebar 57 — all measured). Never dressed as 44.
+v14.1 delta (App Checker B3): in photo-light mode the hint ink
+(--ink-3) over a dark patch of a bright photo measured 3.42 —
+under AA. Photolight --ink-3 deepened to #42564a (this mode
+only): worst case 4.52. The backgrounds battery now measures
+ALL THREE ink levels in BOTH photo modes (20/20) — the title ink
+passing was never the floor; the faintest hint ink is.
