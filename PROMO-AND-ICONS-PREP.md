@@ -93,10 +93,12 @@ og.png) fill from the rebrand re-shoot. PUBLISH FENCE: the FAQ import
 answer describes "Bring my calendar in" — if the page goes live before
 the import build lands, soften that answer first; never overclaim.
 
-## LAW E — BUILD ASSIGNMENT (filed 14 Oct 2026)
+## LAW E — BUILD ASSIGNMENT (filed 14 Oct 2026; renumbered the same night)
 Law E (backgrounds: WHITE · BLACK · BRAND COLOURS · UPLOAD OWN IMAGE,
 adaptive contrast, AA floor, veil over photos) rides its OWN build:
-**pace-v13**, on Meal Prep's proven pattern (their v17–v19 line:
-theme set + veil-from-luminance + AA battery). Deliberately NOT folded
-into v12 (import) — one feature per gate. The v12 ship note to Quality
-files this assignment in words; this note is the on-disk record.
+**pace-v14**, on Meal Prep's proven pattern (their v17–v19 line:
+theme set + veil-from-luminance + AA battery). Filed first as v13;
+Ilse's direct feel-build order took v13 the same night, so Law E
+renumbered to v14 — one feature per gate either way, not folded into
+v12 (import) or v13 (feel), and not dropped. Quality holds the
+renumber filing; this note is the on-disk record.
