@@ -88,6 +88,56 @@ html[data-theme="lavender"] {
   --accent: #7c5cd6;
   --blue: #7c5cd6;
 }
+html[data-theme="brand"] {
+  --ground: #dce1f6;
+  --ground-2: #cdd6f2;
+  --card: #ffffff;
+  --hair: #bcc7ec;
+  --seg: #cdd6f2;
+  --seg-active: #ffffff;
+  --today-tint: rgba(91,107,213,0.10);
+  --accent: #5b6bd5;
+  --accent-strong: #4858c4;
+  --blue: #5b6bd5;
+}
+/* Law E: the user's own photo behind everything. The photo layer +
+   a veil sit under the app; the ink set is chosen from the photo's
+   brightness (photolight = the porcelain family, photodark = the
+   pine-night family) so words hold AA over any photo. */
+html[data-theme="photolight"] {
+  --ground: transparent;
+  --ground-2: rgba(243,245,250,0.55);
+}
+html[data-theme="photodark"] {
+  --ink: #edf1ec;
+  --ink-2: #c9d4cc;
+  --ink-3: #93a69b;
+  --ground: transparent;
+  --ground-2: rgba(20,31,27,0.55);
+  --card: #1d2b25;
+  --hair: #2e4238;
+  --seg: #1d2b25;
+  --seg-active: #3a4f44;
+  --today-tint: rgba(174,184,236,0.07);
+  --accent: #aeb8ec;
+  --accent-strong: #8b99e4;
+  --blue: #aeb8ec;
+  --heat-1: #26355c;
+  --heat-2: #3d4f9e;
+  --heat-3: #5b6bd5;
+}
+html[data-photo] body { background: transparent; }
+html[data-photo] body::before {
+  content: ""; position: fixed; inset: 0; z-index: -2;
+  background-image: var(--photo); background-size: cover; background-position: center;
+}
+html[data-photo] body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1;
+}
+html[data-photo="light"] body::after { background: rgba(243,245,250,0.80); }
+html[data-photo="dark"] body::after { background: rgba(20,31,27,0.88); }
+.bg-photo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.mini-btn { border: 1px solid var(--hair); background: none; color: var(--ink-2); border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 500; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; padding: 0; }
