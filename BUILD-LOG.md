@@ -193,3 +193,16 @@ Proof battery tests/mood-check.mjs 14/14: Bad shrinks + parks,
 Ok normal, Good stretches, persists across reload.
 Law E renumbers to v14 (this build took v13 on her order).
 Maker: Pace build desk.
+Sweep record, stated exactly: the first full v13 sweep run held
+4 failing suites — three stale maker tests encoding pre-v13
+behaviour Ilse ordered changed (guide step order, fallback level
+words, import step position) and one harness bug in the new mood
+suite (tasks seeded by UTC date; Sydney crossed midnight AEDT
+mid-session and the app correctly showed its own next day). All
+fixed in tests only; shipped bytes never changed. Full re-run:
+247/247 (run 44, features 39, browser 28, v2 24, drag 7, recur 6,
+qa 14, delete-undo 13, import 26, isolation 8, import-ui 11,
+voice 8, mood 14, ocr 5). The desk's lesson, recorded: the figure
+quoted in the first gate briefs (243/243) was sent before the
+sweep output existed; corrections went to every desk that
+received it the same night.
