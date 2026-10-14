@@ -253,3 +253,9 @@ handlers bound to one element and OCR timed out. Renamed to
 bgPhotoFile/bgPhotoBtn; ocr 5/5, backgrounds 14/14, features
 39/39 after the fix. Full sweep after all fixes: 262/262
 across 15 suites.
+Switcher ruling (QA Addendum 2, sha e8e084d0): the view segments
+at 38px STAND as a recorded choice — under the 24px floor is a
+fail, under the 44pt guidance is a named finding, and a named
+finding on a secondary control may close by deliberate recorded
+decision when every primary action meets the guidance (mood 44,
+add 46, sidebar 57 — all measured). Never dressed as 44.
