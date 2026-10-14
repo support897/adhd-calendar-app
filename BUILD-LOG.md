@@ -223,3 +223,9 @@ the add button 46×46 (measured); view segments raised 29 → 38px
 (measured 47×38) as a disclosed secondary-control choice (above
 the WCAG floor, under the guidance, deliberate for a five-way
 switcher in a calm topbar). Sidebar items were already 57px.
+Quality's framing of this build's two lessons, banked verbatim:
+"a claim is not a check, and a figure quoted from memory reads
+the same as a figure quoted from hope." Both filings (the sweep
+figure, the "real-voice proof") stated a result before its
+evidence existed; both were caught and corrected by this desk
+the same night, and stand as lessons, not findings.
