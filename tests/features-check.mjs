@@ -13,9 +13,11 @@ const page = await ctx.newPage();
 const errors = []; page.on("pageerror", e => errors.push(e.message));
 await page.goto("http://localhost:8918/", { waitUntil: "networkidle" });
 await page.click("#welcomeSkip");
+await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")));
 
 /* Sidebar carries both new items. */
+await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 check("sidebar has 6 items incl To do + Habits", (await page.locator(".side-item").count()) === 6 &&
   await page.locator('.side-item[data-panel="todo"]').isVisible() && await page.locator('.side-item[data-panel="habits"]').isVisible());
 
@@ -45,6 +47,7 @@ await page.locator(".todo-row").first().locator(".todo-tick").click();
 await page.waitForTimeout(200);
 check("tick marks done and offers Clear done", await page.locator(".todo-row.is-done").count() === 1 && await page.locator("#todoClearDone").isVisible());
 await page.reload({ waitUntil: "networkidle" });
+await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="todo"]');
 check("todos survive a reload", (await page.locator(".todo-row").count()) === 2);
 await page.click("#todoClearDone");
@@ -74,6 +77,7 @@ await page.locator(".week-dot").nth(5).click();
 await page.waitForTimeout(250);
 check("tapping yesterday extends the run to 2", /2 in a row/.test(await page.locator("#habitList").textContent()));
 await page.reload({ waitUntil: "networkidle" });
+await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="habits"]');
 check("habit + streak survive a reload", (await page.locator(".habit-row").count()) === 1 && /2 in a row/.test(await page.locator("#habitList").textContent()));
 await page.click(".habit-del");
@@ -90,8 +94,47 @@ await p2.goto("http://localhost:8918/", { waitUntil: "networkidle" });
 if (await p2.locator("#welcomeSkip").isVisible().catch(() => false)) await p2.click("#welcomeSkip");
 await p2.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1")); s.todos = "oops"; s.habits = 42; s.tasks.push({ title: "x" }); localStorage.setItem("calmcal-v1", JSON.stringify(s)); });
 await p2.reload({ waitUntil: "networkidle" });
+await p2.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+await p2.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await p2.click('.side-item[data-panel="todo"]');
-check("poisoned todos/habits: app boots, panels render", errs2.length === 0 && /Nothing here/.test(await p2.locator("#todoList").textContent()));
+check("poisoned todos/habits: app boots, panels render, string todo REPAIRED not dropped", errs2.length === 0 && /oops/.test(await p2.locator("#todoList").textContent()) && /No habits yet/.test(await p2.locator("#habitList").textContent()));
 await ctx2.close();
+// Empty-Start Law: inside the store wrapper (Capacitor present) the app seeds NO samples.
+const ctx3 = await browser.newContext();
+await ctx3.addInitScript(() => { window.Capacitor = { isNativePlatform: () => true }; });
+const p3 = await ctx3.newPage();
+await p3.goto("http://localhost:8918/", { waitUntil: "networkidle" });
+const storeTasks = await p3.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.length);
+check("store build starts empty (no sample tasks)", storeTasks === 0);
+check("store build still shows the designed empty day", /Nothing today/.test(await p3.locator("#dayList").textContent()));
+check("Skip waits at the empty-state dock", (await p3.locator("#dayList .dock-skip").count()) === 1);
+await ctx3.close();
+
+/* Setup guide (Skip the Ferry): 3 beats, live theme pick, ends at Add, stays done, reopens from Settings. */
+const ctx4 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const p4 = await ctx4.newPage();
+await p4.goto("http://localhost:8918/", { waitUntil: "networkidle" });
+await p4.click("#welcomeSkip");
+check("guide opens after welcome", await p4.locator("#guideSheet").isVisible() && /We cross at your pace/.test(await p4.locator("#guideBubble").textContent()));
+check("guide shows Skip the Ferry", (await p4.locator("#guideArt .skip-svg").count()) === 1);
+await p4.click("#guideNext");
+check("guide step 2 says who it helps (her line)", /helps people that are overwhelmed/.test(await p4.locator("#guideBubble").textContent()));
+await p4.click("#guideNext");
+check("guide step 3 offers the theme picks", /Pick a look/.test(await p4.locator("#guideBubble").textContent()) && (await p4.locator(".g-swatch").count()) === 6);
+await p4.locator('.g-swatch[data-g-theme="dark"]').click(); await p4.waitForTimeout(200);
+check("guide theme pick applies live", (await p4.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "dark");
+await p4.click("#guideNext");
+check("guide step 4 is the first action", /Add one small thing/.test(await p4.locator("#guideBubble").textContent()));
+await p4.click("#guideNext");
+check("guide ends at the Add sheet, marked done", (await p4.locator("#guideSheet").isHidden()) && (await p4.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).settings.guideDone)) === true);
+await p4.reload({ waitUntil: "networkidle" });
+check("guide does not nag after it is done", await p4.locator("#guideSheet").isHidden());
+await p4.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
+await p4.click('.side-item[data-panel="settings"]');
+await p4.click("#guideAgain");
+check("guide reopens from Settings", await p4.locator("#guideSheet").isVisible());
+await p4.click("#guideClose");
+check("guide closes in one tap", await p4.locator("#guideSheet").isHidden());
+await ctx4.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); server.close(); process.exit(fail ? 1 : 0);
