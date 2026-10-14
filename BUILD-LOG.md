@@ -148,3 +148,17 @@ not a block); plain toasts carry no Undo. Built on the exact v10 bytes
 (staged apart from the held v12 import wiring). Proof:
 tests/delete-undo-check.mjs 13/13 + the full 166 sweep = 179/179.
 Maker: Pace build desk.
+
+## "BRING MY CALENDAR IN" (pace-v12, 14 Oct 2026)
+Ilse's house feature, Pace leads: one button (calendar header +
+Settings + the guide's last step) opens one sheet — Google / Apple /
+Outlook / a file — everything copies in with counts shown. Repeats
+that match Pace's model stay live; the rest expand (−30d → +12mo).
+Dedupe per user, never overwrites, read-only against the source,
+demo sessions have no entry points. Isolation-first module
+(calendar-import.js, vendored ical.js 1.5.0) pinned by three
+batteries: 23 module + 11 browser + 8 isolation (Security NS-2).
+Proof on the shipped tree: the full sweep, 221/221. Design:
+IMPORT-DESIGN.md; adoption: IMPORT-ADOPTION.md. Google sign-in is a
+named adapter slot (needs Ilse's OAuth client) — v1 Google source is
+its iCal secret-address line. Maker: Pace build desk.
