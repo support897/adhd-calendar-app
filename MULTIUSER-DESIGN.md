@@ -41,7 +41,10 @@ Cloud Firestore, one document per user at `users/{uid}`:
 Firestore Security Rules allow a read or write only when the signed-in
 user's id equals the document's id — ownership is the address:
 `match /users/{userId} { allow read, write: if request.auth != null &&
-request.auth.uid == userId; }`. A request carrying user A's token against
+request.auth.uid == userId; }` — shipped with the explicit catch-all the
+other apps carry, `match /{document=**} { allow read, write: if false; }`
+(Firestore denies unmatched paths by default anyway; the line is there so
+a reader sees the wall is complete). A request carrying user A's token against
 user B's document is denied by the database itself, not by app code. Why
 one document and not per-task collections: the app's proven unit of truth
 IS the document — its repair pass, its save(), its exports all speak it.
@@ -50,14 +53,22 @@ isolation gain; the rules isolate documents either way. The app talks to
 Firebase over its plain REST endpoints with the user's own ID token — no
 SDK, no new dependency, in keeping with the app's build-free shape. There
 is no master key in the client, ever; the rules are the wall.
+The ceiling, named (Security desk PC-3): Firestore caps a document at
+~1 MiB. Today's measured Pace state is 3,306 bytes seeded (8 tasks) — a
+heavy year of real use lands around 100–300 KB, so the ceiling is roughly
+2,000+ full task records away. The sync layer carries a size watch (a
+quiet Settings note past ~800 KB), and the named answer for a heavy user's
+far-off day is the slices path — feelings history splits into
+`users/{uid}/slices/{yyyy}` documents under the same rules — designed on
+paper here, built only if the watch ever fires.
 
 ## 4. localStorage becomes the per-account cache
 - Keys: `calmcal-v1:guest` signed-out; `calmcal-v1:<uid>` per account.
   Switching accounts switches documents — nothing bleeds across.
-- On sign-in: fetch the user's row → if it exists, it becomes the working
-  document (cached locally); if none exists yet, the current document is
-  uploaded as their starting state (see §5) — a brand-new account with no
-  local data starts EMPTY (Empty-Start Law).
+- On sign-in: fetch the user's document → if it exists, it becomes the
+  working document (cached locally); if none exists yet, the guest-upload
+  door in §5 decides what happens — never a silent upload. A brand-new
+  account with no local data starts EMPTY (Empty-Start Law).
 - On every save: write the cache immediately (the app stays instant and
   offline-true), then a debounced write of the document to Firestore when signed in and
   online. Offline changes sync on reconnect; the document carries its own
@@ -69,13 +80,27 @@ is no master key in the client, ever; the rules are the wall.
   device) — and a "Remove my cached data from this device" button in
   Settings clears it on request (user's choice = the only deletion).
 
-## 5. Migration — nobody loses anything (Never-Delete Law)
-- Ilse's existing data: on HER first sign-in, her current document uploads
-  as her account's state. Counts proven before/after (tasks, todos,
-  habits, feelings) in the build report; the local copy is NOT deleted —
-  it stays as the guest document and the cache.
-- Same path serves every future user who used Pace signed-out first:
-  "Bring your things into your account?" — a copy, never a move.
+## 5. Migration — the guest-upload door (Never-Delete Law + Security PC-1)
+The guest document is a shared pot on a shared device, so the upload door
+is narrow by design — the standard's shape (ILSE-STANDARD S5.4, as Meal
+Prep's design carries it):
+- The offer appears ONLY when all three hold: the account has no server
+  document yet; a guest document with content exists on this device; and
+  this device carries no consumed stamp from an earlier import.
+- It is an explicit yes: "Bring your things into your account?" — never
+  automatic, never pre-ticked.
+- On success the pot is CONSUMED: the upload lands in the account (and
+  stays on the device as that account's own cache), the guest slot is
+  cleared to a fresh empty guest state, and a consumed stamp is written on
+  the device. The next person who signs in on this device is offered
+  nothing and starts empty — user A's things can never become user B's
+  starting state. Nothing of A's is lost: the data lives in A's account;
+  the clearing empties only the shared guest pot A just claimed.
+- On failure (offline, server error) the pot stays fully intact and the
+  offer can be retried safely — the stamp is written only after the
+  server confirms the write.
+- Ilse's own first sign-in runs through this same door: counts proven
+  before/after (tasks, todos, habits, feelings) in the build report.
 - The repair pass runs on the server copy on the way in, same as on load:
   wrong shapes are repaired, never dropped (the string-todo heal included).
 
@@ -104,14 +129,20 @@ mode, the store package's shape (accounts ship as an app update on top).
   sitting, flagged when reached). Email link door + Google live; Apple
   configured (needs the Apple Developer account — pending Ilse's $99;
   Android/web can prove the design before iOS accounts ship).
-- P2 — Data layer: the users/{uid} shape + Security Rules; isolation
-  proven two ways — rules unit tests in the Firebase emulator (the six
-  standard attacks all denied) and live two-account attempts.
-- P3 — App wiring: cache keys, sync, migration, sign-in UI, §6 buttons.
+- P2 — Data layer: the users/{uid} shape + Security Rules. Proof, per the
+  amended standard v1.1 (Security desk PC-2 — the emulator route does not
+  run in this environment): an auditor static review of the exact rules
+  text, plus the live battery on a dedicated TEST project (the six
+  standard attacks, two real accounts, all denied).
+- P3 — App wiring: cache keys, sync, migration (the §5 door, consumed
+  stamp included), sign-in UI, §6 buttons.
 - P4 — Gates: Security desk (645b2144) end-to-end attacks WITH QA — the
-  two-account battery (UI, direct API, edited-id attempts), offline/online
-  sync conflicts, migration counts; then Quality + Efficiency; then QA's
-  verdict on the exact build.
+  two-account battery (UI, direct API, edited-id attempts), the
+  guest-upload battery (after A's import, a fresh B on the same device is
+  offered nothing and starts empty), offline/online sync conflicts,
+  migration counts, and a rules-diff step (the shipped rules text diffed
+  against the P2-reviewed text — byte-identical, or the phase re-opens);
+  then Quality + Efficiency; then QA's verdict on the exact build.
 - P5 — Store truth: privacy policy + data-safety answers updated, listing
   notes refreshed, resubmission pack. (Submission itself still waits on
   Ilse's developer accounts + keystore, as before.)
