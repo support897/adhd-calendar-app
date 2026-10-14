@@ -92,11 +92,26 @@ verified by the fixture battery (23 checks) + browser battery (11).
 - `CI.planImport(events, existingTasks, opts)` → a PLAN, pure and
   testable without a DOM: { add: [taskShapes], liveRepeats: n,
   expanded: n, dupes: n, skipped: [{title, why}] }.
-- `CI.applyImport(state, plan, sourceLabel)` → mutates a CLONE of
-  state, writes the registry entry, returns counts. The host app
+  Opts: `now`, `sourceLabel`, `importKey`, and `repeatModel` — a host
+  whose repeat model cannot say Pace's five strings truthfully (or
+  which has NO repeat model) passes `repeatModel: "none"` and every
+  RRULE expands into instances inside the window instead of mapping
+  live; liveRepeats then reports 0 and the counts stay truthful
+  (Meal Prep seam Q1, 14 Oct 2026; default behaviour unchanged).
+- `CI.applyImport(state, plan, sourceLabel, toTask)` → mutates the
+  state-shaped object it is handed ({tasks, imports}), writes the
+  registry entry when events were added, returns counts. The host
   commits through its own save path (Law B repair boundary untouched).
-- `CI.sources` — the source list + per-source one-line guidance +
-  the Google adapter slot.
+  SANCTIONED SEAM (Meal Prep Q2): handing applyImport a collector —
+  {tasks: [], imports: hostImports} — and committing the collected
+  shapes through the host's own save() is the intended use; the module
+  never touches storage itself.
+- The source list + per-source one-line guidance are NOT a module
+  export: the guidance of record is the shipped sheet copy (Pace's
+  app.js IMPORT_GUIDE + the sheet markup in index.html). Hosts copy
+  those strings verbatim and may re-tint; the module stays copy-free.
+  (Meal Prep Q3 — an earlier draft of this section overstated a
+  `CI.sources` export; corrected 14 Oct 2026.)
 
 Hosts wire: one button, one sheet, three calls. Adoption note ships
 with the module (IMPORT-ADOPTION.md) — a desk adopting it changes
