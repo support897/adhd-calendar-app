@@ -44,7 +44,13 @@ it. Design of record: `IMPORT-DESIGN.md` (in the Pace repo).
    `tests/import-ui-check.mjs` for your sheet: counts shown, registry
    written, reload persistence, re-import = 0 added, demo hidden,
    guide offer). Gates as standard.
-8. ISOLATION (Security NS-2 — a fence, not a suggestion): the module
+8. REPEAT-LESS HOSTS: if your app has no repeat model (or cannot say
+   Pace's five repeat strings truthfully), pass
+   `repeatModel: "none"` in the planImport opts — every RRULE expands
+   into instances inside the window and nothing is promised as a
+   live repeat. Never fake a live repeat your app cannot honour:
+   a single first-occurrence shape silently loses the series.
+9. ISOLATION (Security NS-2 — a fence, not a suggestion): the module
    is handed ONLY the importing user's own space, ever. Dedupe never
    crosses users; the registry lives in the importer's space; a
    malformed file writes nothing anywhere. Your adoption proof must
