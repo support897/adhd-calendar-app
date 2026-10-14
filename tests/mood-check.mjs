@@ -7,7 +7,10 @@ import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
 const URL = "http://localhost:9119/";
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
-const today = new Date(); const K = today.toISOString().slice(0, 10);
+const today = new Date(); // LOCAL date, the way the app computes todayKey —
+// toISOString() is UTC and seeds yesterday's tasks once local time passes
+// midnight (caught 15 Oct: Sydney AEDT crossed over while the suite ran).
+const K = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
 const mk = (id, title, extra) => Object.assign({ id, title, date: K, time: "09:00", durationMin: 40, priority: 1, repeat: null,
   category: "home", color: "#35704e", essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "",
   source: "seed", originalText: "", skipDates: [], doneDates: [] }, extra);
