@@ -7,7 +7,7 @@ import http from "http"; import fs from "fs"; import path from "path";
 const ROOT = process.env.APP_ROOT || "/home/hatch/workspace/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split("?")[0]); if (p === "/") p = "/index.html"; const file = path.join(ROOT, p); if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; } res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" }); fs.createReadStream(file).pipe(res); });
-await new Promise(r => server.listen(8917, r));
+await new Promise(r => server.listen(8927, r));
 let pass = 0, fail = 0; const check = (n, c) => { if (c) { pass++; console.log("PASS " + n); } else { fail++; console.log("FAIL " + n); } };
 const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
 
@@ -15,8 +15,10 @@ async function bootWith(mutator) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(e.message));
-  await page.goto("http://localhost:8917/", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:8927/", { waitUntil: "networkidle" });
   if (await page.locator("#welcomeSkip").isVisible().catch(() => false)) await page.click("#welcomeSkip");
+  await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
   await page.evaluate((fn) => { const s = JSON.parse(localStorage.getItem("calmcal-v1")); eval(fn)(s); localStorage.setItem("calmcal-v1", JSON.stringify(s)); }, mutator.toString());
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(300);
@@ -43,7 +45,7 @@ async function bootWith(mutator) {
   const { ctx, page, errors } = await bootWith((s) => { s.settings.names = "oops"; s.feelings = "oops"; s.sent = 5; });
   check("bug1: names/feelings/sent wrong shapes, no page error", errors.length === 0);
   const labels = await page.locator(".level-btn .level-name").allTextContents();
-  check("bug1: level labels fall back to Low Steady Full", labels.join(",") === "Low,Steady,Full");
+  check("bug1: level labels fall back to her words Bad Ok Good", labels.join(",") === "Bad,Ok,Good");
   await ctx.close();
 }
 // Bug 1d: a task missing its optional fields still shows.
@@ -58,8 +60,10 @@ async function bootWith(mutator) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(e.message));
-  await page.goto("http://localhost:8917/", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:8927/", { waitUntil: "networkidle" });
   await page.click("#welcomeSkip");
+  await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
   await page.click('.side-item[data-panel="settings"]');
   await page.fill("#nDigestTimes", "25:99");
   await page.locator("#nDigestTimes").dispatchEvent("change");
@@ -78,6 +82,7 @@ async function bootWith(mutator) {
 // Bug 2b: a bad time already stored by the old version is cleaned on load.
 {
   const { ctx, page } = await bootWith((s) => { s.settings.notif.digestTimes = ["25:99"]; });
+  await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
   await page.click('.side-item[data-panel="settings"]');
   check("bug2: pre-stored 25:99 cleaned to the fallback on load", (await page.inputValue("#nDigestTimes")) === "12:30");
   await ctx.close();
