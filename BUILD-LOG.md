@@ -162,3 +162,34 @@ Proof on the shipped tree: the full sweep, 221/221. Design:
 IMPORT-DESIGN.md; adoption: IMPORT-ADOPTION.md. Google sign-in is a
 named adapter slot (needs Ilse's OAuth client) — v1 Google source is
 its iCal secret-address line. Maker: Pace build desk.
+
+## FEEL BUILD (pace-v13, 14 Oct 2026, Ilse's direct order)
+Her verdict on v12 ("too ugly and cramped; dictation doesn't work;
+Skip cuter + say my lines; prove the mood loop") rebuilt as one build:
+(1) VISUAL — air pass over every view (spacing scale up, softer
+grid, other-month days recede), events become tinted pills with a
+colour spine + ink text (never white-on-solid), Week/Day show waking
+hours (06:00–22:00) instead of the empty 24h grid, phone month shows
+colour DOTS (titles live in the list below — truncated chips were a
+real part of "cramped"), month caps at 3 events/day + "+n more".
+(2) DICTATION — root cause: the store app's WebView has no web
+speech, so Speak could never work there. One voice engine now:
+device recogniser via @capacitor-community/speech-recognition in the
+store build (RECORD_AUDIO + RecognitionService queries; iOS mic +
+speech usage strings), hardened Web Speech in browsers (live interim
+words, continuous), and errors that name their cause (blocked mic /
+no mic / heard nothing / needs internet). Battery: voice 8/8 +
+real-voice mic-path probe (her banked recording through the fake
+mic: RMS peak 0.4565 — real voice energy reaches the app; the cloud
+recogniser itself is the device's and cannot run in a sandbox).
+(3) SKIP — cuter on the geometry of record (bigger eyes + highlights,
+apricot blush, wider smile, rounder cabin; graphics-pipeline concept
+proven first, finished as vector like the mark). Skip says her line
+in the guide: "This calendar helps people that are overwhelmed, or
+with ADHD and problems getting things done."
+(4) MOOD — her words are the defaults now: "How are you feeling
+today?" → Good / Ok / Bad (existing users keep their own names).
+Proof battery tests/mood-check.mjs 14/14: Bad shrinks + parks,
+Ok normal, Good stretches, persists across reload.
+Law E renumbers to v14 (this build took v13 on her order).
+Maker: Pace build desk.
