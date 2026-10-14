@@ -143,6 +143,13 @@ mode, the store package's shape (accounts ship as an app update on top).
   migration counts, and a rules-diff step (the shipped rules text diffed
   against the P2-reviewed text — byte-identical, or the phase re-opens);
   then Quality + Efficiency; then QA's verdict on the exact build.
+- THE SEAL (HQ standing gate, Ilse's order 14 Oct 14:45): the accounts
+  phase seals ONLY on the passed multi-user battery, all three legs —
+  (1) Security's two-account separation battery above; (2) the saved-data
+  leg: each account's data proven intact after sign-out/sign-in round
+  trips AND through the repair path (a poisoned account document heals on
+  load, never drops) — counts in == counts out, per account; (3) QA's
+  multi-user end-to-end journeys on the exact build. No partial seal.
 - P5 — Store truth: privacy policy + data-safety answers updated, listing
   notes refreshed, resubmission pack. (Submission itself still waits on
   Ilse's developer accounts + keystore, as before.)
