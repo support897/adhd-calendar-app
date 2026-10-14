@@ -63,5 +63,17 @@ const res = CI.applyImport(state, gp, "Google Calendar", toTask);
 check("apply: tasks added == plan", state.tasks.length === gp.add.length && res.added === gp.add.length);
 check("apply: registry entry recorded with count", state.imports.length === 1 && state.imports[0].count === gp.add.length);
 
+
+
+// --- repeatModel: "none" (Meal Prep seam Q1: a repeat-less host must
+// never be handed a live repeat it cannot honour — everything expands).
+{
+  const planNone = CI.planImport(g, [], { now: NOW, sourceLabel: "Google Calendar", repeatModel: "none" });
+  check("repeatModel none: nothing maps live", planNone.liveRepeats === 0 && planNone.add.every(s => !s._live && !s.repeat));
+  check("repeatModel none: the weekly + daily series expand into many dated instances", planNone.add.length > 40 && planNone.expanded > 40);
+  const planDef = CI.planImport(g, [], { now: NOW, sourceLabel: "Google Calendar" });
+  check("default unchanged: the same file still live-maps", planDef.liveRepeats === 2 && planDef.add.length === 4);
+}
+
 console.log("RESULT pass=" + pass + " fail=" + fail);
 process.exit(fail ? 1 : 0);
