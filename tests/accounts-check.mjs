@@ -26,7 +26,7 @@ const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwri
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
 const p = await ctx.newPage();
 p.setDefaultTimeout(9000);
-const K = new Date().toISOString().slice(0, 10);
+const K = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })(); // LOCAL day key — never toISOString (UTC yesterday each Sydney evening; the pot leg red on exactly that seam, ac39/ac40)
 const guestSeed = { settings: { guideDone: true }, welcomed: true, samplesLoaded: true, imports: [], feelings: {}, checks: {}, habitLog: {}, habits: [], todos: [], tasks: [
   { id: "g1", title: "Guest pot task one", date: K, time: null, durationMin: 30, priority: 0, repeat: null, category: "work", color: "#5B6BD5", essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "", source: "manual", originalText: "", skipDates: [], doneDates: [] },
   { id: "g2", title: "Guest pot task two", date: K, time: null, durationMin: 30, priority: 0, repeat: null, category: "work", color: "#5B6BD5", essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "", source: "manual", originalText: "", skipDates: [], doneDates: [] },
@@ -98,7 +98,12 @@ const doorShown = await waitPotDoor(25000);
 check("the guest-upload door is offered to the first account", doorShown);
 if (doorShown) { await p.click("#potYes"); await p.waitForTimeout(1800); }
 await dismissOverlays();
-check("the pot's tasks became A's", await p.evaluate(() => document.body.innerText.includes("Guest pot task one")));
+// Poll for the adopted text: adoption is proven at the state
+// layer below either way; this read waits for the re-render
+// to land (a one-shot read raced it under load, ac39).
+let potShown = false;
+for (let i = 0; i < 20 && !potShown; i++) { potShown = await p.evaluate(() => document.body.innerText.includes("Guest pot task one")); if (!potShown) await p.waitForTimeout(400); }
+check("the pot's tasks became A's", potShown);
 check("A's state doc holds the pot on the server", !!docOf(uidA, "data/state") && JSON.parse(docOf(uidA, "data/state").stateJson).tasks.length === 2);
 check("the guest pot was consumed (A's tasks gone from the guest slot)", await p.evaluate(() => !(JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks || []).some((t) => /Guest pot task/.test(t.title))));
 check("A's spine exists and carries NO plan field (v2)", !!docOf(uidA) && !("plan" in docOf(uidA)) && !!docOf(uidA).createdAt);
@@ -230,6 +235,7 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   check("Change walks back to step 1", await p4.locator("#doorStep1").isVisible());
   await p4.click("#doorNext"); await p4.waitForSelector("#doorStep2:not([hidden])");
   await p4.fill("#authPass", "password-n");
+  const tGo = Date.now();
   await p4.click("#authGo"); // the one button creates the account
   await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
   // Inside the app now: skip the fresh account's welcome, and
@@ -248,6 +254,7 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
     }
   }
   check("Skip's tour asks the name first, inside the app", askUp);
+  console.log("TIMING create->tour name step (ms): " + (Date.now() - tGo)); // QA's calm-run arrival read, kept in every run
   await p4.fill("#tourName", "Sam Test");
   await p4.click("#guideNext"); await p4.waitForTimeout(600);
   await p4.click("#guideSkip").catch(() => {}); await p4.waitForTimeout(400); // rest of the tour: not this leg's business
