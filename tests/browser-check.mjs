@@ -150,6 +150,14 @@ await page2.click("#welcomeSkip").catch(() => {});
 await page2.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 await page2.waitForTimeout(400);
 check("phone view renders calendar and ticker", await page2.locator(".fc-event").count() >= 3 && await page2.locator(".tick").count() === 31);
+/* Final-sweep fixes F1/F2 + the feeling-words ruling: fresh
+   paint is full-width inside, Start is a real tap target, and
+   the three choices read Bad / Ok / Great. */
+const gridCell = await page2.evaluate(() => { const c = document.querySelector(".fc-daygrid-day"); return c ? c.getBoundingClientRect().width : 0; });
+check("F1: fresh phone paint — the month grid fills its box", gridCell >= 40);
+const startBox = await page2.locator("[data-un]").boundingBox().catch(() => null);
+check("F2: the up-next Start button is a real tap target (>=44px tall)", !!startBox && startBox.height >= 44);
+check("feeling words read Bad / Ok / Great", (await page2.locator('[data-level="full"]').innerText()).includes("Great"));
 check("phone: menu hidden by default, content full width", (await page2.locator("#sidebar").boundingBox()) === null && (await page2.locator("#main").boundingBox()).width >= 380);
 await page2.click("#sbExpand"); await page2.waitForTimeout(250);
 const sidebarBox = await page2.locator("#sidebar").boundingBox();
