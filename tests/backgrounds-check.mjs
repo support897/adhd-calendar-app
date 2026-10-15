@@ -35,7 +35,7 @@ async function fresh() {
   return p;
 }
 const theme = (p) => p.evaluate(() => document.documentElement.getAttribute("data-theme"));
-const stored = (p) => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).settings.appearance);
+const stored = (p) => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest") || localStorage.getItem("calmcal-v1")).settings.appearance);
 // 1. BLACK + BRAND choices.
 {
   const p = await fresh();
