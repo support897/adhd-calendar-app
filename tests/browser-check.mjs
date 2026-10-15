@@ -154,7 +154,17 @@ check("phone: menu hidden by default, content full width", (await page2.locator(
 await page2.click("#sbExpand"); await page2.waitForTimeout(250);
 const sidebarBox = await page2.locator("#sidebar").boundingBox();
 const mainBox = await page2.locator("#main").boundingBox();
-check("phone sidebar stays beside content, narrowed", sidebarBox && mainBox && sidebarBox.width <= 90 && mainBox.x >= sidebarBox.width - 2);
+// Ilse's nav ruling (15 Oct): the open menu takes MOST of the
+// phone screen; the content shrinks to a thin sliver at the
+// edge; tapping the sliver returns the full content.
+check("phone: open menu takes most of the screen, content is a sliver", sidebarBox && mainBox && sidebarBox.width >= 300 && mainBox.width <= 70 && mainBox.x >= sidebarBox.width - 2);
+check("phone: menu shows full labels when open (not the old rail)", await page2.locator(".brand-name").isVisible() && await page2.locator('.side-item[data-panel="calendar"] .side-label').isVisible());
+await page2.screenshot({ path: ROOT + "/proofs/phone-menu-open.png" });
+await page2.click("#sbSliver"); await page2.waitForTimeout(250);
+check("phone: tapping the sliver closes the menu, content full again", (await page2.locator("#sidebar").boundingBox()) === null && (await page2.locator("#main").boundingBox()).width >= 380);
+await page2.click("#sbExpand"); await page2.waitForTimeout(250);
+await page2.click('.side-item[data-panel="todo"]'); await page2.waitForTimeout(250);
+check("phone: choosing an area shows it (menu gives the screen back)", (await page2.locator("#sidebar").boundingBox()) === null && await page2.locator("#panel-todo").isVisible());
 await page2.screenshot({ path: ROOT + "/proofs/phone-month.png" });
 
 /* offline via service worker cache */
