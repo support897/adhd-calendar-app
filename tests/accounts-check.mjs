@@ -58,11 +58,24 @@ async function waitPotDoor(ms) {
 async function signUp(email, pw) {
   await settings();
   await p.click("#accountOpen"); await p.waitForSelector("#authSheet:not([hidden])");
-  await p.fill("#authName", "Test Person"); // sign-up asks for the name (the ruling)
   await p.fill("#authEmail", email); await p.fill("#authPass", pw);
-  await p.click("#authSignUp");
+  await p.click("#authGo"); // door-first: the one button creates the account
   await p.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); return s && s.email === document.querySelector("#authEmail")?.value || (s && s.email); }, null, { timeout: 9000 }).catch(() => {});
-  await p.waitForTimeout(1200);
+  await answerNameSheet();
+}
+// The name screen follows the door (at the end of reconcile —
+// it can take seconds on a slow box, and it re-appears at any
+// sign-in until the account carries a name): poll and answer.
+async function answerNameSheet() {
+  for (let i = 0; i < 24; i++) {
+    if (await p.locator("#nameSheet").isVisible().catch(() => false)) {
+      await p.fill("#nameAsk", "Test Person");
+      await p.click("#nameAskGo"); await p.waitForTimeout(500);
+      return true;
+    }
+    await p.waitForTimeout(400);
+  }
+  return false;
 }
 await p.goto("http://localhost:9123/", { waitUntil: "networkidle" }); await p.waitForTimeout(700);
 await settings();
@@ -119,8 +132,9 @@ await settings(); await p.click("#accountOut"); await p.waitForTimeout(800);
 await dismissOverlays();
 await settings(); await p.click("#accountOpen"); await p.waitForSelector("#authSheet:not([hidden])");
 await p.fill("#authEmail", "a@test.dev"); await p.fill("#authPass", "password-a");
-await p.click("#authSignIn"); await p.waitForTimeout(2200);
+await p.click("#authGo"); await p.waitForTimeout(2200);
 await dismissOverlays();
+await answerNameSheet(); // in case the name screen re-appeared for a still-nameless account
 check("A's world survives the round trip (saved-data leg)", await p.evaluate(() => document.body.innerText.includes("A brand new event")));
 // 9. String heal through the server copy.
 const aDoc = docOf(uidA, "data/state");
@@ -129,6 +143,7 @@ aState.todos = ["a bare string todo"];
 aState.updatedAt = Date.now() + 60000;
 mock.docs.set("users/" + uidA + "/data/state", { stateJson: JSON.stringify(aState), updatedAt: new Date().toISOString() });
 await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1800);
+await answerNameSheet();
 check("a bare-string todo entry heals into an item (never dropped)", await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:" + JSON.parse(localStorage.getItem("pace-auth-v1")).uid)); return (s.todos || []).some((t) => t && t.text === "a bare string todo"); }));
 // 9b. TU-C — the LIVE RACE as a fixture. On the twin journey,
 // a fresh account's own first sync wrote its empty state doc
@@ -150,13 +165,14 @@ await p3.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.
 await p3.click('.side-item[data-panel="settings"]'); await p3.waitForTimeout(400);
 await p3.click("#accountOpen"); await p3.waitForSelector("#authSheet:not([hidden])");
 await p3.fill("#authEmail", "c@test.dev"); await p3.fill("#authPass", "password-c");
-await p3.click("#authSignIn");
+await p3.click("#authGo");
 let cDoor = false;
 for (let i = 0; i < 40 && !cDoor; i++) {
   cDoor = await p3.evaluate(() => !document.getElementById("potSheet").hidden).catch(() => false); // the sign-in reload can destroy the context mid-poll
   if (!cDoor) {
     if (await p3.locator("#welcome").isVisible().catch(() => false)) { await p3.click("#welcomeSkip").catch(() => {}); }
     if (await p3.locator("#guideSheet").isVisible().catch(() => false)) { await p3.click("#guideSkip").catch(() => {}); }
+    if (await p3.locator("#nameSheet").isVisible().catch(() => false)) { await p3.click("#nameAskSkip").catch(() => {}); } // the name screen precedes the pot door
     await p3.waitForTimeout(500);
   }
 }
@@ -177,27 +193,35 @@ check("account deletion removed A's server docs", !docOf(uidA) && !docOf(uidA, "
 check("account deletion removed A's aggregate shards (v2.2)", !mock.docs.get("aggSignups/" + uidA) && !mock.docs.get("aggImports/" + uidA));
 check("account deletion removed the auth user", !mock.users.has("a@test.dev"));
 check("after deletion the app boots as guest", await p.evaluate(() => !localStorage.getItem("pace-auth-v1")));
-/* ---------- 11. sign-up asks for the name (the ruling) ---------- */
+/* ---------- 11. door-first joining (the ruling, 21:26) ---------- */
 {
   const p4 = await ctx.newPage();
   p4.on("pageerror", (e) => errors.push("p4: " + e.message));
   await p4.goto("http://localhost:9123/", { waitUntil: "networkidle" });
-  if (await p4.locator("#welcome").isVisible().catch(() => false)) { await p4.click("#welcomeSkip"); await p4.waitForTimeout(300); }
-  if (await p4.locator("#guideSheet").isVisible().catch(() => false)) { await p4.click("#guideSkip"); await p4.waitForTimeout(300); }
+  for (let i = 0; i < 10; i++) { // the welcome + guide can chain in late
+    let any = false;
+    if (await p4.locator("#welcome").isVisible().catch(() => false)) { await p4.click("#welcomeSkip").catch(() => {}); any = true; }
+    if (await p4.locator("#guideSheet").isVisible().catch(() => false)) { await p4.click("#guideSkip").catch(() => {}); any = true; }
+    if (!any) break;
+    await p4.waitForTimeout(400);
+  }
   await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
   await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
   await p4.click("#accountOpen");
-  await p4.waitForSelector("#authName");
-  check("sign-up form asks for the name", await p4.locator("#authName").isVisible());
+  await p4.waitForSelector("#authSheet:not([hidden])");
+  check("the door is only the door: mark + one button, no name field", await p4.locator(".door-mark").isVisible() && await p4.locator("#authGo").isVisible()
+    && (await p4.locator("#authName").count()) === 0 && (await p4.locator("#authSignUp").count()) === 0 && (await p4.locator("#authSignIn").count()) === 0);
   await p4.fill("#authEmail", "named@test.dev");
   await p4.fill("#authPass", "password-n");
-  await p4.click("#authSignUp");
-  await p4.waitForTimeout(400);
-  check("create without a name is refused with the reason", (await p4.locator("#authMsg").innerText()).includes("name"));
-  await p4.fill("#authName", "Sam Test");
-  await p4.click("#authSignUp");
+  await p4.click("#authGo"); // one tap creates the account
   await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
-  await p4.waitForTimeout(2600); // reconcile adopts the pending name
+  let nameUp = false;
+  for (let i = 0; i < 20 && !nameUp; i++) { nameUp = await p4.locator("#nameSheet").isVisible().catch(() => false); if (!nameUp) await p4.waitForTimeout(400); }
+  check("the name is asked on the very next screen", nameUp);
+  await p4.click("#nameAskGo"); await p4.waitForTimeout(300);
+  check("an empty name is refused with the reason", (await p4.locator("#nameMsg").innerText()).includes("name") && await p4.locator("#nameSheet").isVisible());
+  await p4.fill("#nameAsk", "Sam Test");
+  await p4.click("#nameAskGo"); await p4.waitForTimeout(600);
   const prof = await p4.evaluate(() => {
     const sess = JSON.parse(localStorage.getItem("pace-auth-v1") || "null");
     const uk = sess && sess.uid ? "calmcal-v1:" + sess.uid : null;
@@ -205,6 +229,36 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   });
   check("the name is carried on the profile", prof === "Sam Test");
   check("the app addresses the user by their name", (await p4.locator("#accountLine").innerText()).startsWith("Hi Sam"));
+  // The fresh account's own welcome + guide chain may still be
+  // up over Settings — clear it before the button legs.
+  for (let i = 0; i < 10; i++) {
+    let any = false;
+    if (await p4.locator("#welcome").isVisible().catch(() => false)) { await p4.click("#welcomeSkip").catch(() => {}); any = true; }
+    if (await p4.locator("#guideSheet").isVisible().catch(() => false)) { await p4.click("#guideSkip").catch(() => {}); any = true; }
+    if (!any) break;
+    await p4.waitForTimeout(400);
+  }
+  // The guide's skip lands on the calendar — reopen Settings.
+  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
+  // A returning sign-in through the door asks nothing again.
+  await p4.click("#accountOut"); await p4.waitForTimeout(900);
+  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
+  await p4.click("#accountOpen"); await p4.waitForSelector("#authSheet:not([hidden])");
+  await p4.fill("#authEmail", "named@test.dev"); await p4.fill("#authPass", "password-n");
+  await p4.click("#authGo"); await p4.waitForTimeout(2400);
+  check("a returning sign-in goes straight in (no name screen)", !(await p4.locator("#nameSheet").isVisible().catch(() => false)) && (await p4.locator("#accountLine").innerText()).startsWith("Hi Sam"));
+  // The wrong password for an existing account is named plainly.
+  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
+  await p4.click("#accountOut"); await p4.waitForTimeout(900);
+  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
+  await p4.click("#accountOpen"); await p4.waitForSelector("#authSheet:not([hidden])");
+  await p4.fill("#authEmail", "named@test.dev"); await p4.fill("#authPass", "wrong-password");
+  await p4.click("#authGo"); await p4.waitForTimeout(1200);
+  check("a wrong password is refused in plain words", (await p4.locator("#authMsg").innerText()).toLowerCase().includes("password"));
 }
 
 /* ---------- 12. no-Ilse sweep over the shipped app files ---------- */
