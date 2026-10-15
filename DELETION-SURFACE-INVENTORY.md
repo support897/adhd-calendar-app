@@ -7,10 +7,13 @@ An untraceable or system-initiated delete is a FAIL on sight.
 1. **Account deletion sweep** — Settings → Account → Delete my
    account. The user's own deliberate act, password re-checked at
    the door. Deletes, in order: `users/{uid}/data/state`, the
-   `users/{uid}` spine, then the Firebase Auth user. IRREVERSIBLE
-   and labelled so on the sheet. This is the ONLY whole-account
-   door in the system, and the store-required one (§6 of the
-   design).
+   `users/{uid}` spine, the aggregate shards `aggSignups/{uid}`
+   + `aggImports/{uid}` (rules v2.2 carve-out — erasure takes the
+   shard; `aggSubs` is NOT in the sweep: a payment-path record
+   under its own retention policy), then the Firebase Auth user.
+   IRREVERSIBLE and labelled so on the sheet. This is the ONLY
+   whole-account door in the system, and the store-required one
+   (§6 of the design).
 2. Nothing else in the app issues a Firestore DELETE. `_owner`,
    `_comp`, `subscriptions`, `reviews`, `outreach`, `groups` are
    client-read-only or denied outright (firestore.rules) — their
