@@ -28,6 +28,7 @@ if (await page.locator("#guideSheet").isVisible().catch(() => false)) {
 await page.click("#sbExpand");
 await page.waitForFunction(() => document.getElementById("sidebar").getBoundingClientRect().width > 0);
 await page.click('.side-item[data-panel="capture"]');
+await page.locator("#plusNotNow").click({ timeout: 900 }).catch(() => {}); // the upgrade moment may greet this edge once — close it and carry on
 await page.setInputFiles("#photoFile", img);
 await page.waitForFunction(() => document.getElementById("dumpText").value.trim().length > 0 || /could not|did not work/.test(document.getElementById("captureMsg").textContent), null, { timeout: 120000 });
 const text = await page.locator("#dumpText").inputValue();
