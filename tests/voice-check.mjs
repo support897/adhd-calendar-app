@@ -26,6 +26,7 @@ async function freshPage(setupSrc) {
     await p.waitForTimeout(200); }
   await p.locator("#impClose").click({ timeout: 600 }).catch(() => {});
   await p.evaluate(() => { document.querySelectorAll(".side-item").forEach(b => { if (b.dataset.panel === "capture") b.click(); }); });
+  await p.locator("#plusNotNow").click({ timeout: 900 }).catch(() => {}); // close the upgrade moment if this edge greeted it
   return p;
 }
 const fakeSR = (script) => `
