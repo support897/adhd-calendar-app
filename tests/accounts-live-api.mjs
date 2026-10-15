@@ -55,6 +55,7 @@ check("aggImports shard write → 200", (await fsWrite("aggImports/" + A.uid, { 
 check("an out-of-fence shard field is refused (403)", (await fsWrite("aggImports/" + A.uid, { email: "a@x" }, A.token, ["email"])) === 403);
 const B = await signUp("sec-pace-b+" + stamp + "@example.com", "password-b1");
 check("TU-B signs up on the twin", !!B.uid && B.uid !== A.uid);
+await fsWrite("aggSignups/" + B.uid, { createdAt: now }, B.token); // B's app writes its shard at sign-up, like A's did
 check("B → A's state: 403", (await fsRead("users/" + A.uid + "/data/state", B.token)) === 403);
 check("B → A's spine: 403", (await fsRead("users/" + A.uid, B.token)) === 403);
 check("B → A's aggSignups shard: 403 (owner space)", (await fsRead("aggSignups/" + A.uid, B.token)) === 403);
