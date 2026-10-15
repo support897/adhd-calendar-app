@@ -14,7 +14,7 @@ const errors = []; page.on("pageerror", e => errors.push(e.message));
 await page.goto("http://localhost:8918/", { waitUntil: "networkidle" });
 await page.click("#welcomeSkip");
 await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
-const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")));
+const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")));
 
 /* Sidebar carries both new items. */
 await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
@@ -92,7 +92,7 @@ const p2 = await ctx2.newPage();
 const errs2 = []; p2.on("pageerror", e => errs2.push(e.message));
 await p2.goto("http://localhost:8918/", { waitUntil: "networkidle" });
 if (await p2.locator("#welcomeSkip").isVisible().catch(() => false)) await p2.click("#welcomeSkip");
-await p2.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1")); s.todos = "oops"; s.habits = 42; s.tasks.push({ title: "x" }); localStorage.setItem("calmcal-v1", JSON.stringify(s)); });
+await p2.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest")); s.todos = "oops"; s.habits = 42; s.tasks.push({ title: "x" }); localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)); });
 await p2.reload({ waitUntil: "networkidle" });
 await p2.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 await p2.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
@@ -104,7 +104,7 @@ const ctx3 = await browser.newContext();
 await ctx3.addInitScript(() => { window.Capacitor = { isNativePlatform: () => true }; });
 const p3 = await ctx3.newPage();
 await p3.goto("http://localhost:8918/", { waitUntil: "networkidle" });
-const storeTasks = await p3.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.length);
+const storeTasks = await p3.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.length);
 check("store build starts empty (no sample tasks)", storeTasks === 0);
 check("store build still shows the designed empty day", /Nothing today/.test(await p3.locator("#dayList").textContent()));
 check("Skip waits at the empty-state dock", (await p3.locator("#dayList .dock-skip").count()) === 1);
@@ -126,7 +126,7 @@ check("guide theme pick applies live", (await p4.evaluate(() => document.documen
 await p4.click("#guideNext");
 check("guide step 4 is the first action", /Add one small thing/.test(await p4.locator("#guideBubble").textContent()));
 await p4.click("#guideNext");
-check("guide ends at the Add sheet, marked done", (await p4.locator("#guideSheet").isHidden()) && (await p4.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).settings.guideDone)) === true);
+check("guide ends at the Add sheet, marked done", (await p4.locator("#guideSheet").isHidden()) && (await p4.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).settings.guideDone)) === true);
 await p4.reload({ waitUntil: "networkidle" });
 check("guide does not nag after it is done", await p4.locator("#guideSheet").isHidden());
 await p4.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
