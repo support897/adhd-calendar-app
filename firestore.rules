@@ -1,6 +1,11 @@
 rules_version = '2';
-// Pace Calendar — Security Rules of record, v2 (accounts wave;
-// Security desk send-back of 15 Oct applied in full).
+// Pace Calendar — Security Rules of record, v2.2 (accounts
+// wave; Security desk send-back of 15 Oct applied in full;
+// v2.2 = the shard-erasure carve-out, Security ruling of
+// 15 Oct: erasure takes the shard — a uid-keyed row is the
+// user's data however light its fields, so the §6 sweep
+// deletes the aggSignups + aggImports shards too, and the
+// counts mean accounts that EXIST).
 //
 // THE SHAPE (the Fit shape, settled house-wide): ownership by
 // address for users; the OWNER HOLDS NO READ PATH INTO USER
@@ -59,13 +64,16 @@ service cloud.firestore {
         && (!('activatedAt' in resource.data)
             || !('activatedAt' in request.resource.data)
             || request.resource.data.activatedAt == resource.data.activatedAt);
-      allow delete: if false;
+      // v2.2 carve-out: the owner of the row may DELETE it —
+      // the account-deletion sweep takes the shard with
+      // everything else. Delete alone; fences otherwise as v2.1.
+      allow delete: if own(uid);
       allow get, list: if isOwner();
     }
     match /aggImports/{uid} {
       allow create, update: if own(uid)
         && request.resource.data.keys().hasOnly(['events', 'imports', 'at']);
-      allow delete: if false;
+      allow delete: if own(uid);
       allow get, list: if isOwner();
     }
     // Money mirror (contracts §1): written by the payment path
