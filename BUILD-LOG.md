@@ -1,5 +1,40 @@
 # BUILD LOG — Calm Calendar (ADHD Calendar App)
 
+## pace-v15 — THE ACCOUNTS WAVE (15 Oct 2026, her "finish all of them asap")
+Both hats built. USER APP: Firebase over plain REST (firebase.js,
+no SDK — the design's shape), doors per her 15 Oct ruling —
+Google · Apple · email+password, the design's email-LINK door
+superseded and never built; guest mode untouched and forever.
+Data: per-identity cache keys (calmcal-v1:guest / :<uid>, legacy
+key migrated + left frozen as backup); users/{uid} carries the
+contracts' light spine (createdAt/lastActiveAt/plan/activatedAt)
+and the state document lives at users/{uid}/data/state as one
+JSON string — ONE amendment to MULTIUSER-DESIGN §3, made so the
+CEO's count window can never reach a state payload, recorded
+here + told to HQ. The §5 guest-upload door (offered once,
+explicit yes, pot consumed on success, frozen-backup untouched),
+§6 export + account-deletion sweep (password re-checked, DSI
+filed), PC-3 size note, activation stamps at the three confirmed
+triggers, the entry-level string heal (QA's seed) with its pin.
+Imports write an owner-countable tally (imports/{uid}) so the
+CEO panel never needs state access. Apple door renders only
+when configured (parked on the Developer credential — no dead
+buttons); Google runs the GIS→REST route (web/PWA live; the
+store WebView's native step is a named follow-up).
+CEO APP (separate repo pace-ceo, own host): sign-in-only door,
+_owner/config pin proven by probe, aggregates-only sections per
+pattern v2 (Overview three questions + weekly series · People ·
+Money with R7 reads, split cancels + reason lines · Reviews ·
+Outreach · Community · Avatars §4 · Your app = import tallies).
+PROOF (config seam against a rules-shaped mock; the live
+test-twin battery is the gates' P4 leg): accounts-check 20/20
+(door, consumption, isolation at UI + API + counts, activation,
+round trip, heal, deletion) · ceo-check 15/15 (refusal, pin,
+every aggregate exact, no identity anywhere in the room).
+SW pace-v15. Live wire outstanding: Pace's own Firebase project
++ test twin (HQ console sitting) — the config files are seams
+until then, and the build is inert-honest without them.
+
 Built 12 Oct 2026, fully autonomous on Ilse's order ("work fully autonomous and don't stop until app fully tested, completed and approved"). Phases 2 to 8 of PHASE1-RESEARCH.md.
 
 ## V2 — brand, collapsible menu, themes (13 Oct 2026, Ilse's order)
