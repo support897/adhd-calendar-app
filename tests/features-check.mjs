@@ -138,5 +138,31 @@ check("guide reopens from Settings", await p4.locator("#guideSheet").isVisible()
 await p4.click("#guideClose");
 check("guide closes in one tap", await p4.locator("#guideSheet").isHidden());
 await ctx4.close();
+
+/* The upgrade moment (v15.11): fires ONLY on a Plus-edge tap,
+   invites to Plans, never locks, never nags on open. */
+const ctx5 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const p5 = await ctx5.newPage();
+await p5.goto("http://localhost:8918/", { waitUntil: "networkidle" });
+await p5.click("#welcomeSkip").catch(() => {});
+await p5.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+check("no upgrade popup on open, ever", await p5.locator("#plusSheet").isHidden());
+await p5.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
+await p5.click('.side-item[data-panel="settings"]');
+await p5.click('.swatch[data-theme-set="white"]'); await p5.waitForTimeout(300);
+check("a Free Forever look (White) never fires the popup", await p5.locator("#plusSheet").isHidden());
+await p5.click('.swatch[data-theme-set="blush"]'); await p5.waitForTimeout(400);
+check("a Plus look fires the popup, in the confirmed words", await p5.locator("#plusSheet").isVisible() && (await p5.locator(".plus-title").textContent()) === "That's a Plus thing." && (await p5.locator(".plus-card").textContent()).includes("A$4.99 a month, or A$39.99 a year. Your first month is free.") && (await p5.locator(".plus-card").textContent()).includes("Nothing is locked today, and nothing charges."));
+await p5.click("#plusNotNow"); await p5.waitForTimeout(300);
+check("Not now leaves the look applied and the app fully usable", (await p5.locator("#plusSheet").isHidden()) && (await p5.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "blush");
+await p5.click('.swatch[data-theme-set="sky"]'); await p5.waitForTimeout(300);
+check("the same edge stays silent for the rest of the visit", await p5.locator("#plusSheet").isHidden());
+await p5.click('.side-item[data-panel="capture"]'); await p5.waitForTimeout(400);
+check("a different edge (Talk to it) may speak once", await p5.locator("#plusSheet").isVisible());
+await p5.click("#plusPlans"); await p5.waitForTimeout(400);
+const plansTxt = await p5.locator("#plansSheet").textContent();
+check("See the plans opens Plans, truthful per state", (await p5.locator("#plansSheet").isVisible()) && plansTxt.includes("Free forever") && plansTxt.includes("A$4.99 a month, or A$39.99 a year. First month free.") && plansTxt.includes("Not on sale yet. Nothing to pay today.") && plansTxt.includes("A$99.99, once"));
+await p5.click("#plansClose");
+await ctx5.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); server.close(); process.exit(fail ? 1 : 0);
