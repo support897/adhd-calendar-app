@@ -1,0 +1,75 @@
+rules_version = '2';
+// Pace Calendar — Security Rules of record (accounts wave).
+// The wall is ownership-by-address: a user's world lives under
+// users/{their own uid}. The state payload sits one level deeper
+// (users/{uid}/data/state) and is reachable ONLY by its owner —
+// the CEO dashboard's count window covers the light spine fields
+// (createdAt / lastActiveAt / plan / activatedAt) and the money /
+// reviews collections, never a state payload, never a person.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/_owner/config)
+        && request.auth.uid in get(/databases/$(database)/documents/_owner/config).data.uids;
+    }
+
+    // The user's spine (light record) + their private data tree.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      // CEO aggregates: the pinned owner may get/list SPINE docs
+      // (count + stamp queries). No write. The data tree below is
+      // NOT covered by this grant.
+      allow get, list: if isOwner();
+      match /data/{doc} {
+        allow read, write: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // Two-hat records: console/desk-written only. No client path
+    // exists — entitlement and ownership are read by RULES via
+    // get(), never by app code asking for the documents.
+    match /_owner/{doc} { allow read, write: if false; }
+    match /_comp/{uid} { allow read, write: if false; }
+
+    // Import counters: a user's own tally of what they brought
+    // in (events count + imports count) — the ONLY import fact
+    // the CEO panel reads, so state payloads stay owner-blind.
+    match /imports/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow get, list: if isOwner();
+    }
+
+    // Money (contracts §1): written by the payment path only
+    // (server-side). The owner counts them for the Money section;
+    // a user can read their own record.
+    match /subscriptions/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow get, list: if isOwner();
+      allow write: if false;
+    }
+
+    // Reviews inbox (contracts §1): desk-fed until store feeds
+    // connect. Owner reads; nobody writes from a client.
+    match /reviews/{id} {
+      allow get, list: if isOwner();
+      allow write: if false;
+    }
+
+    // Outreach + community feeds (contracts §3): desk-written,
+    // owner-read, honest-empty until the desks feed them.
+    match /outreach/{id} {
+      allow get, list: if isOwner();
+      allow write: if false;
+    }
+    match /groups/{id} {
+      allow get, list: if isOwner();
+      allow write: if false;
+    }
+
+    // The wall is complete: everything else is denied, in writing.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
