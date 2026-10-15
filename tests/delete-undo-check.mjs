@@ -27,10 +27,10 @@ await p.evaluate(() => {
     habits: [{ id: "hb1", name: "Morning stretch", icon: "h-sun", days: {} }],
     settings: { appearance: { theme: "white", cute: false }, guideDone: true, sidebarCollapsed: true, sound: false, notif: { digestTimes: ["12:30"] } },
     welcomed: true, sent: {}, imports: [] };
-  localStorage.setItem("calmcal-v1", JSON.stringify(st));
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify(st));
 });
 await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(800);
-const nTasks = () => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.length);
+const nTasks = () => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.length);
 const toastUndo = () => p.locator("#toast .toast-undo").isVisible().catch(() => false);
 
 // 1. Task delete -> Undo offered -> task restored.
@@ -48,29 +48,29 @@ check("B2: un-undone delete persists (the window is the safety, not a block)", (
 // 3. Recurring: remove-for-day + Undo.
 await p.locator('.fc-event:has-text("Weekly review")').first().click(); await p.waitForTimeout(500);
 await p.click("#dDelete"); await p.waitForTimeout(400);
-const skipAfter = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks[0].skipDates.length);
+const skipAfter = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks[0].skipDates.length);
 check("B2: recurring day removed via skipDates + Undo offered", skipAfter === 1 && await toastUndo());
 await p.click("#toast .toast-undo"); await p.waitForTimeout(400);
-check("B2: Undo un-skips the day", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks[0].skipDates.length)) === 0);
+check("B2: Undo un-skips the day", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks[0].skipDates.length)) === 0);
 // 4. Todo delete + Undo.
 await p.click("#sbExpand"); await p.waitForTimeout(400); await p.click('.side-item[data-panel="todo"]'); await p.waitForTimeout(500);
 await p.click('.todo-row:has-text("Ring the bank") .todo-del'); await p.waitForTimeout(400);
-check("B2: todo delete + Undo offered", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).todos.length)) === 1 && await toastUndo());
+check("B2: todo delete + Undo offered", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).todos.length)) === 1 && await toastUndo());
 await p.click("#toast .toast-undo"); await p.waitForTimeout(400);
-check("B2: todo restored", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).todos.length)) === 2);
+check("B2: todo restored", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).todos.length)) === 2);
 // 5. Clear done + Undo.
 await p.click("#todoClearDone"); await p.waitForTimeout(400);
-check("B2: clear-done removes + offers Undo", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).todos.length)) === 1 && await toastUndo());
+check("B2: clear-done removes + offers Undo", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).todos.length)) === 1 && await toastUndo());
 await p.click("#toast .toast-undo"); await p.waitForTimeout(400);
-check("B2: clear-done undone, both todos back", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).todos.length)) === 2);
+check("B2: clear-done undone, both todos back", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).todos.length)) === 2);
 // 6. Habit delete + Undo.
 await p.click('.side-item[data-panel="habits"]'); await p.waitForTimeout(500);
 await p.click(".habit-del"); await p.waitForTimeout(400);
-check("B2: habit delete + Undo offered", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).habits.length)) === 0 && await toastUndo());
+check("B2: habit delete + Undo offered", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).habits.length)) === 0 && await toastUndo());
 await p.click("#toast .toast-undo"); await p.waitForTimeout(400);
-check("B2: habit restored", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).habits.length)) === 1);
+check("B2: habit restored", (await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).habits.length)) === 1);
 // 7. Plain toasts carry no Undo (guide goodbye shape).
-await p.evaluate(() => { localStorage.removeItem("calmcal-v1"); });
+await p.evaluate(() => { localStorage.removeItem("calmcal-v1:guest"); });
 await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(600);
 if (await p.locator("#welcomeSkip").isVisible().catch(() => false)) await p.click("#welcomeSkip");
 await p.waitForTimeout(400);
