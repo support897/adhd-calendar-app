@@ -163,9 +163,14 @@ check("the door fires even when the account's state doc already exists (the live
 if (cDoor) { await p3.click("#potNo"); await p3.waitForTimeout(400); }
 await ctx3.close();
 // 10. Delete account: docs + auth user gone, boot falls to guest.
+// v2.2: the sweep takes the aggregate shards too (erasure
+// takes the shard). Give A an imports shard to prove it dies.
+mock.docs.set("aggImports/" + uidA, { events: 5, imports: 1, at: new Date().toISOString() });
+check("pre-delete: A's shards exist", !!mock.docs.get("aggSignups/" + uidA) && !!mock.docs.get("aggImports/" + uidA));
 await settings(); await p.click("#accountDelete"); await p.waitForSelector("#deleteSheet:not([hidden])");
 await p.fill("#deletePass", "password-a"); await p.click("#deleteGo"); await p.waitForTimeout(2200);
 check("account deletion removed A's server docs", !docOf(uidA) && !docOf(uidA, "data/state"));
+check("account deletion removed A's aggregate shards (v2.2)", !mock.docs.get("aggSignups/" + uidA) && !mock.docs.get("aggImports/" + uidA));
 check("account deletion removed the auth user", !mock.users.has("a@test.dev"));
 check("after deletion the app boots as guest", await p.evaluate(() => !localStorage.getItem("pace-auth-v1")));
 await b.close(); server.close(); mock.close();
