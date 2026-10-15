@@ -16,6 +16,11 @@ async function signUp(email, pw) {
   const j = await r.json(); if (!r.ok) throw new Error("signUp " + email + ": " + JSON.stringify(j.error || j).slice(0, 120));
   return { uid: j.localId, token: j.idToken };
 }
+async function signIn(email, pw) {
+  const r = await fetch(IDP + "signInWithPassword?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pw, returnSecureToken: true }) });
+  const j = await r.json(); if (!r.ok) throw new Error("signIn " + email);
+  return { uid: j.localId, token: j.idToken };
+}
 async function signInAnon() {
   const r = await fetch(IDP + "signUp?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ returnSecureToken: true }) });
   const j = await r.json(); return { uid: j.localId, token: j.idToken };
@@ -46,7 +51,6 @@ check("a plan-shaped key on the spine is REFUSED by the fence (403)", (await fsW
 check("activation stamp update → 200", (await fsWrite("users/" + A.uid, { activatedAt: now, activationKind: "event" }, A.token, ["activatedAt", "activationKind"])) === 200);
 check("activatedAt is WRITE-ONCE in the rules (second stamp → 403)", (await fsWrite("users/" + A.uid, { activatedAt: new Date(Date.now() + 60000).toISOString() }, A.token, ["activatedAt"])) === 403);
 check("shard activation update → 200", (await fsWrite("aggSignups/" + A.uid, { activatedAt: now, activationKind: "event" }, A.token, ["activatedAt", "activationKind"])) === 200);
-check("shard delete is denied (403)", (await fsDelete("aggSignups/" + A.uid, A.token)) === 403);
 check("aggImports shard write → 200", (await fsWrite("aggImports/" + A.uid, { events: 12, imports: 1, at: now }, A.token)) === 200);
 check("an out-of-fence shard field is refused (403)", (await fsWrite("aggImports/" + A.uid, { email: "a@x" }, A.token, ["email"])) === 403);
 const B = await signUp("sec-pace-b+" + stamp + "@example.com", "password-b1");
@@ -62,9 +66,18 @@ const AN = await signInAnon();
 check("anonymous session mints (provider on)", !!AN.uid);
 check("anon → spine write REFUSED by the provider fence (403)", (await fsWrite("users/" + AN.uid, { createdAt: now }, AN.token)) === 403);
 check("anon → aggSignups write REFUSED (403)", (await fsWrite("aggSignups/" + AN.uid, { createdAt: now }, AN.token)) === 403);
-// Deletion sweep (the app's order: state, spine, then the Auth user).
+check("B deleting A's shard is still denied (403)", (await fsDelete("aggSignups/" + A.uid, B.token)) === 403);
+// Deletion sweep (the app's v2.2 order: state, spine, shards,
+// then the Auth user — erasure takes the shard).
 check("A deletes own state → 200", (await fsDelete("users/" + A.uid + "/data/state", A.token)) === 200);
 check("A deletes own spine → 200", (await fsDelete("users/" + A.uid, A.token)) === 200);
+check("A deletes own aggSignups shard → 200 (v2.2 carve-out)", (await fsDelete("aggSignups/" + A.uid, A.token)) === 200);
+check("A deletes own aggImports shard → 200 (v2.2 carve-out)", (await fsDelete("aggImports/" + A.uid, A.token)) === 200);
+const ownSign = await signIn("ceo-owner@twin.test", "owner-pass-1");
+const listR = await fetch(FS + "aggSignups?pageSize=200", { headers: { Authorization: "Bearer " + ownSign.token } });
+const listJ = await listR.json();
+const remaining = (listJ.documents || []).map((d) => d.name.split("/").pop());
+check("owner's shard list no longer holds A (counts = accounts that exist)", !remaining.includes(A.uid) && remaining.includes(B.uid));
 const del = await fetch(IDP + "delete?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken: A.token }) });
 check("A deletes own Auth user → 200", del.status === 200);
 const relog = await fetch(IDP + "signInWithPassword?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "sec-pace-a+" + stamp + "@example.com", password: "password-a1", returnSecureToken: true }) });
