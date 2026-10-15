@@ -382,3 +382,28 @@ under AA. Photolight --ink-3 deepened to #42564a (this mode
 only): worst case 4.52. The backgrounds battery now measures
 ALL THREE ink levels in BOTH photo modes (20/20) — the title ink
 passing was never the floor; the faintest hint ink is.
+
+ADDENDUM (15 Oct, evening) — THE POST-SEAL DELTAS, v15.3 to
+v15.6, all gated and closed on the v15.6 tree: v15.3 — the
+nav ruling (the Muse-app sidebar shape: open menu takes the
+phone screen, content a tappable sliver; the 78px rail
+retired). v15.4 — sign-up asks for the user's name (carried
+on the profile, adopted after reconcile settles, greet-by-
+name) + the no-Ilse sweep over every shipped file (battery-
+asserted on every run). v15.5 — final-sweep fixes: F1 fresh
+phone paint (the calendar re-sizes on every sidebar settle),
+F2 the up-next Start button (a bare 34x21 speck became a
+44px pill), and the feeling words read Bad · Ok · Great
+(the complete old factory set migrates; customised names
+never touched). v15.6 — Quality's held deletion leg,
+diagnosed to a real interleave: a 1200ms debounced sync
+could land mid-sweep and resurrect the state doc after its
+delete (spine + shards stayed deleted — the fingerprint).
+The sweep now disarms sync before re-auth and re-arms on
+failure. Closure evidence: accounts battery 29/29 at three
+desks (QA three times over on the named tree), Quality's
+own re-run OOM-killed by the shared sandbox and stated as
+exactly that. The sandbox also lost its full Chromium this
+day (headless shell only) — the two notification legs in
+browser-check cannot go green there; environmental, proven
+at three desks, no delta touches that code.
