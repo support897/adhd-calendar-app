@@ -129,6 +129,39 @@ aState.updatedAt = Date.now() + 60000;
 mock.docs.set("users/" + uidA + "/data/state", { stateJson: JSON.stringify(aState), updatedAt: new Date().toISOString() });
 await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1800);
 check("a bare-string todo entry heals into an item (never dropped)", await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:" + JSON.parse(localStorage.getItem("pace-auth-v1")).uid)); return (s.todos || []).some((t) => t && t.text === "a bare string todo"); }));
+// 9b. TU-C — the LIVE RACE as a fixture. On the twin journey,
+// a fresh account's own first sync wrote its empty state doc
+// while the reconcile was still fetching — the door keyed on
+// "no doc" and died silently (the mock always won the race).
+// The door keys on CONTENT now: C's state doc pre-exists here,
+// C is empty-handed, the door must still be offered.
+const cSign = await fetch("http://127.0.0.1:" + mock.port + "/v1/accounts:signUp?key=test-key-1234567890", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "c@test.dev", password: "password-c", returnSecureToken: true }) });
+const cUid = (await cSign.json()).localId;
+mock.docs.set("users/" + cUid, { createdAt: new Date().toISOString(), lastActiveAt: new Date().toISOString(), deletedByUser: false });
+mock.docs.set("users/" + cUid + "/data/state", { stateJson: JSON.stringify({ tasks: [], todos: [], habits: [], feelings: {}, imports: [] }), updatedAt: new Date().toISOString() });
+const ctx3 = await b.newContext();
+await ctx3.addInitScript((s) => { if (!localStorage.getItem("calmcal-v1:guest")) localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)); }, guestSeed);
+const p3 = await ctx3.newPage();
+await p3.goto("http://localhost:9123/", { waitUntil: "load" }); await p3.waitForTimeout(2500);
+if (await p3.locator("#welcome").isVisible().catch(() => false)) { await p3.click("#welcomeSkip"); await p3.waitForTimeout(300); }
+if (await p3.locator("#guideSheet").isVisible().catch(() => false)) { await p3.click("#guideSkip"); await p3.waitForTimeout(300); }
+await p3.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+await p3.click('.side-item[data-panel="settings"]'); await p3.waitForTimeout(400);
+await p3.click("#accountOpen"); await p3.waitForSelector("#authSheet:not([hidden])");
+await p3.fill("#authEmail", "c@test.dev"); await p3.fill("#authPass", "password-c");
+await p3.click("#authSignIn");
+let cDoor = false;
+for (let i = 0; i < 40 && !cDoor; i++) {
+  cDoor = await p3.evaluate(() => !document.getElementById("potSheet").hidden);
+  if (!cDoor) {
+    if (await p3.locator("#welcome").isVisible().catch(() => false)) { await p3.click("#welcomeSkip").catch(() => {}); }
+    if (await p3.locator("#guideSheet").isVisible().catch(() => false)) { await p3.click("#guideSkip").catch(() => {}); }
+    await p3.waitForTimeout(500);
+  }
+}
+check("the door fires even when the account's state doc already exists (the live race)", cDoor);
+if (cDoor) { await p3.click("#potNo"); await p3.waitForTimeout(400); }
+await ctx3.close();
 // 10. Delete account: docs + auth user gone, boot falls to guest.
 await settings(); await p.click("#accountDelete"); await p.waitForSelector("#deleteSheet:not([hidden])");
 await p.fill("#deletePass", "password-a"); await p.click("#deleteGo"); await p.waitForTimeout(2200);
