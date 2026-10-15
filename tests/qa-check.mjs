@@ -19,7 +19,7 @@ async function bootWith(mutator) {
   if (await page.locator("#welcomeSkip").isVisible().catch(() => false)) await page.click("#welcomeSkip");
   await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
-  await page.evaluate((fn) => { const s = JSON.parse(localStorage.getItem("calmcal-v1")); eval(fn)(s); localStorage.setItem("calmcal-v1", JSON.stringify(s)); }, mutator.toString());
+  await page.evaluate((fn) => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest")); eval(fn)(s); localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)); }, mutator.toString());
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(300);
   return { ctx, page, errors };
@@ -68,13 +68,13 @@ await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb")
   await page.fill("#nDigestTimes", "25:99");
   await page.locator("#nDigestTimes").dispatchEvent("change");
   await page.waitForTimeout(200);
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).settings.notif.digestTimes);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).settings.notif.digestTimes);
   check("bug2: 25:99 becomes the 12:30 fallback", JSON.stringify(stored) === JSON.stringify(["12:30"]));
   check("bug2: the field shows what was kept", (await page.inputValue("#nDigestTimes")) === "12:30");
   await page.fill("#nDigestTimes", "12:60, 9:05");
   await page.locator("#nDigestTimes").dispatchEvent("change");
   await page.waitForTimeout(200);
-  const stored2 = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).settings.notif.digestTimes);
+  const stored2 = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).settings.notif.digestTimes);
   check("bug2: 12:60 dropped, 9:05 kept and padded", JSON.stringify(stored2) === JSON.stringify(["09:05"]));
   check("bug2: no page errors", errors.length === 0);
   await ctx.close();
