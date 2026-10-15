@@ -22,11 +22,12 @@ const errors = [];
 page.on("pageerror", e => errors.push(e.message));
 await page.goto("http://localhost:8912/", { waitUntil: "networkidle" });
 await page.click("#welcomeSkip");
+await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 
 /* 1. FullCalendar event drag in Week view: Kitchen 16:00 today -> another day */
 await page.click('.segmented button[data-view="timeGridWeek"]');
 await page.waitForTimeout(500);
-const before = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.find(t => /kitchen/i.test(t.title)));
+const before = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.find(t => /kitchen/i.test(t.title)));
 const ev = page.locator(".fc-event", { hasText: "Clean the kitchen" }).first();
 await ev.scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
@@ -50,10 +51,11 @@ for (let s = 1; s <= 12; s++) {
 await page.waitForTimeout(150);
 await page.mouse.up();
 await page.waitForTimeout(400);
-const after = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.find(t => /kitchen/i.test(t.title)));
+const after = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.find(t => /kitchen/i.test(t.title)));
 check("event drag moved the task to the new day", after && after.date === targetDate);
 
 /* 2. Progress board: drag a card from To do to Doing */
+await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="progress"]');
 await page.waitForTimeout(300);
 const card = page.locator("#col-todo .p-card").first();
@@ -78,9 +80,9 @@ const tickDate = await tickTarget.getAttribute("data-date");
 const row = page.locator('#dayList .task-row[data-id="' + rowInfo.id + '"][data-date="' + rowInfo.date + '"]');
 await row.dragTo(tickTarget);
 await page.waitForTimeout(350);
-const moved = await page.evaluate((id) => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.find(t => t.id === id), rowInfo.id);
+const moved = await page.evaluate((id) => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.find(t => t.id === id), rowInfo.id);
 const anyOnTarget = await page.evaluate((arg) => {
-  const s = JSON.parse(localStorage.getItem("calmcal-v1"));
+  const s = JSON.parse(localStorage.getItem("calmcal-v1:guest"));
   return s.tasks.some(t => t.date === arg.target && t.id !== arg.id) || s.tasks.find(t => t.id === arg.id).date === arg.target || (s.tasks.find(t => t.id === arg.id).skipDates || []).includes(arg.from);
 }, { id: rowInfo.id, target: tickDate, from: rowInfo.date });
 check("row drag onto ticker moved the task to that day", anyOnTarget || (moved && moved.date === tickDate));
