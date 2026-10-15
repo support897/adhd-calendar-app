@@ -68,7 +68,7 @@ check("the guest-upload door is offered to the first account (live)", doorShown)
 if (doorShown) { await p.click("#potYes"); await p.waitForTimeout(2200); }
 await dismissOverlays();
 const spineA = sA ? await fsGet("users/" + sA.uid, sA.idToken).catch(() => null) : null;
-check("TU-A spine exists live with the default free plan", !!spineA && spineA.plan === "free" && !!spineA.createdAt);
+check("TU-A spine exists live and carries NO plan field (v2)", !!spineA && !("plan" in spineA) && !!spineA.createdAt);
 const stateA = sA ? await fsGet("users/" + sA.uid + "/data/state", sA.idToken).catch(() => null) : null;
 check("TU-A state doc holds the pot (live, 2 tasks)", !!stateA && JSON.parse(stateA.stateJson).tasks.length === 2);
 check("the guest pot was consumed (live)", await p.evaluate(() => !(JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks || []).some((t) => /Guest pot task/.test(t.title))));
@@ -92,6 +92,12 @@ const crossSpine = await fetch(FS + "users/" + sA.uid, { headers: { Authorizatio
 check("TU-B's token is denied TU-A's spine too (403, not the owner)", crossSpine.status === 403);
 const ownerDoc = await fetch(FS + "_owner/config", { headers: { Authorization: "Bearer " + sB.idToken } });
 check("_owner/config is unreadable by any client (403/404)", ownerDoc.status === 403 || ownerDoc.status === 404);
+const shardRead = await fetch(FS + "aggSignups/" + sA.uid, { headers: { Authorization: "Bearer " + sA.idToken } });
+check("the aggSignups shard is owner-space: even its own user cannot read it (403)", shardRead.status === 403);
+// The anonymous-provider fence: an anon session mints NO cloud space.
+const anonSign = await (await fetch(IDP + "signUp?key=" + TWIN.apiKey, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ returnSecureToken: true }) })).json();
+const anonWrite = await fetch(FS + "users/" + anonSign.localId, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + anonSign.idToken }, body: JSON.stringify({ fields: { createdAt: { timestampValue: new Date().toISOString() } } }) });
+check("an anonymous session is denied a spine write by the fence (403)", anonWrite.status === 403);
 const anon = await fetch(FS + "users/" + sA.uid + "/data/state");
 check("signed-out reads are denied (401/403)", anon.status === 401 || anon.status === 403);
 // Round trip: A returns, world intact.
