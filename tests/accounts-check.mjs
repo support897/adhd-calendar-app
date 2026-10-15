@@ -37,8 +37,23 @@ const uidByEmail = (e) => mock.users.get(e) && mock.users.get(e).uid;
 async function settings() { await p.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); }); await p.click('.side-item[data-panel="settings"]'); await p.waitForTimeout(400); }
 async function dismissOverlays() {
   // A brand-new account boots as a new user: welcome, then guide.
+  // NEVER click while the pot sheet is up — it owns the screen
+  // (and a retry-click through the race can land on its buttons).
+  if (await p.evaluate(() => !document.getElementById("potSheet").hidden)) return;
   if (await p.locator("#welcome").isVisible().catch(() => false)) { await p.click("#welcomeSkip"); await p.waitForTimeout(300); }
   if (await p.locator("#guideSheet").isVisible().catch(() => false)) { await p.click("#guideSkip"); await p.waitForTimeout(300); }
+}
+async function waitPotDoor(ms) {
+  // The door rides the reconcile chain; on a loaded VM it can
+  // land seconds after sign-in. Wait for IT (clearing welcome /
+  // guide out of its way only while it is not yet up).
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await p.evaluate(() => !document.getElementById("potSheet").hidden)) return true;
+    await dismissOverlays();
+    await p.waitForTimeout(500);
+  }
+  return p.evaluate(() => !document.getElementById("potSheet").hidden);
 }
 async function signUp(email, pw) {
   await settings();
@@ -55,14 +70,15 @@ check("configured build shows the Account group", await p.evaluate(() => !docume
 await signUp("a@test.dev", "password-a");
 const uidA = uidByEmail("a@test.dev");
 check("A's account exists server-side", !!uidA);
-const doorShown = await p.evaluate(() => !document.getElementById("potSheet").hidden);
+const doorShown = await waitPotDoor(25000);
 check("the guest-upload door is offered to the first account", doorShown);
 if (doorShown) { await p.click("#potYes"); await p.waitForTimeout(1800); }
 await dismissOverlays();
 check("the pot's tasks became A's", await p.evaluate(() => document.body.innerText.includes("Guest pot task one")));
 check("A's state doc holds the pot on the server", !!docOf(uidA, "data/state") && JSON.parse(docOf(uidA, "data/state").stateJson).tasks.length === 2);
 check("the guest pot was consumed (A's tasks gone from the guest slot)", await p.evaluate(() => !(JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks || []).some((t) => /Guest pot task/.test(t.title))));
-check("A's spine exists with the default free plan", !!docOf(uidA) && docOf(uidA).plan === "free" && !!docOf(uidA).createdAt);
+check("A's spine exists and carries NO plan field (v2)", !!docOf(uidA) && !("plan" in docOf(uidA)) && !!docOf(uidA).createdAt);
+check("the aggSignups shard exists in the owner space", !!mock.docs.get("aggSignups/" + uidA) && !!mock.docs.get("aggSignups/" + uidA).createdAt);
 // 4. A's first own event fires the activation stamp.
 await p.evaluate(() => document.querySelector('[data-panel="calendar"]').click()); await p.waitForTimeout(400);
 await p.click("#addBtn"); await p.waitForSelector("#addSheet:not([hidden])");
@@ -78,7 +94,10 @@ check("A's cache stays on the device under A's key", await p.evaluate((u) => !!l
 // 6. B signs up: no door (offered once), empty start, own world.
 await signUp("b@test.dev", "password-b");
 const uidB = uidByEmail("b@test.dev");
-check("B is NOT offered the pot door", await p.evaluate(() => document.getElementById("potSheet").hidden));
+let bDoor = false;
+for (let i = 0; i < 16; i++) { if (await p.evaluate(() => !document.getElementById("potSheet").hidden)) { bDoor = true; break; } await p.waitForTimeout(500); }
+check("B is NOT offered the pot door", !bDoor);
+if (bDoor) console.log("BDOOR:", JSON.stringify(await p.evaluate(() => { const g = JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}"); return { stamp: localStorage.getItem("pace-pot-offered"), consumed: localStorage.getItem("pace-pot-consumed"), guestTasks: (g.tasks || []).length, guestTodos: (g.todos || []).length, guestUpdatedAt: g.updatedAt, potText: document.getElementById("potText").textContent.slice(0, 60) }; })));
 await dismissOverlays();
 check("B starts empty (no bleed from A)", await p.evaluate(() => !document.body.innerText.includes("Guest pot task") && !document.body.innerText.includes("A brand new event")));
 // 7. REST cross-access denied (B's token against A's doc).
