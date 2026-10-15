@@ -1312,7 +1312,7 @@ function runImport(text, label) {
     markActivated("import");
     if (ACTIVE_UID && FB.configured) {
       var totalEv = (state.imports || []).reduce(function (a, r) { return a + (r.count || 0); }, 0);
-      FB.fsSet("imports/" + ACTIVE_UID, { events: totalEv, imports: (state.imports || []).length, at: new Date().toISOString() }).catch(function () {});
+      FB.fsSet("aggImports/" + ACTIVE_UID, { events: totalEv, imports: (state.imports || []).length, at: new Date().toISOString() }).catch(function () {});
     }
   }
   var bits = [res.added + (res.added === 1 ? " event" : " events") + " brought in"];
@@ -1392,12 +1392,17 @@ function markActivated(kind) {
   spine.activatedAt = new Date().toISOString();
   spine.activationKind = kind;
   FB.fsSet(spinePath(), { activatedAt: spine.activatedAt, activationKind: kind }, ["activatedAt", "activationKind"]).catch(function () {});
+  FB.fsSet("aggSignups/" + ACTIVE_UID, { activatedAt: spine.activatedAt, activationKind: kind }, ["activatedAt", "activationKind"]).catch(function () {});
 }
 function guestPot() {
   try {
     var g = JSON.parse(localStorage.getItem(STORE + ":guest") || "null");
     if (!g) return null;
-    var n = (g.tasks || []).length + (g.todos || []).length + (g.habits || []).length;
+    // The pot is the guest's OWN things. The app's factory samples
+    // (source "sample") are not user data — a samples-only slot is
+    // no pot, or the next account would be offered the demo set.
+    var n = (g.tasks || []).filter(function (t) { return t && t.source !== "sample"; }).length
+      + (g.todos || []).length + (g.habits || []).length;
     return n > 0 ? g : null;
   } catch (e) { return null; }
 }
@@ -1410,7 +1415,11 @@ function reconcileAccount() {
   if (!ACTIVE_UID || !FB.configured) return;
   FB.fsGet(spinePath()).then(function (sp) {
     if (!sp) {
-      spine = { createdAt: new Date().toISOString(), lastActiveAt: new Date().toISOString(), plan: "free", deletedByUser: false };
+      spine = { createdAt: new Date().toISOString(), lastActiveAt: new Date().toISOString(), deletedByUser: false };
+      // No plan on the user record — entitlement lives at _comp
+      // alone. The aggregate shard (owner space) is the only
+      // outward fact: this account exists, and when it arrived.
+      FB.fsSet("aggSignups/" + ACTIVE_UID, { createdAt: spine.createdAt }).catch(function () {});
       return FB.fsSet(spinePath(), spine).then(function () { return null; });
     }
     spine = sp; return null;
@@ -1431,22 +1440,33 @@ function reconcileAccount() {
     }
   }).catch(function () { renderAccount(); });
 }
+/* The door's stamps key to the POT'S GENERATION (Security's
+   precision): the same pot is never offered twice, a genuinely
+   new pot may be; the stamps live on this device only, and
+   stamping never touches the pot's data. */
+function potGeneration(pot) {
+  if (!pot) return "";
+  var real = (pot.tasks || []).filter(function (t) { return t && t.source !== "sample"; });
+  var first = (real[0] && real[0].id) || "";
+  return String(pot.updatedAt || "") + ":" + real.length + ":" + first;
+}
 function maybePotDoor() {
-  if (localStorage.getItem("pace-pot-offered") === "1") return;
   var pot = guestPot();
   if (!pot) return;
+  if (localStorage.getItem("pace-pot-offered") === potGeneration(pot)) return;
   var n = (pot.tasks || []).length;
   $("potText").textContent = "This device has a guest calendar on it (" + n + (n === 1 ? " event" : " events") + ", plus its lists). Bring it into your account, or start fresh — the guest copy stays on the device either way until you say.";
   $("potSheet").hidden = false;
 }
 function resolvePot(bring) {
-  localStorage.setItem("pace-pot-offered", "1");
+  var pot0 = guestPot();
+  localStorage.setItem("pace-pot-offered", potGeneration(pot0));
   $("potSheet").hidden = true;
   if (!bring) { toast("Fresh start. Your guest calendar is still on this device."); return; }
   var pot = guestPot();
   if (!pot) return;
   adoptStateObject(pot);
-  localStorage.setItem("pace-pot-consumed", "1");
+  localStorage.setItem("pace-pot-consumed", potGeneration(pot));
   try { localStorage.setItem(STORE + ":guest", JSON.stringify(seed())); } catch (e) {}
   syncNow();
   toast("Your things are in your account now.");
@@ -1465,7 +1485,8 @@ function renderAccount() {
   if (ACTIVE_UID && sess) {
     $("accountLine").textContent = "Signed in as " + (sess.email || "your account") + ". Your calendar saves to your account and this device.";
     $("accountOpen").hidden = true; $("accountOut").hidden = false; $("accountDelete").hidden = false;
-    $("accountBring").hidden = !(guestPot() && localStorage.getItem("pace-pot-consumed") !== "1");
+    var potNow = guestPot();
+    $("accountBring").hidden = !(potNow && localStorage.getItem("pace-pot-consumed") !== potGeneration(potNow));
     $("accountUncache").hidden = true;
     if (note && !note.textContent) note.textContent = "";
   } else {
