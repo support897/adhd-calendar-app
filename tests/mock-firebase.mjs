@@ -42,17 +42,18 @@ export function startMock() {
     if (!uid) return false;
     const seg = path.split("/");
     if (seg[0] === "users" && seg[1]) {
-      if (seg.length === 2) return uid === seg[1] || ownerUids.includes(uid); // spine: owner counts/get
+      if (seg.length === 2) return uid === seg[1]; // spine: the owner holds NO path into user folders (v2)
       return uid === seg[1]; // the data tree: owner-user only, CEO never
     }
-    if (seg[0] === "subscriptions" || seg[0] === "reviews" || seg[0] === "outreach" || seg[0] === "groups") return ownerUids.includes(uid) || (seg[0] === "subscriptions" && uid === seg[1]);
-    if (seg[0] === "imports") return uid === seg[1] || ownerUids.includes(uid);
+    if (seg[0] === "reviews" || seg[0] === "outreach" || seg[0] === "groups") return ownerUids.includes(uid);
+    if (seg[0] === "aggSignups" || seg[0] === "aggImports" || seg[0] === "aggSubs") return ownerUids.includes(uid);
+    if (seg[0] === "subscriptions") return uid === seg[1];
     return false;
   };
   const mayWrite = (uid, path) => {
     if (!uid) return false;
     const seg = path.split("/");
-    return (seg[0] === "users" && seg[1] === uid) || (seg[0] === "imports" && seg[1] === uid);
+    return (seg[0] === "users" && seg[1] === uid) || (seg[0] === "aggSignups" && seg[1] === uid) || (seg[0] === "aggImports" && seg[1] === uid);
   };
   const server = http.createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
