@@ -50,16 +50,22 @@ service cloud.firestore {
     // ONLY its own shard, ONLY the aggregate fields; the pinned
     // owner reads the shards (counts + sums), never a folder.
     match /aggSignups/{uid} {
-      allow write: if own(uid)
+      // Verbs split (Security must-fix): a create has no resource
+      // to read — the write-once clause lives on update only.
+      allow create: if own(uid)
+        && request.resource.data.keys().hasOnly(['createdAt', 'activatedAt', 'activationKind']);
+      allow update: if own(uid)
         && request.resource.data.keys().hasOnly(['createdAt', 'activatedAt', 'activationKind'])
         && (!('activatedAt' in resource.data)
             || !('activatedAt' in request.resource.data)
             || request.resource.data.activatedAt == resource.data.activatedAt);
+      allow delete: if false;
       allow get, list: if isOwner();
     }
     match /aggImports/{uid} {
-      allow write: if own(uid)
+      allow create, update: if own(uid)
         && request.resource.data.keys().hasOnly(['events', 'imports', 'at']);
+      allow delete: if false;
       allow get, list: if isOwner();
     }
     // Money mirror (contracts §1): written by the payment path
