@@ -82,6 +82,31 @@ their ruling). The sandbox Chromium cannot tunnel the egress
 proxy, so the browser journeys ride the managed browser against
 a scratch twin host (support897/pace-twin, twin config) — the
 CEO-room + user-journey legs complete the seal there.
+THE TWIN JOURNEYS (the seal's last legs, all PASS): the CEO
+room refused a non-owner with the exact words, opened for the
+pinned fixture owner, and read the seeded aggregates exactly
+(joined 3 · activated 3 · 41 events by 3 people · $0 money) with
+no identity anywhere. The user journeys ran the full story —
+guest event, account, bring-in, second account isolation,
+round trip, deletion back to guest. THREE live-only catches,
+each fixed, looped and re-verified on the twin: (1) the CEO
+door card stacked above the room — .door/.room are display:
+grid, which defeats [hidden] without the guard the user app
+already carried; one CSS line. (2) MRR read a dash at zero —
+a filtered SUM aggregation demands a composite index
+Firestore does not auto-build; MRR now computes client-side
+from the list the panel already fetches. (3) v15.1 — the
+guest-pot door keyed on "no server state doc", but a fresh
+account's own first sync writes its empty state doc DURING
+the reconcile fetch, and on a real network the sync wins:
+the door silently never fired (the mock always won the race).
+The door now decides after adoption, by CONTENT — an account
+with no real content of its own is offered the pot, an
+account with real content never is. SW pace-v15-1. Batteries:
+ceo-check 17/17 (computed-visibility + $0.00 legs added),
+accounts-check 22/22 (TU-C: the race as a fixture). Quality
+verified v15.1 at their own run; the twin re-verification
+passed both parts end to end.
 
 Built 12 Oct 2026, fully autonomous on Ilse's order ("work fully autonomous and don't stop until app fully tested, completed and approved"). Phases 2 to 8 of PHASE1-RESEARCH.md.
 
