@@ -95,8 +95,16 @@ grid, which defeats [hidden] without the guard the user app
 already carried; one CSS line. (2) MRR read a dash at zero —
 a filtered SUM aggregation demands a composite index
 Firestore does not auto-build; MRR now computes client-side
-from the list the panel already fetches. (3) v15.1 — the
-guest-pot door keyed on "no server state doc", but a fresh
+from the list the panel already fetches. (3) v15.2 — Security
+ruled ERASURE TAKES THE SHARD: a uid-keyed row is the user's
+data however light its fields. Rules v2.2 adds exactly one
+verb (own-delete) on aggSignups + aggImports; the §6 sweep now
+runs state → spine → shards → Auth user; the CEO count reads
+"accounts on Pace now". Diff PASS at Security, twin republish,
+live battery 29/29 with the sweep legs (cross-shard delete
+still 403; own deletes 200; the deleted account leaves the
+owner's count), production republish — v2.2 is the text of
+record on both projects and the P4 seal completes on it.
 account's own first sync writes its empty state doc DURING
 the reconcile fetch, and on a real network the sync wins:
 the door silently never fired (the mock always won the race).
