@@ -58,6 +58,7 @@ async function waitPotDoor(ms) {
 async function signUp(email, pw) {
   await settings();
   await p.click("#accountOpen"); await p.waitForSelector("#authSheet:not([hidden])");
+  await p.fill("#authName", "Test Person"); // sign-up asks for the name (the ruling)
   await p.fill("#authEmail", email); await p.fill("#authPass", pw);
   await p.click("#authSignUp");
   await p.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); return s && s.email === document.querySelector("#authEmail")?.value || (s && s.email); }, null, { timeout: 9000 }).catch(() => {});
@@ -152,7 +153,7 @@ await p3.fill("#authEmail", "c@test.dev"); await p3.fill("#authPass", "password-
 await p3.click("#authSignIn");
 let cDoor = false;
 for (let i = 0; i < 40 && !cDoor; i++) {
-  cDoor = await p3.evaluate(() => !document.getElementById("potSheet").hidden);
+  cDoor = await p3.evaluate(() => !document.getElementById("potSheet").hidden).catch(() => false); // the sign-in reload can destroy the context mid-poll
   if (!cDoor) {
     if (await p3.locator("#welcome").isVisible().catch(() => false)) { await p3.click("#welcomeSkip").catch(() => {}); }
     if (await p3.locator("#guideSheet").isVisible().catch(() => false)) { await p3.click("#guideSkip").catch(() => {}); }
@@ -173,6 +174,44 @@ check("account deletion removed A's server docs", !docOf(uidA) && !docOf(uidA, "
 check("account deletion removed A's aggregate shards (v2.2)", !mock.docs.get("aggSignups/" + uidA) && !mock.docs.get("aggImports/" + uidA));
 check("account deletion removed the auth user", !mock.users.has("a@test.dev"));
 check("after deletion the app boots as guest", await p.evaluate(() => !localStorage.getItem("pace-auth-v1")));
+/* ---------- 11. sign-up asks for the name (the ruling) ---------- */
+{
+  const p4 = await ctx.newPage();
+  p4.on("pageerror", (e) => errors.push("p4: " + e.message));
+  await p4.goto("http://localhost:9123/", { waitUntil: "networkidle" });
+  if (await p4.locator("#welcome").isVisible().catch(() => false)) { await p4.click("#welcomeSkip"); await p4.waitForTimeout(300); }
+  if (await p4.locator("#guideSheet").isVisible().catch(() => false)) { await p4.click("#guideSkip"); await p4.waitForTimeout(300); }
+  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
+  await p4.click("#accountOpen");
+  await p4.waitForSelector("#authName");
+  check("sign-up form asks for the name", await p4.locator("#authName").isVisible());
+  await p4.fill("#authEmail", "named@test.dev");
+  await p4.fill("#authPass", "password-n");
+  await p4.click("#authSignUp");
+  await p4.waitForTimeout(400);
+  check("create without a name is refused with the reason", (await p4.locator("#authMsg").innerText()).includes("name"));
+  await p4.fill("#authName", "Sam Test");
+  await p4.click("#authSignUp");
+  await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
+  await p4.waitForTimeout(2600); // reconcile adopts the pending name
+  const prof = await p4.evaluate(() => {
+    const sess = JSON.parse(localStorage.getItem("pace-auth-v1") || "null");
+    const uk = sess && sess.uid ? "calmcal-v1:" + sess.uid : null;
+    return uk ? (JSON.parse(localStorage.getItem(uk) || "{}").settings || {}).profileName : null;
+  });
+  check("the name is carried on the profile", prof === "Sam Test");
+  check("the app addresses the user by their name", (await p4.locator("#accountLine").innerText()).startsWith("Hi Sam"));
+}
+
+/* ---------- 12. no-Ilse sweep over the shipped app files ---------- */
+{
+  const fs = await import("node:fs");
+  const shipped = ["index.html", "app.js", "logic.js", "calendar-import.js", "firebase.js", "styles.css", "service-worker.js", "manifest.webmanifest"];
+  const hits = shipped.filter((f) => /ilse/i.test(fs.readFileSync(new URL("../" + f, import.meta.url), "utf8")));
+  check("no personal references anywhere in the shipped app files", hits.length === 0);
+}
+
 await b.close(); server.close(); mock.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 process.exit(fail ? 1 : 0);
