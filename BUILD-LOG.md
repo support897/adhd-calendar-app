@@ -35,6 +35,54 @@ SW pace-v15. Live wire outstanding: Pace's own Firebase project
 + test twin (HQ console sitting) — the config files are seams
 until then, and the build is inert-honest without them.
 
+## v15 ADDENDUM (15 Oct, later the same day) — wires landed, rules v2.1, the sweep lesson
+The Firebase pair landed via PB (prod pace-app-calendar, twin
+pace-test-c00fa); configs installed; the Google client ID wired
+(door live); the CEO repo created + pushed; Pages live at
+support897.github.io/pace-ceo. SECURITY sent the v1 rules back
+on three items — owner grants off user folders entirely
+(aggregates re-pointed to owner-space shards aggSignups/
+aggImports/aggSubs), plan OFF the spine under a hasOnly fence +
+rule-guarded write-once, anonymous provider fenced by token
+claim — plus a create-verb must-fix; the text of record is v2.1,
+ACTIVE on both projects, Security-verified. The battery work
+also caught a real product bug: guestPot counted the web seed's
+factory SAMPLES as a pot (a second account could be offered the
+demo set) — samples are excluded at the pot's definition now;
+accounts battery 21/21 with the shard leg.
+THE SWEEP LESSON (owned): my first v15 composite (286/286) was
+assembled partly from interleaved background output I had not
+clean-verified suite by suite — and hid two real harness faults:
+nine pre-v15 suites read the frozen legacy key while the app
+saves under the identity key, and my sweep loops called the
+logic suite by a wrong file name (run-check vs run-tests), its
+error invisible inside a grep pipe. Quality's amended SEND BACK
+caught the cluster; cause proven (saves landed all along),
+harness fixed, composite re-filed per-suite (289/289) and
+Quality re-verified on THEIR OWN runs. Verdicts: Quality PASS
+(restored) · Efficiency PASS · QA PASS (F1 retest on the hashed
+bytes, blob 8f962551…). A claim is not a check — twice-burned,
+written down.
+LIVE LEGS (the seal's second leg, run the same day): the v2.1
+text was published VERBATIM to both projects (comments intact;
+Security's P4 text diff is against these bytes). The API-level
+battery (tests/accounts-live-api.mjs) against the REAL twin:
+26/26 — the fences refuse plan-shaped keys live, activatedAt is
+write-once in the rules themselves, B is denied A's state/spine/
+shards at the API, shards are write-only for their own users,
+_owner/_comp unreadable by any client, the anonymous provider
+mints no cloud space, and the §6 sweep deletes state, spine and
+the Auth user in order. The fixture owner is pinned on the TWIN
+only (_owner/config, uid reported to PB); the owner probe
+answers counts (200) and a non-owner's count is denied (403).
+Named behaviour: aggregate shards are APPEND-ONLY (deletion
+removes the person, not the count — Security recommended
+delete:false; the tension is filed with the seal report for
+their ruling). The sandbox Chromium cannot tunnel the egress
+proxy, so the browser journeys ride the managed browser against
+a scratch twin host (support897/pace-twin, twin config) — the
+CEO-room + user-journey legs complete the seal there.
+
 Built 12 Oct 2026, fully autonomous on Ilse's order ("work fully autonomous and don't stop until app fully tested, completed and approved"). Phases 2 to 8 of PHASE1-RESEARCH.md.
 
 ## V2 — brand, collapsible menu, themes (13 Oct 2026, Ilse's order)
