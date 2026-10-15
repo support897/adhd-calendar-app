@@ -1,65 +1,91 @@
 rules_version = '2';
-// Pace Calendar — Security Rules of record (accounts wave).
-// The wall is ownership-by-address: a user's world lives under
-// users/{their own uid}. The state payload sits one level deeper
-// (users/{uid}/data/state) and is reachable ONLY by its owner —
-// the CEO dashboard's count window covers the light spine fields
-// (createdAt / lastActiveAt / plan / activatedAt) and the money /
-// reviews collections, never a state payload, never a person.
+// Pace Calendar — Security Rules of record, v2 (accounts wave;
+// Security desk send-back of 15 Oct applied in full).
+//
+// THE SHAPE (the Fit shape, settled house-wide): ownership by
+// address for users; the OWNER HOLDS NO READ PATH INTO USER
+// FOLDERS. The dashboard reads PRECOMPUTED AGGREGATES in the
+// owner space only — shards each app writes about itself
+// (aggSignups / aggImports / aggSubs), fenced to aggregate
+// fields. There is no plan on the user record: entitlement
+// lives at _comp alone, read by rules get(), never by clients.
+// The anonymous provider is fenced out of the data tree —
+// Pace's guest is a device pot, not a cloud space.
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
+    function notAnon() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function own(uid) { return notAnon() && request.auth.uid == uid; }
     function isOwner() {
       return signedIn()
         && exists(/databases/$(database)/documents/_owner/config)
         && request.auth.uid in get(/databases/$(database)/documents/_owner/config).data.uids;
     }
 
-    // The user's spine (light record) + their private data tree.
+    // The user's spine (light record, NO plan) + private tree.
+    // Spine writes are fenced to the light fields, and
+    // activatedAt is write-once (the activation stamp).
     match /users/{uid} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
-      // CEO aggregates: the pinned owner may get/list SPINE docs
-      // (count + stamp queries). No write. The data tree below is
-      // NOT covered by this grant.
-      allow get, list: if isOwner();
+      allow get: if own(uid);
+      allow create: if own(uid)
+        && request.resource.data.keys().hasOnly(['createdAt', 'lastActiveAt', 'activatedAt', 'activationKind', 'deletedByUser']);
+      allow update: if own(uid)
+        && request.resource.data.keys().hasOnly(['createdAt', 'lastActiveAt', 'activatedAt', 'activationKind', 'deletedByUser'])
+        && (!('activatedAt' in resource.data)
+            || !('activatedAt' in request.resource.data)
+            || request.resource.data.activatedAt == resource.data.activatedAt);
+      allow delete: if own(uid);
       match /data/{doc} {
-        allow read, write: if signedIn() && request.auth.uid == uid;
+        allow get, list: if own(uid);
+        allow create, update: if own(uid) && doc == 'state'
+          && request.resource.data.keys().hasOnly(['stateJson', 'updatedAt']);
+        allow delete: if own(uid);
       }
     }
 
-    // Two-hat records: console/desk-written only. No client path
-    // exists — entitlement and ownership are read by RULES via
-    // get(), never by app code asking for the documents.
+    // OWNER SPACE — precomputed aggregates. A user's app writes
+    // ONLY its own shard, ONLY the aggregate fields; the pinned
+    // owner reads the shards (counts + sums), never a folder.
+    match /aggSignups/{uid} {
+      allow write: if own(uid)
+        && request.resource.data.keys().hasOnly(['createdAt', 'activatedAt', 'activationKind'])
+        && (!('activatedAt' in resource.data)
+            || !('activatedAt' in request.resource.data)
+            || request.resource.data.activatedAt == resource.data.activatedAt);
+      allow get, list: if isOwner();
+    }
+    match /aggImports/{uid} {
+      allow write: if own(uid)
+        && request.resource.data.keys().hasOnly(['events', 'imports', 'at']);
+      allow get, list: if isOwner();
+    }
+    // Money mirror (contracts §1): written by the payment path
+    // (server-side) when payments exist; dormant until then.
+    match /aggSubs/{uid} {
+      allow write: if false;
+      allow get, list: if isOwner();
+    }
+
+    // Two-hat records: console/desk-written only. No client path.
     match /_owner/{doc} { allow read, write: if false; }
     match /_comp/{uid} { allow read, write: if false; }
 
-    // Import counters: a user's own tally of what they brought
-    // in (events count + imports count) — the ONLY import fact
-    // the CEO panel reads, so state payloads stay owner-blind.
-    match /imports/{uid} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
-      allow get, list: if isOwner();
-    }
-
-    // Money (contracts §1): written by the payment path only
-    // (server-side). The owner counts them for the Money section;
-    // a user can read their own record.
+    // A user's own subscription record (their eyes only; the
+    // dashboard counts the aggSubs mirror, never this folder).
     match /subscriptions/{uid} {
-      allow get: if signedIn() && request.auth.uid == uid;
-      allow get, list: if isOwner();
+      allow get: if own(uid);
       allow write: if false;
     }
 
-    // Reviews inbox (contracts §1): desk-fed until store feeds
-    // connect. Owner reads; nobody writes from a client.
+    // Reviews inbox + outreach + community (contracts §1/§3):
+    // desk-fed owner-space rows; owner reads, clients never write.
     match /reviews/{id} {
       allow get, list: if isOwner();
       allow write: if false;
     }
-
-    // Outreach + community feeds (contracts §3): desk-written,
-    // owner-read, honest-empty until the desks feed them.
     match /outreach/{id} {
       allow get, list: if isOwner();
       allow write: if false;
