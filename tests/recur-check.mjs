@@ -15,14 +15,18 @@ await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 // Add recurring via capture: water plants every weekday
 await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="capture"]');
+await page.locator("#plusNotNow").click({ timeout: 900 }).catch(() => {}); // the upgrade moment may greet this edge once — close it and carry on
 await page.fill("#dumpText", "water the plants every weekday");
 await page.click("#parseBtn"); await page.waitForTimeout(200);
 check("recurring draft carries repeat label", /every weekday/.test(await page.locator(".draft-card").textContent()));
 await page.click("#draftAddAll"); await page.waitForTimeout(300);
 const st = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest")); return s.tasks.find(t => /water the plants/i.test(t.title)); });
 check("recurring task saved with repeat", !!st && st.repeat === "every weekday");
-// It should appear today (Mon) and tomorrow (Tue) in the ticker-days: select tomorrow via ticker and look at day list
-const tomorrow = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
+// It should appear today and on the NEXT WEEKDAY in the ticker-days
+// (the leg once picked blind "tomorrow" — when tomorrow is a
+// Saturday, a weekday repeat correctly stays home and the leg
+// reds on a calendar seam, not a fault).
+const tomorrow = await page.evaluate(() => { const d = new Date(); do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
 await page.click('.tick[data-date="' + tomorrow + '"]'); await page.waitForTimeout(300);
 check("recurring shows tomorrow too", (await page.locator("#dayList .task-row").allTextContents()).some(t => /water the plants/i.test(t)));
 // Done for tomorrow only: check it off, today stays undone
