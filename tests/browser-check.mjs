@@ -31,6 +31,7 @@ page.on("console", m => { if (m.type() === "error") errors.push("console: " + m.
 await page.goto("http://localhost:8911/", { waitUntil: "networkidle" });
 check("welcome shows on first open", await page.locator("#welcome:not([hidden])").count() === 1);
 await page.click("#welcomeSkip");
+await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 check("calendar month renders events", await page.locator(".fc-event").count() >= 5);
 check("ticker has 31 days", await page.locator(".tick").count() === 31);
 check("day list shows sample tasks", await page.locator("#dayList .task-row").count() >= 4);
@@ -79,7 +80,7 @@ const preview = await page.locator("#quickPreview").textContent();
 check("quick add preview parses the sentence", /Gym/i.test(preview) && /60 min/.test(preview));
 await page.click("#addSave");
 await page.waitForTimeout(350);
-const stateAfterAdd = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")));
+const stateAfterAdd = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")));
 check("quick add saved the gym task", stateAfterAdd.tasks.some(t => /gym/i.test(t.title) && t.durationMin === 60 && t.essential === true));
 
 /* task sheet: Not today moves it */
@@ -93,16 +94,17 @@ await page.waitForTimeout(300);
 check("not today removes it from today list", (await page.locator("#dayList .task-row").count()) < rowCountToday + 1);
 
 /* capture: brain dump to drafts to calendar */
+await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="capture"]');
 await page.fill("#dumpText", "email the client about the quote\nclean the kitchen\ncall mum tomorrow at 5pm");
 await page.click("#parseBtn");
 await page.waitForTimeout(250);
 check("dump makes 3 draft cards", await page.locator(".draft-card").count() === 3);
 await page.screenshot({ path: ROOT + "/proofs/capture-drafts.png" });
-const beforeCount = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.length);
+const beforeCount = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.length);
 await page.click("#draftAddAll");
 await page.waitForTimeout(300);
-const afterCount = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.length);
+const afterCount = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.length);
 check("drafts land on the calendar", afterCount === beforeCount + 3);
 
 /* progress board */
@@ -124,7 +126,7 @@ await page.waitForTimeout(200);
 
 /* notification checker: craft a task whose nudge time is this minute, reload, boot check must record it sent */
 await page.evaluate(() => {
-  const s = JSON.parse(localStorage.getItem("calmcal-v1"));
+  const s = JSON.parse(localStorage.getItem("calmcal-v1:guest"));
   const now = new Date();
   const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
   const parts = hhmm.split(":"); const mins = (+parts[0]) * 60 + (+parts[1]) + 5;
@@ -133,11 +135,11 @@ await page.evaluate(() => {
   s.tasks.push({ id: "nudge-test", title: "Nudge test task", date: today, time: taskTime, durationMin: 10, priority: 0, repeat: null, category: "general", color: "#7A8699", essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "", source: "test", originalText: "", skipDates: [], doneDates: [] });
   s.feelings[today] = "full";
   s.settings.notif.start = true; s.settings.notif.setup = 5; s.settings.pausedDate = null;
-  localStorage.setItem("calmcal-v1", JSON.stringify(s));
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify(s));
 });
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(600);
-const sent = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).sent);
+const sent = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).sent);
 check("notification checker fires the start nudge on boot check", Object.keys(sent).some(k => k.indexOf("start-nudge-test-") === 0));
 
 /* phone width */
@@ -145,8 +147,11 @@ const page2 = await ctx.newPage();
 await page2.setViewportSize({ width: 390, height: 844 });
 await page2.goto("http://localhost:8911/", { waitUntil: "networkidle" });
 await page2.click("#welcomeSkip").catch(() => {});
+await page2.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 await page2.waitForTimeout(400);
 check("phone view renders calendar and ticker", await page2.locator(".fc-event").count() >= 3 && await page2.locator(".tick").count() === 31);
+check("phone: menu hidden by default, content full width", (await page2.locator("#sidebar").boundingBox()) === null && (await page2.locator("#main").boundingBox()).width >= 380);
+await page2.click("#sbExpand"); await page2.waitForTimeout(250);
 const sidebarBox = await page2.locator("#sidebar").boundingBox();
 const mainBox = await page2.locator("#main").boundingBox();
 check("phone sidebar stays beside content, narrowed", sidebarBox && mainBox && sidebarBox.width <= 90 && mainBox.x >= sidebarBox.width - 2);
