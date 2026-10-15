@@ -10,7 +10,7 @@ const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass+
 const browser = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
 
 const seedSrc = `
-  localStorage.setItem("calmcal-v1", JSON.stringify({ settings: { guide: "done", onboarded: true },
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify({ settings: { guide: "done", onboarded: true },
     tasks: [], todos: [], habits: [], feelings: {}, checks: {}, habitLog: {}, imports: [], samplesLoaded: false }));
 `;
 async function freshPage(setupSrc) {
@@ -101,7 +101,7 @@ const fakeSR = (script) => `
   const p = await freshPage(fakeSR([{ type: "final", text: "water the plants" }]));
   await p.evaluate(() => { document.querySelectorAll(".side-item").forEach(b => { if (b.dataset.panel === "todo") b.click(); }); });
   await p.click("#todoVoiceBtn"); await p.waitForTimeout(350);
-  const todos = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).todos.map(t => t.text));
+  const todos = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).todos.map(t => t.text));
   check("spoken to-do is added", todos.includes("water the plants"));
   await p.close();
 }
