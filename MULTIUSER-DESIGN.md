@@ -108,11 +108,14 @@ Prep's design carries it):
 - Settings → Download my data: the document as a JSON file (it already
   exists in memory; this is a button, not a project).
 - Settings → Delete my account: Firestore has no cascade, so deletion is
-  a built sweep — delete the `users/{uid}` document, then the auth user
-  (Firebase requires a recent sign-in for that call; the sheet asks for
-  one if needed). The sweep is proven in P4. The stores require this
-  door; the Never-Delete Law allows exactly this — the user's own hand
-  on their own data.
+  a built sweep — delete the state document, the `users/{uid}` spine,
+  the aggregate shards (`aggSignups/{uid}`, `aggImports/{uid}` — the
+  v2.2 carve-out: erasure takes the shard, Security ruling 15 Oct),
+  then the auth user (Firebase requires a recent sign-in for that
+  call; the sheet asks for the password). `aggSubs` stays out — a
+  payment-path record under its own retention policy. The stores
+  require this door; the Never-Delete Law allows exactly this — the
+  user's own hand on their own data.
 
 ## 7. What changes in the app (and what does not)
 Changes: a sign-in sheet (three doors, icons + short labels, per the
