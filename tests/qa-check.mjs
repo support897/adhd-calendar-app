@@ -45,7 +45,7 @@ await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
   const { ctx, page, errors } = await bootWith((s) => { s.settings.names = "oops"; s.feelings = "oops"; s.sent = 5; });
   check("bug1: names/feelings/sent wrong shapes, no page error", errors.length === 0);
   const labels = await page.locator(".level-btn .level-name").allTextContents();
-  check("bug1: level labels fall back to her words Bad Ok Good", labels.join(",") === "Bad,Ok,Good");
+  check("bug1: level labels fall back to her words Bad Ok Great", labels.join(",") === "Bad,Ok,Great");
   await ctx.close();
 }
 // Bug 1d: a task missing its optional fields still shows.
