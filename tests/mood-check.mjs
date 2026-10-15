@@ -21,7 +21,7 @@ const seed = { settings: { guide: "done", onboarded: true, names: { low: "Bad", 
   todos: [], habits: [], feelings: {}, checks: {}, habitLog: {}, imports: [], samplesLoaded: false };
 const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
 const p = await b.newPage();
-await p.addInitScript((s) => { if (!localStorage.getItem("calmcal-v1")) localStorage.setItem("calmcal-v1", JSON.stringify(s)); }, seed);
+await p.addInitScript((s) => { if (!localStorage.getItem("calmcal-v1:guest")) localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)); }, seed);
 await p.goto(URL, { waitUntil: "networkidle" }); await p.waitForTimeout(500);
 await p.locator("#welcome .primary-btn").click({ timeout: 800 }).catch(() => {});
 for (let i = 0; i < 9; i++) { const g = await p.locator("#guideSheet:not([hidden])").count(); if (!g) break;
@@ -29,7 +29,7 @@ for (let i = 0; i < 9; i++) { const g = await p.locator("#guideSheet:not([hidden
   await p.locator("#guideNext").click({ timeout: 400 }).catch(() => {}); await p.waitForTimeout(180); }
 await p.locator("#impClose").click({ timeout: 500 }).catch(() => {});
 const titles = () => p.$$eval(".task-row .tr-title", els => els.map(e => e.textContent));
-const feelings = () => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).feelings);
+const feelings = () => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).feelings);
 
 // Baseline: no answer yet — the plain day.
 check("the ask is her words with her three answers", (await p.textContent("#checkinQ")) === "How are you feeling today?"
