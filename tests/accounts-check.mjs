@@ -233,13 +233,21 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   await p4.click("#authGo"); // the one button creates the account
   await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
   // Inside the app now: skip the fresh account's welcome, and
-  // Skip's tour opens — its FIRST stop asks the name.
-  for (let i = 0; i < 16; i++) {
-    if (await p4.locator("#tourName").isVisible().catch(() => false)) break;
-    if (await p4.locator("#welcome").isVisible().catch(() => false)) { await p4.click("#welcomeSkip").catch(() => {}); }
-    await p4.waitForTimeout(450);
+  // Skip's tour opens — its FIRST stop asks the name. The ask
+  // counts only when BOTH the input is up AND its text has
+  // landed (QA's probe-race note: under load the bubble text
+  // can beat the input by a beat — poll for the pair).
+  let askUp = false;
+  for (let i = 0; i < 24 && !askUp; i++) {
+    const vis = await p4.locator("#tourName").isVisible().catch(() => false);
+    const txt = vis ? await p4.locator("#guideBubble").innerText().catch(() => "") : "";
+    askUp = vis && txt.includes("What's your name");
+    if (!askUp) {
+      if (await p4.locator("#welcome").isVisible().catch(() => false)) { await p4.click("#welcomeSkip").catch(() => {}); }
+      await p4.waitForTimeout(450);
+    }
   }
-  check("Skip's tour asks the name first, inside the app", await p4.locator("#tourName").isVisible() && (await p4.locator("#guideBubble").innerText()).includes("What's your name"));
+  check("Skip's tour asks the name first, inside the app", askUp);
   await p4.fill("#tourName", "Sam Test");
   await p4.click("#guideNext"); await p4.waitForTimeout(600);
   await p4.click("#guideSkip").catch(() => {}); await p4.waitForTimeout(400); // rest of the tour: not this leg's business
@@ -300,6 +308,38 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   });
   check("an empty Next moves the tour on and sets no name", noName && !(await p4.locator("#tourName").isVisible().catch(() => false)));
   await p4.click("#guideSkip").catch(() => {});
+  // THE GENTLE RE-OFFER (HQ ruling): empty@ skipped its name
+  // step this visit; a NEW visit re-offers it — once.
+  await p4.reload({ waitUntil: "networkidle" }); await p4.waitForTimeout(900);
+  let reUp = false;
+  for (let i = 0; i < 20 && !reUp; i++) { reUp = await p4.locator("#tourName").isVisible().catch(() => false); if (!reUp) await p4.waitForTimeout(400); }
+  check("a skipped name is re-offered once, on the next visit", reUp);
+  await p4.fill("#tourName", "Em Test");
+  await p4.click("#guideNext"); await p4.waitForTimeout(600);
+  const profEm = await p4.evaluate(() => { const sess = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); const uk = sess && sess.uid ? "calmcal-v1:" + sess.uid : null; return uk ? (JSON.parse(localStorage.getItem(uk) || "{}").settings || {}).profileName : null; });
+  check("the re-offered name lands on the profile", profEm === "Em Test");
+  // A second skipper proves the never-a-third-time half.
+  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
+  await p4.click("#accountOut"); await p4.waitForTimeout(900);
+  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
+  await p4.click("#accountOpen"); await p4.waitForSelector("#authSheet:not([hidden])");
+  await doorThrough(p4, "skip2@test.dev", "password-s");
+  await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
+  for (let i = 0; i < 16; i++) {
+    if (await p4.locator("#tourName").isVisible().catch(() => false)) break;
+    if (await p4.locator("#welcome").isVisible().catch(() => false)) { await p4.click("#welcomeSkip").catch(() => {}); }
+    await p4.waitForTimeout(450);
+  }
+  await p4.click("#guideSkip").catch(() => {}); await p4.waitForTimeout(400); // skip the name step
+  await p4.reload({ waitUntil: "networkidle" }); await p4.waitForTimeout(900);
+  let re2 = false;
+  for (let i = 0; i < 20 && !re2; i++) { re2 = await p4.locator("#tourName").isVisible().catch(() => false); if (!re2) await p4.waitForTimeout(400); }
+  check("the second skipper gets the same one re-offer", re2);
+  await p4.click("#guideSkip").catch(() => {}); await p4.waitForTimeout(400); // skip the re-offer too
+  await p4.reload({ waitUntil: "networkidle" }); await p4.waitForTimeout(5000);
+  check("after the re-offer is skipped, it never asks a third time", !(await p4.locator("#tourName").isVisible().catch(() => false)));
 }
 
 /* ---------- 12. no-Ilse sweep over the shipped app files ---------- */
