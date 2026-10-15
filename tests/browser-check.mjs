@@ -96,6 +96,7 @@ check("not today removes it from today list", (await page.locator("#dayList .tas
 /* capture: brain dump to drafts to calendar */
 await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="capture"]');
+await page.locator("#plusNotNow").click({ timeout: 900 }).catch(() => {}); // the upgrade moment may greet this edge once — close it and carry on
 await page.fill("#dumpText", "email the client about the quote\nclean the kitchen\ncall mum tomorrow at 5pm");
 await page.click("#parseBtn");
 await page.waitForTimeout(250);
