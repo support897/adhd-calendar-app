@@ -11,13 +11,15 @@ const page = await (await browser.newContext({ viewport: { width: 1280, height: 
 const errors = []; page.on("pageerror", e => errors.push(e.message));
 await page.goto("http://localhost:8914/", { waitUntil: "networkidle" });
 await page.click("#welcomeSkip");
+await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 // Add recurring via capture: water plants every weekday
+await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="capture"]');
 await page.fill("#dumpText", "water the plants every weekday");
 await page.click("#parseBtn"); await page.waitForTimeout(200);
 check("recurring draft carries repeat label", /every weekday/.test(await page.locator(".draft-card").textContent()));
 await page.click("#draftAddAll"); await page.waitForTimeout(300);
-const st = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1")); return s.tasks.find(t => /water the plants/i.test(t.title)); });
+const st = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest")); return s.tasks.find(t => /water the plants/i.test(t.title)); });
 check("recurring task saved with repeat", !!st && st.repeat === "every weekday");
 // It should appear today (Mon) and tomorrow (Tue) in the ticker-days: select tomorrow via ticker and look at day list
 const tomorrow = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
@@ -25,7 +27,7 @@ await page.click('.tick[data-date="' + tomorrow + '"]'); await page.waitForTimeo
 check("recurring shows tomorrow too", (await page.locator("#dayList .task-row").allTextContents()).some(t => /water the plants/i.test(t)));
 // Done for tomorrow only: check it off, today stays undone
 await page.locator("#dayList .task-row", { hasText: "Water the plants" }).locator(".tr-check").click(); await page.waitForTimeout(300);
-const st2 = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.find(t => /water the plants/i.test(t.title)));
+const st2 = await page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.find(t => /water the plants/i.test(t.title)));
 check("done recorded for that day only", (st2.doneDates || []).length === 1 && st2.status === "todo");
 // Teach-my-levels: open the task sheet from today's list and set a smallest version, then a Low day must show it
 const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
