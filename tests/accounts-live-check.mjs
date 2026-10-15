@@ -31,7 +31,12 @@ async function fsGet(path, token) {
   const o = {}; for (const k of Object.keys(j.fields || {})) o[k] = dec(j.fields[k]);
   return o;
 }
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+// The sandbox's egress runs through a proxy (env); the test
+// browser must take it too, or every Google call is a fetch
+// failure that looks like an app fault. Node's own fetch (the
+// assertion legs) uses the env proxy natively.
+const px = new URL(process.env.https_proxy || process.env.HTTPS_PROXY || "http://127.0.0.1:1");
+const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"], proxy: { server: px.protocol + "//" + px.host, username: decodeURIComponent(px.username), password: decodeURIComponent(px.password), bypass: "localhost,127.0.0.1" } });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
 const p = await ctx.newPage();
 p.setDefaultTimeout(12000);
