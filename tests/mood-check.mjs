@@ -33,7 +33,7 @@ const feelings = () => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal
 
 // Baseline: no answer yet — the plain day.
 check("the ask is her words with her three answers", (await p.textContent("#checkinQ")) === "How are you feeling today?"
-  && (await p.textContent('[data-level="low"]')) .includes("Bad") && (await p.textContent('[data-level="full"]')).includes("Good"));
+  && (await p.textContent('[data-level="low"]')) .includes("Bad") && (await p.textContent('[data-level="full"]')).includes("Great"));
 check("baseline day lists all three tasks plainly", JSON.stringify(await titles()) === JSON.stringify(["School pickup", "Write the report", "Clean the garage"]) || (await titles()).length === 3);
 
 // BAD: shrink + park.
