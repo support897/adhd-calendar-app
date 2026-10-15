@@ -269,6 +269,21 @@ try {
         </div>
         <p class="hint">On this device only.</p>
       </div>
+      <div class="settings-group" id="accountGroup" hidden>
+        <h3>Account</h3>
+        <p class="hint" id="accountLine">You are using Pace on this device only.</p>
+        <div class="draft-actions">
+          <button id="accountOpen" class="primary-btn">Sign in</button>
+          <button id="accountOut" class="soft-btn" hidden>Sign out</button>
+          <button id="accountDownload" class="soft-btn">Download my data</button>
+        </div>
+        <div class="draft-actions">
+          <button id="accountBring" class="soft-btn" hidden>Bring this device's guest things into my account</button>
+          <button id="accountDelete" class="mini-btn" hidden>Delete my account</button>
+          <button id="accountUncache" class="mini-btn" hidden>Remove my cached data from this device</button>
+        </div>
+        <p class="hint" id="accountNote"></p>
+      </div>
       <div class="settings-group">
         <h3>Help + privacy</h3>
         <div class="settings-links">
@@ -390,6 +405,55 @@ try {
   </div>
 </div>
 
+<!-- SIGN IN (accounts wave: Google · Apple · email + password) -->
+<div id="authSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3>Your account</h3>
+    <p class="hint">Sign in to keep your calendar safe across your devices. Pace still works fully without an account — this is a door, never a wall.</p>
+    <div class="draft-actions">
+      <button id="googleBtn" class="soft-btn">Continue with Google</button>
+      <button id="appleBtn" class="soft-btn" hidden>Continue with Apple</button>
+    </div>
+    <label class="row">Email <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com"></label>
+    <label class="row">Password <input type="password" id="authPass" autocomplete="current-password" placeholder="Your password"></label>
+    <p class="hint" id="authMsg" role="status"></p>
+    <div class="draft-actions">
+      <button id="authSignIn" class="primary-btn">Sign in</button>
+      <button id="authSignUp" class="soft-btn">Create account</button>
+      <button id="authReset" class="mini-btn">Forgot password</button>
+    </div>
+    <div class="sheet-actions">
+      <button id="authClose" class="soft-btn">Not now</button>
+    </div>
+  </div>
+</div>
+
+<!-- GUEST-UPLOAD DOOR (Security PC-1: explicit yes, offered once) -->
+<div id="potSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3>Bring your things into your account?</h3>
+    <p class="hint" id="potText">This device has a guest calendar on it.</p>
+    <div class="sheet-actions">
+      <button id="potNo" class="soft-btn">Start fresh</button>
+      <button id="potYes" class="primary-btn">Bring my things in</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT (the user's own hand only) -->
+<div id="deleteSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3>Delete your account?</h3>
+    <p class="hint">This deletes your account and everything saved to it. Your guest calendar on this device is not touched. This cannot be undone.</p>
+    <label class="row">Password, to be sure <input type="password" id="deletePass" autocomplete="current-password"></label>
+    <p class="hint" id="deleteMsg" role="status"></p>
+    <div class="sheet-actions">
+      <button id="deleteCancel" class="soft-btn">Keep my account</button>
+      <button id="deleteGo" class="primary-btn">Delete my account</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast" hidden></div>
 
 <script src="fullcalendar.js"></script>
@@ -397,6 +461,8 @@ try {
 <script src="vendor/tesseract/tesseract.min.js"></script>
 <script src="vendor/ical/ical.min.js"></script>
 <script src="calendar-import.js"></script>
+<script src="firebase-config.js"></script>
+<script src="firebase.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
