@@ -169,7 +169,10 @@ await ctx3.close();
 mock.docs.set("aggImports/" + uidA, { events: 5, imports: 1, at: new Date().toISOString() });
 check("pre-delete: A's shards exist", !!mock.docs.get("aggSignups/" + uidA) && !!mock.docs.get("aggImports/" + uidA));
 await settings(); await p.click("#accountDelete"); await p.waitForSelector("#deleteSheet:not([hidden])");
-await p.fill("#deletePass", "password-a"); await p.click("#deleteGo"); await p.waitForTimeout(2200);
+await p.fill("#deletePass", "password-a"); await p.click("#deleteGo");
+// Poll for the condition (the C-leg pattern): a fixed sleep
+// under load reads a half-landed sweep as a failure.
+for (let i = 0; i < 40 && (docOf(uidA) || docOf(uidA, "data/state")); i++) await p.waitForTimeout(250);
 check("account deletion removed A's server docs", !docOf(uidA) && !docOf(uidA, "data/state"));
 check("account deletion removed A's aggregate shards (v2.2)", !mock.docs.get("aggSignups/" + uidA) && !mock.docs.get("aggImports/" + uidA));
 check("account deletion removed the auth user", !mock.users.has("a@test.dev"));
