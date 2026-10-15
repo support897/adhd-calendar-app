@@ -23,7 +23,7 @@ p.on("pageerror", e => { console.log("PAGE ERROR:", e.message); fail++; });
 await p.goto("http://localhost:8943/", { waitUntil: "networkidle" });
 await p.evaluate(() => {
   const st = { tasks: [], feelings: {}, settings: { appearance: { theme: "white", cute: false }, guideDone: true, sidebarCollapsed: true, notif: { digestTimes: ["12:30"] } }, welcomed: true, sent: {}, todos: [], habits: [], imports: [] };
-  localStorage.setItem("calmcal-v1", JSON.stringify(st));
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify(st));
 });
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(500);
@@ -37,14 +37,14 @@ await p.locator("#importFile").setInputFiles(ROOT + "/tests/fixtures/google.ics"
 await p.waitForFunction(() => /brought in/.test(document.querySelector("#importResult").textContent), null, { timeout: 8000 });
 const result1 = await p.locator("#importResult").textContent();
 check("ui: counts shown after import (" + result1.trim() + ")", /4 events brought in/.test(result1) && /2 repeating/.test(result1));
-const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")));
+const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")));
 check("ui: tasks landed + registry written", stored.tasks.filter(t => t.source === "import").length === 4 && stored.imports.length === 1 && stored.imports[0].count === 4);
 check("ui: dentist kept its words (location + notes visible)", stored.tasks.some(t => /Smile Clinic/.test(t.originalText || "") && /referral/.test(t.originalText || "")));
 
 await p.click("#importClose");
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(500);
-const afterReload = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1")).tasks.filter(t => t.source === "import").length);
+const afterReload = await p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks.filter(t => t.source === "import").length);
 check("ui: imported events survive reload", afterReload === 4);
 
 await p.click("#importBtn");
@@ -56,7 +56,7 @@ await p.click("#importClose");
 
 // Guide offer: the last guide step offers the import, one tap, sheet opens.
 await p.goto("http://localhost:8943/", { waitUntil: "networkidle" });
-await p.evaluate(() => { localStorage.removeItem("calmcal-v1"); });
+await p.evaluate(() => { localStorage.removeItem("calmcal-v1:guest"); });
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(600);
 if (await p.locator("#welcomeSkip").isVisible().catch(() => false)) await p.click("#welcomeSkip");
