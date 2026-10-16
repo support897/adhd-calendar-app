@@ -103,3 +103,18 @@ jobs:
           path: ${{ runner.temp }}/export/*.ipa
           if-no-files-found: error
           retention-days: 30
+      - name: Upload to App Store Connect
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          ASC_API_KEY_P8_B64: ${{ secrets.ASC_API_KEY_P8_B64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          echo -n "$ASC_API_KEY_P8_B64" | base64 --decode -o "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          set +e
+          xcrun altool --upload-app -f "$RUNNER_TEMP/export/App.ipa" -t ios --apiKey "$ASC_API_KEY_ID" --apiIssuer "$ASC_API_ISSUER_ID"
+          ALTOOL_STATUS=$?
+          set -e
+          echo "altool exit code: $ALTOOL_STATUS"
+          exit "$ALTOOL_STATUS"
