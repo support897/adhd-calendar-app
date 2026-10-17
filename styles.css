@@ -9,6 +9,12 @@
 @font-face { font-family: "Bricolage Grotesque"; src: url("fonts/BricolageGrotesque.ttf") format("truetype"); font-weight: 200 800; font-display: swap; }
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope.ttf") format("truetype"); font-weight: 200 800; font-display: swap; }
 :root {
+  /* Safe-area insets (18 Oct, Ilse's phone on build 3): the packaged app
+     draws full-bleed under the status bar (viewport-fit=cover), and the
+     fixed menu button at top:14px sat half under the clock, untappable.
+     Every top/bottom-anchored shell piece now adds the device inset. */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
   --font-ui: "Manrope", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   --font-display: "Bricolage Grotesque", "Manrope", -apple-system, sans-serif;
   --ink: #21392e;
@@ -169,7 +175,7 @@ h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin
   width: 232px; flex: 0 0 auto;
   border-right: 1px solid var(--hair);
   background: var(--ground);
-  padding: 22px 14px;
+  padding: calc(22px + var(--sat)) 14px calc(22px + var(--sab));
   display: flex; flex-direction: column; gap: 22px;
   position: sticky; top: 0; height: 100vh;
 }
@@ -183,7 +189,7 @@ html[data-sb="collapsed"] #sidebar { display: none; }
 .icon-btn .ico { width: 18px; height: 18px; }
 .expand-btn {
   display: none;
-  position: fixed; top: 14px; left: 14px; z-index: 50;
+  position: fixed; top: calc(14px + var(--sat)); left: 14px; z-index: 50;
   width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid var(--hair); background: var(--card);
   align-items: center; justify-content: center;
@@ -216,7 +222,7 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .side-level { font-size: 13px; color: var(--ink-3); padding: 0 8px; }
 .side-level strong { color: var(--ink); }
 
-#main { flex: 1 1 auto; min-width: 0; padding: 26px 30px 72px; max-width: 1120px; margin: 0 auto; width: 100%; }
+#main { flex: 1 1 auto; min-width: 0; padding: calc(26px + var(--sat)) 30px calc(72px + var(--sab)); max-width: 1120px; margin: 0 auto; width: 100%; }
 .panel { display: none; }
 .panel.is-active { display: block; animation: panelIn 0.28s ease; }
 @keyframes panelIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -394,7 +400,7 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 /* Sheets */
 .sheet { position: fixed; inset: 0; background: rgba(20,20,24,0.45); display: flex; align-items: flex-end; justify-content: center; z-index: 60; animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.sheet-card { background: var(--card); color: var(--ink); border-radius: 22px 22px 0 0; padding: 26px; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; animation: sheetUp 0.28s ease; }
+.sheet-card { background: var(--card); color: var(--ink); border-radius: 22px 22px 0 0; padding: 26px 26px calc(26px + var(--sab)); width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; animation: sheetUp 0.28s ease; }
 @keyframes sheetUp { from { transform: translateY(24px); opacity: 0.4; } to { transform: none; opacity: 1; } }
 .sheet-card p { font-size: 15px; line-height: 1.5; color: var(--ink-2); }
 .field { display: block; font-size: 13px; color: var(--ink-3); margin-top: 12px; }
@@ -409,7 +415,7 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 #dSteps .step-row input { width: 20px; height: 20px; accent-color: var(--steady); flex: 0 0 auto; }
 #dSteps .step-row.is-done span { color: var(--ink-3); text-decoration: line-through; }
 
-.toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--ink); color: var(--ground); border-radius: 999px; padding: 11px 20px; font-size: 14.5px; z-index: 80; box-shadow: 0 6px 24px rgba(0,0,0,0.25); animation: toastIn 0.25s ease; max-width: calc(100vw - 32px); text-align: center; }
+.toast { position: fixed; left: 50%; bottom: calc(26px + var(--sab)); transform: translateX(-50%); background: var(--ink); color: var(--ground); border-radius: 999px; padding: 11px 20px; font-size: 14.5px; z-index: 80; box-shadow: 0 6px 24px rgba(0,0,0,0.25); animation: toastIn 0.25s ease; max-width: calc(100vw - 32px); text-align: center; }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .toast-undo { margin-left: 12px; background: none; border: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }
 
@@ -530,7 +536,7 @@ html[data-cute="1"] .add-btn { border-radius: 16px; }
   .board { grid-template-columns: 1fr; }
   .sheet { align-items: flex-end; }
   .level-btn { padding: 10px 13px; font-size: 14.5px; }
-  .expand-btn { top: 10px; left: 10px; }
+  .expand-btn { top: calc(10px + var(--sat)); left: 10px; }
 }
 @media (min-width: 701px) {
   .sheet { align-items: center; }
