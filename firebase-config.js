@@ -12,4 +12,5 @@ window.PACE_FB_CONFIG = {
   appId: "1:1098367119523:web:f28ac449f0cc19368ecf16",
   googleClientId: "1098367119523-eoslu5p908audpsdjaghvb5i02jv6hfs.apps.googleusercontent.com",
   appleEnabled: false,
+  appleClientId: null,
 };
