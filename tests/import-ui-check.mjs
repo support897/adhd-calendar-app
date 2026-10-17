@@ -32,6 +32,12 @@ check("ui: import button sits in the calendar topbar", await p.locator("#importB
 await p.click("#importBtn");
 check("ui: the sheet opens with the read-only line", await p.locator("#importSheet").isVisible() && /Read-only/.test(await p.locator("#importSheet").textContent()));
 check("ui: four sources offered", (await p.locator(".import-src").count()) === 4);
+// The one-path legs (18 Oct, Ilse's phone report): the paste-a-link path
+// was architecturally broken (no CORS on calendar hosts; webcal:// links
+// cannot be fetched) and has been REMOVED — these legs keep it gone, and
+// keep the file as the one primary path.
+check("ui: no link field, no link button (the broken path is gone)", (await p.locator("#importUrl").count()) === 0 && (await p.locator("#importGo").count()) === 0);
+check("ui: the file button is the one primary path", await p.locator("#importFileBtn").evaluate((el) => el.classList.contains("primary-btn") && /Choose my calendar file/.test(el.textContent)));
 
 await p.locator("#importFile").setInputFiles(ROOT + "/tests/fixtures/google.ics");
 await p.waitForFunction(() => /brought in/.test(document.querySelector("#importResult").textContent), null, { timeout: 8000 });
