@@ -1402,9 +1402,9 @@ $("plansClose").addEventListener("click", function () { $("plansSheet").hidden =
 /* ---------- bring my calendar in (shared module: IMPORT-DESIGN.md) ---------- */
 var DEMO_SESSION = /[?&]demo=1\b/.test(location.search) || !!(state.settings && state.settings.demo);
 var IMPORT_GUIDE = {
-  google: "In Google Calendar: Settings \u2192 your calendar \u2192 \u201CSecret address in iCal format\u201D. Copy it, paste it below.",
-  apple: "On iCloud.com: Calendar \u2192 the share icon beside a calendar \u2192 Public Calendar gives a link. Or export a .ics file from the Calendar app and choose it below.",
-  outlook: "In Outlook on the web: Settings \u2192 Calendar \u2192 Shared calendars \u2192 publish, and copy the ICS link. Paste it below.",
+  google: "calendar.google.com \u2192 the gear \u2192 Settings \u2192 Import & export \u2192 Export. Inside the download is a file ending .ics. Bring that file here.",
+  apple: "In a browser: iCloud.com \u2192 Calendar \u2192 the share icon by a calendar \u2192 Public Calendar. Open the link it gives you \u2014 a file downloads. Bring that file here.",
+  outlook: "Outlook on the web \u2192 the gear \u2192 Calendar \u2192 Shared calendars \u2192 Publish a calendar. Open the ICS link it gives you \u2014 a file downloads. Bring that file here.",
   file: "Pick the .ics file your old calendar exported. It is read once, copied in, and the file itself is never changed."
 };
 var IMPORT_LABELS = { google: "Google Calendar", apple: "Apple / iCloud", outlook: "Outlook", file: "a calendar file" };
@@ -1447,14 +1447,11 @@ document.querySelectorAll(".import-src").forEach(function (b) {
     $("importGuide").textContent = tr(IMPORT_GUIDE[importSource]);
   });
 });
-$("importGo").addEventListener("click", function () {
-  var url = $("importUrl").value.trim();
-  if (!url) { $("importResult").textContent = tr("Paste a calendar link first \u2014 or choose a file below."); return; }
-  $("importResult").textContent = tr("Fetching\u2026");
-  fetch(url).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.text(); })
-    .then(function (t) { runImport(t, IMPORT_LABELS[importSource]); })
-    .catch(function () { $("importResult").textContent = tr("That link couldn\u2019t be fetched \u2014 some calendars block links. Export a .ics file from it instead; that always works."); });
-});
+/* One import path only: the file. A pasted-link fetch stood here until
+   18 Oct — it could never work (calendar hosts send no CORS headers, so
+   the platform blocks the read; iCloud links are webcal://, which fetch
+   cannot open), and Ilse hit exactly that on her phone. The link field,
+   its button and the fetch are gone; the file is the path. */
 $("importFileBtn").addEventListener("click", function () { $("importFile").click(); });
 $("importFile").addEventListener("change", function () {
   var f = $("importFile").files && $("importFile").files[0];
