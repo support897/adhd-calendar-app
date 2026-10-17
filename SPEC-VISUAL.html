@@ -14,7 +14,18 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--mist); color: var(--ink); font-family: "Manrope", sans-serif; }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 56px 28px 90px; }
+.layout { display: grid; grid-template-columns: 300px 1fr; max-width: 1420px; margin: 0 auto; align-items: start; }
+.wrap { padding: 56px 34px 90px 40px; min-width: 0; }
+.rail { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: #FFFFFF; border-right: 1px solid var(--line); padding: 28px 22px 30px; }
+.rail .brand { display: flex; align-items: center; gap: 12px; font-family: "Bricolage"; font-size: 21px; color: var(--pine); margin-bottom: 6px; }
+.rail .brand img { width: 40px; height: 40px; }
+.rail .sub { font-size: 13px; color: var(--soft); margin: 0 0 14px 52px; }
+.rail .grp { font-size: 12px; letter-spacing: 2px; color: var(--soft); margin: 20px 0 8px; font-weight: 700; }
+.rail a.mi { display: flex; gap: 12px; align-items: center; font-size: 17px; padding: 11px 13px; border-radius: 13px; color: var(--ink); text-decoration: none; }
+.rail a.mi:hover { background: var(--mist); }
+.rail .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.rail .foot { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 14px; font-size: 13.5px; color: var(--soft); line-height: 1.55; }
+@media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .rail { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); } }
 h1, h2, h3 { font-family: "Bricolage", sans-serif; color: var(--pine); margin: 0; }
 h1 { font-size: 54px; letter-spacing: -0.5px; }
 h2 { font-size: 36px; margin-bottom: 10px; }
@@ -69,6 +80,25 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
 </style>
 </head>
 <body>
+<div class="layout">
+<aside class="rail">
+  <div class="brand"><img src="icon.svg" alt=""> Pace Calendar</div>
+  <p class="sub">The Guide — this page's own menu is the app's menu.</p>
+  <a class="mi" href="#map"><span class="dot" style="background:#21392E"></span> The whole app, on one map</a>
+  <a class="mi" href="#menu"><span class="dot" style="background:#21392E"></span> The menu as it stands</a>
+  <a class="mi" href="#door"><span class="dot" style="background:#21392E"></span> The door + Skip's tour</a>
+  <div class="grp">PLAN</div>
+  <a class="mi" href="#calendar"><span class="dot" style="background:#5B6BD5"></span> Calendar</a>
+  <a class="mi" href="#progress"><span class="dot" style="background:#5B6BD5"></span> Progress</a>
+  <div class="grp">LISTS</div>
+  <a class="mi" href="#todo"><span class="dot" style="background:#F0A868"></span> To do</a>
+  <a class="mi" href="#habits"><span class="dot" style="background:#F0A868"></span> Habits</a>
+  <div class="grp">ADD + APP</div>
+  <a class="mi" href="#talk"><span class="dot" style="background:#E85D8A"></span> Talk to it</a>
+  <a class="mi" href="#settings"><span class="dot" style="background:#E85D8A"></span> Settings</a>
+  <a class="mi" href="#edges" style="margin-top:20px"><span class="dot" style="background:#B08968"></span> The honest edges</a>
+  <div class="foot">The 100% build · pace-v16-4<br>Certificate #2 stands on it.<br>Every picture: the real build.</div>
+</aside>
 <div class="wrap">
 
   <div class="top">
@@ -81,7 +111,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
   </div>
   <p>Every picture on this page is a real screen of this build. Nothing is drawn from memory. Where something is not in the build, this page says so, in the open.</p>
 
-  <section>
+  <section id="map">
     <h2>The whole app, on one map</h2>
     <div class="card">
       <svg class="map" viewBox="0 0 1120 560" role="img" aria-label="Mind map of Pace Calendar">
@@ -137,7 +167,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="menu">
     <h2>The menu, exactly as it stands</h2>
     <p>Read from the build itself, in its real order. The menu starts hidden. One tap on the little ship opens it, wide. A tap on the thin edge closes it.</p>
     <div class="menurow">
@@ -166,7 +196,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="door">
     <span class="tag built">THE FRONT DOOR</span>
     <h2>The door + Skip's tour</h2>
     <div class="grid">
@@ -202,7 +232,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="calendar">
     <span class="tag built">PLAN · 1 OF 2</span>
     <h2>Calendar</h2>
     <div class="grid">
@@ -240,7 +270,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="progress">
     <span class="tag built">PLAN · 2 OF 2</span>
     <h2>Progress</h2>
     <div class="grid">
@@ -271,7 +301,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="todo">
     <span class="tag built">LISTS · 1 OF 2</span>
     <h2>To do</h2>
     <div class="grid">
@@ -301,7 +331,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="habits">
     <span class="tag built">LISTS · 2 OF 2</span>
     <h2>Habits</h2>
     <div class="grid">
@@ -330,7 +360,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="talk">
     <span class="tag built">ADD + APP · 1 OF 2</span>
     <h2>Talk to it</h2>
     <div class="grid">
@@ -363,7 +393,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="settings">
     <span class="tag built">ADD + APP · 2 OF 2</span>
     <h2>Settings</h2>
     <div class="grid">
@@ -405,7 +435,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
     </div>
   </section>
 
-  <section>
+  <section id="edges">
     <h2>The honest edges</h2>
     <div class="strip s-wait">
       <h3>Honestly NOT IN this build</h3>
@@ -443,6 +473,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
 
   <p class="foot">Pace Calendar — The Guide · Read from the build itself: tree pace-v16-4 · AAB SHA256 e0338257b8829ce78cf33da854fe67700c7b2f87710a2e8451433b43fbf6c226<br>Icon in this build: MD5 99d021582d15efb874233493ca7732b2 — byte-identical to your approved mark (variant D, approved 14 Oct).<br>All frames: proof-pack/ in this tree, shot from this build's own bytes.</p>
 
+</div>
 </div>
 </body>
 </html>
