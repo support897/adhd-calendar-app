@@ -135,8 +135,11 @@ BUILT + PROVEN (evidence in brackets):
     right now. Your calendar is safe on this device." · door ES
     "Sin conexión por ahora. Tu calendario está a salvo en este
     dispositivo." · delete EN "That did not work. Nothing was
-    deleted." (session provably intact); QA's behavioural
-    re-proof is the closing mark, running tonight].
+    deleted." (session provably intact). CLOSED by QA's
+    behavioural re-proof, 17 Oct night (verdict
+    pace-v164-CLOSURE-VERDICT.md): the door fired the calm line
+    at QA's hand in both languages, and app.js carries zero raw
+    error feeds anywhere].
 25. (B-F2) The iOS privacy manifest declares what the app
     collects (Email · Name · User ID · Other User Content)
     [CLOSED: SR's own plist parse, 17 Oct].
@@ -149,9 +152,15 @@ state → spine → shards → auth user. The poll now waits for the
 full end state (reason commented at the poll), pushed +
 blob-verified (0c2fd46d…). Four consecutive solo reads on the
 repaired battery: 39/39 ×4 across two chairs · Quality loop PASS
-· Efficiency DELTA PASS. QA's deciding retest runs tonight.
-Import-ui likewise stands 11/11 on a fresh solo read tonight
-(Efficiency's named wait; QA's end-to-end is its closing read).
+· Efficiency DELTA PASS · QA's deciding retest 39/39 PASS in
+QA's own run (17 Oct night) — the leg is CLOSED. Import-ui:
+11/11 on a fresh solo read at this desk AND green end-to-end at
+QA's hand the same night — Efficiency's timeouts close as a box
+stall. GATE CHAIN COMPLETE on this build: SR certificate #2 ·
+Quality PASS · Efficiency PASS · QA PASS (closure verdict
+pace-v164-CLOSURE-VERDICT.md, repo sha c3b165c5). What remains is
+hers: visual confirmation of this pack → TestFlight → the
+filing, in her 16:09 order; none of it runs overnight.
 
 HONESTLY NOT IN THIS BUILD (her locks, in her sitting order):
 26. The Apple sign-in door — wired and hidden; it switches on
