@@ -57,6 +57,22 @@ not in the bytes.
   (Calendario · Progreso · Pendientes · Hábitos · Háblale ·
   Ajustes) over a Spanish calendar ("¿Cómo te sientes hoy?",
   "Mal" answered).
+- 14-progress.png — Progress: the four counts ("done today, at
+  your pace" · "in progress" · "still on the list, all safe" ·
+  "things finished, counted forever") + the Next list with each
+  task's colour, day + time. Shot for the Guide, 17 Oct evening.
+- 15-todo.png — To do, empty and ready: "Write it, fast" + the
+  + · Speak · Photo · "All to calendar". Shot for the Guide.
+- 16-habits.png — Habits, empty-start: "No habits yet. Name one
+  and pick its icon below." + the name field, twelve icons and
+  "Add habit". Shot for the Guide.
+
+## The Guide (her approval granted 17 Oct, 22:25)
+SPEC-VISUAL.html in this tree — GUIDE — Pace: the mind map, the
+menu read from the build itself, one section per area with its
+real frame + the ordered/built verdicts, the honest edges, and
+the page's own sidebar menu (ver iPhone-width verified). She
+approved it tonight; it stands as the app's guide of record.
 
 ## The marks, against the art of record (§6)
 - App icon: icon.svg MD5 99d021582d15efb874233493ca7732b2 —
@@ -113,13 +129,29 @@ BUILT + PROVEN (evidence in brackets):
 23. The app speaks the device language — Spanish complete
     [frame 13; the v16 gate line].
 24. (B-F1) Door errors speak the app's own calm lines, never the
-    browser's raw words, in English + Spanish [desk proof on six
-    shaped errors today; QA's error-leg is its closing mark in
-    this chain].
+    browser's raw words, in English + Spanish [SR verified at
+    architecture + strings; desk behavioural spot-proof 17 Oct
+    evening, three surfaces verbatim: door EN "No connection
+    right now. Your calendar is safe on this device." · door ES
+    "Sin conexión por ahora. Tu calendario está a salvo en este
+    dispositivo." · delete EN "That did not work. Nothing was
+    deleted." (session provably intact); QA's behavioural
+    re-proof is the closing mark, running tonight].
 25. (B-F2) The iOS privacy manifest declares what the app
     collects (Email · Name · User ID · Other User Content)
-    [written + parse-verified today; SR's delta read is its
-    closing mark in this chain].
+    [CLOSED: SR's own plist parse, 17 Oct].
+
+THE ACCOUNTS HARNESS, CLOSED AT THE LOOP CHAIRS (17 Oct evening):
+the day's contested accounts reads (36/3 · 38/1 · 36/3 across
+two desks) traced to the battery, not the app: its deletion poll
+waited only for the sweep's first stage while the sweep runs
+state → spine → shards → auth user. The poll now waits for the
+full end state (reason commented at the poll), pushed +
+blob-verified (0c2fd46d…). Four consecutive solo reads on the
+repaired battery: 39/39 ×4 across two chairs · Quality loop PASS
+· Efficiency DELTA PASS. QA's deciding retest runs tonight.
+Import-ui likewise stands 11/11 on a fresh solo read tonight
+(Efficiency's named wait; QA's end-to-end is its closing read).
 
 HONESTLY NOT IN THIS BUILD (her locks, in her sitting order):
 26. The Apple sign-in door — wired and hidden; it switches on
