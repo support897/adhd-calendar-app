@@ -421,13 +421,12 @@ try {
       <button class="soft-btn import-src" data-src="outlook" data-i18n>Outlook</button>
       <button class="soft-btn import-src" data-src="file" data-i18n>A calendar file</button>
     </div>
-    <p class="hint" id="importGuide" data-i18n>In Google Calendar: Settings → your calendar → “Secret address in iCal format”. Copy it, paste it below.</p>
-    <label class="row" data-i18n>Paste the calendar link <input type="url" id="importUrl" placeholder="https://… .ics" autocomplete="off"></label>
     <div class="draft-actions">
-      <button id="importGo" class="primary-btn" data-i18n>Bring it in</button>
-      <button id="importFileBtn" class="soft-btn" data-i18n>Choose a file instead</button>
-      <input type="file" id="importFile" accept=".ics,text/calendar" hidden>
+      <button id="importFileBtn" class="primary-btn" data-i18n>Choose my calendar file</button>
+      <input type="file" id="importFile" hidden>
     </div>
+    <p class="hint" data-i18n>Where do I get the file?</p>
+    <p class="hint" id="importGuide" data-i18n>calendar.google.com → the gear → Settings → Import &amp; export → Export. Inside the download is a file ending .ics. Bring that file here.</p>
     <p class="hint" id="importResult" role="status"></p>
     <div class="sheet-actions">
       <button id="importClose" class="soft-btn" data-i18n>Done</button>
