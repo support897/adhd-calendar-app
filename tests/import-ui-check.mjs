@@ -61,9 +61,13 @@ await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(600);
 if (await p.locator("#welcomeSkip").isVisible().catch(() => false)) await p.click("#welcomeSkip");
 await p.waitForTimeout(500);
-await p.click("#guideNext"); await p.waitForTimeout(300);
-await p.click("#guideNext"); await p.waitForTimeout(300);
-await p.click("#guideNext"); await p.waitForTimeout(300);
+// Walk to the tour's LAST step, however many stops it has (the v15.9
+// door-first tour has 5 guest stops; this leg once counted the retired
+// guide's 3 clicks and landed a stop short — found 17 Oct on the fleet
+// module verification, the app was right throughout).
+for (let i = 0; i < 8 && !(await p.locator("#guideImport").isVisible().catch(() => false)); i++) {
+  await p.click("#guideNext"); await p.waitForTimeout(300);
+}
 check("ui: last guide step offers the import", await p.locator("#guideImport").isVisible());
 await p.click("#guideImport");
 check("ui: the offer opens the import sheet", await p.locator("#importSheet").isVisible());
