@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pace Calendar — The Guide</title>
+<title>GUIDE — Pace</title>
 <style>
 @font-face { font-family: "Bricolage"; src: url("fonts/BricolageGrotesque.ttf"); }
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope.ttf"); }
@@ -20,14 +20,19 @@ body { margin: 0; background: var(--mist); color: var(--ink); font-family: "Manr
 .rail .brand { display: flex; align-items: center; gap: 12px; font-family: "Bricolage"; font-size: 21px; color: var(--pine); margin-bottom: 6px; }
 .rail .brand img { width: 40px; height: 40px; }
 .rail .sub { font-size: 13px; color: var(--soft); margin: 0 0 14px 52px; }
+.rail .menu-label { font-family: "Bricolage", sans-serif; font-size: 15px; letter-spacing: 4px; color: var(--water-deep); font-weight: 700; margin: 16px 0 4px; }
+.rail a.mi { min-height: 50px; }
 .rail .grp { font-size: 12px; letter-spacing: 2px; color: var(--soft); margin: 20px 0 8px; font-weight: 700; }
 .rail a.mi { display: flex; gap: 12px; align-items: center; font-size: 17px; padding: 11px 13px; border-radius: 13px; color: var(--ink); text-decoration: none; }
 .rail a.mi:hover { background: var(--mist); }
 .rail .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .rail .foot { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 14px; font-size: 13.5px; color: var(--soft); line-height: 1.55; }
-@media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .rail { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); } }
+@media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .rail { position: static; height: auto; border: 2px solid var(--water); border-radius: 22px; margin: 18px 16px 0; padding: 22px 20px 24px; background: #FFFFFF; } .rail a.mi { font-size: 18.5px; padding: 14px; border-bottom: 1px dashed var(--line); border-radius: 0; } .rail a.mi:last-of-type { border-bottom: none; } .masthead { padding: 28px 20px 2px; } .masthead h1 { font-size: 54px; } }
 h1, h2, h3 { font-family: "Bricolage", sans-serif; color: var(--pine); margin: 0; }
 h1 { font-size: 54px; letter-spacing: -0.5px; }
+.masthead { max-width: 1420px; margin: 0 auto; padding: 40px 34px 6px; }
+.masthead .guide-word { font-family: "Bricolage", sans-serif; font-size: 21px; letter-spacing: 6px; color: var(--water-deep); font-weight: 700; }
+.masthead h1 { font-size: 76px; line-height: 1.02; margin-top: 6px; }
 h2 { font-size: 36px; margin-bottom: 10px; }
 h3 { font-size: 21px; }
 p { font-size: 17px; line-height: 1.55; color: var(--soft); margin: 6px 0; }
@@ -80,10 +85,12 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
 </style>
 </head>
 <body>
+<div class="masthead"><h1>GUIDE — Pace</h1></div>
 <div class="layout">
 <aside class="rail">
   <div class="brand"><img src="icon.svg" alt=""> Pace Calendar</div>
-  <p class="sub">The Guide — this page's own menu is the app's menu.</p>
+  <p class="sub">This page's own menu is the app's menu.</p>
+  <div class="menu-label">MENU</div>
   <a class="mi" href="#map"><span class="dot" style="background:#21392E"></span> The whole app, on one map</a>
   <a class="mi" href="#menu"><span class="dot" style="background:#21392E"></span> The menu as it stands</a>
   <a class="mi" href="#door"><span class="dot" style="background:#21392E"></span> The door + Skip's tour</a>
@@ -104,8 +111,7 @@ ul.simple { margin: 10px 0 0; padding-left: 20px; }
   <div class="top">
     <img class="mark" src="icon.svg" alt="Pace Calendar mark">
     <div>
-      <h1>Pace Calendar — The Guide</h1>
-      <p>Every menu. Everything inside it. Straight from the build itself.</p>
+      <h2 style="font-size:30px">Pace Calendar — every menu, from the build itself</h2>
       <span class="buildline">The 100% build · pace-v16-4 · Certificate #2 stands on it (Store Review) · Quality PASS · Efficiency PASS · QA close-out running</span>
     </div>
   </div>
