@@ -22,12 +22,16 @@ not in the bytes.
   looking? Explore the app first". The Apple button is NOT in
   this build's door — it stands wired behind its flag and joins
   at her Apple sitting (feature row 24).
-- 02-tour.png — Skip's tour pop-up over the whole app, first stop
-  ("We cross at your pace."), Skip in his badge, ✕ and Skip tour
-  both close it. The tour's NAME step (first stop for a signed-in
-  account with no name) is proven by the accounts battery §11 and
-  QA's filmed walk on the sealed line; it is not framed here
-  because a guest tour carries no name step by design.
+- 02-tour.png — Skip's tour pop-up over the whole app (a guest's
+  first stop, "We cross at your pace."), Skip in his badge, ✕ and
+  Skip tour both close it. A guest tour carries no name step by
+  design; the name step belongs to signed-in accounts (next).
+- 02b-tour-name.png — the tour's FIRST stop for a fresh signed-in
+  account: "Ahoy! I'm Skip. Welcome aboard! What's your name?"
+  with the name field, over the new account's empty day (Skip at
+  the dock: "Nothing today. Empty is allowed."). Captured through
+  the accounts battery's own mock sign-up choreography, on the
+  same tree.
 - 03-month.png — Month view, the app's own sample seed.
 - 05-day-bad.png · 06-day-ok.png · 07-day-great.png — Day view
   with each feeling answered: Bad keeps the one essential thing
@@ -85,8 +89,8 @@ BUILT + PROVEN (evidence in brackets):
 10. The door-first sign-up page, v4 shape [frame 01].
 11. Google + email/password doors (one button does both)
     [accounts battery 39/39].
-12. Name asked inside Skip's tour, first visit only [accounts
-    §11 + QA's filmed walk].
+12. Name asked inside Skip's tour, first visit only [frame 02b;
+    accounts §11 + QA's filmed walk].
 13. Name re-asked once on the next visit, then never [accounts
     §11].
 14. Skip only from the art of record; the mark is variant D
