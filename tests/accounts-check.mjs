@@ -204,8 +204,16 @@ check("pre-delete: A's shards exist", !!mock.docs.get("aggSignups/" + uidA) && !
 await settings(); await p.click("#accountDelete"); await p.waitForSelector("#deleteSheet:not([hidden])");
 await p.fill("#deletePass", "password-a"); await p.click("#deleteGo");
 // Poll for the condition (the C-leg pattern): a fixed sleep
-// under load reads a half-landed sweep as a failure.
-for (let i = 0; i < 40 && (docOf(uidA) || docOf(uidA, "data/state")); i++) await p.waitForTimeout(250);
+// under load reads a half-landed sweep as a failure. The poll
+// covers the sweep's FULL end state, not only its first stage:
+// the sweep runs state -> spine -> shards -> auth user, so a
+// docs-only poll can exit while the auth user (the last stage)
+// is still in flight, and the legs below then read a
+// half-landed sweep as a product failure. (17 Oct: three of
+// four reads across two desks failed exactly the auth-user +
+// boots-as-guest pair, loaded and quiet boxes alike, while the
+// docs and shards legs always passed; the fourth read 39/39.)
+for (let i = 0; i < 60 && (docOf(uidA) || docOf(uidA, "data/state") || mock.users.has("a@test.dev") || await p.evaluate(() => !!localStorage.getItem("pace-auth-v1"))); i++) await p.waitForTimeout(250);
 check("account deletion removed A's server docs", !docOf(uidA) && !docOf(uidA, "data/state"));
 check("account deletion removed A's aggregate shards (v2.2)", !mock.docs.get("aggSignups/" + uidA) && !mock.docs.get("aggImports/" + uidA));
 check("account deletion removed the auth user", !mock.users.has("a@test.dev"));
