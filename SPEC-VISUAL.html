@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pace Calendar — The Guide</title>
+<style>
+@font-face { font-family: "Bricolage"; src: url("fonts/BricolageGrotesque.ttf"); }
+@font-face { font-family: "Manrope"; src: url("fonts/Manrope.ttf"); }
+:root {
+  --mist: #F3F5FA; --water: #5B6BD5; --water-deep: #4858C4; --apricot: #F0A868;
+  --pine: #21392E; --light: #AEB8EC; --ink: #22302A; --soft: #5C6B62;
+  --card: #FFFFFF; --line: #DFE4F2; --pink: #E85D8A;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--mist); color: var(--ink); font-family: "Manrope", sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 56px 28px 90px; }
+h1, h2, h3 { font-family: "Bricolage", sans-serif; color: var(--pine); margin: 0; }
+h1 { font-size: 54px; letter-spacing: -0.5px; }
+h2 { font-size: 36px; margin-bottom: 10px; }
+h3 { font-size: 21px; }
+p { font-size: 17px; line-height: 1.55; color: var(--soft); margin: 6px 0; }
+.top { display: flex; gap: 26px; align-items: center; margin-bottom: 14px; }
+.top img.mark { width: 92px; height: 92px; border-radius: 24px; background: #E9ECFB; padding: 10px; }
+.buildline { display: inline-block; margin-top: 14px; background: var(--pine); color: #fff; border-radius: 999px; padding: 9px 18px; font-size: 14.5px; }
+section { margin-top: 74px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 26px; padding: 30px 32px; }
+.grid { display: grid; grid-template-columns: 1fr 340px 1fr; gap: 26px; align-items: start; }
+@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+ul.inside { list-style: none; margin: 14px 0 0; padding: 0; }
+ul.inside li { font-size: 16.5px; padding: 9px 2px; border-bottom: 1px dashed var(--line); display: flex; gap: 10px; align-items: baseline; }
+ul.inside li:last-child { border-bottom: none; }
+ul.inside .n { color: var(--water-deep); font-weight: 700; font-size: 13px; min-width: 20px; }
+.frame { width: 100%; border-radius: 22px; border: 1px solid var(--line); display: block; }
+.frame + .frame { margin-top: 18px; }
+.cap { font-size: 13.5px; color: var(--soft); margin-top: 8px; text-align: center; }
+.verdict { border-radius: 18px; padding: 16px 18px; margin-top: 18px; font-size: 15.5px; line-height: 1.5; }
+.verdict.ok { background: #EAF5EE; border: 1px solid #BFE0CC; }
+.verdict.wait { background: #FDF1E3; border: 1px solid #F2D3AC; }
+.verdict b { color: var(--pine); }
+.gate { display: block; margin-top: 6px; font-size: 13.5px; color: var(--soft); }
+.simple { font-size: 18px; color: var(--ink); }
+.simple li { margin-bottom: 8px; }
+ul.simple { margin: 10px 0 0; padding-left: 20px; }
+.map { width: 100%; height: auto; display: block; }
+.menurow { display: grid; grid-template-columns: 380px 1fr; gap: 26px; align-items: start; }
+@media (max-width: 980px) { .menurow { grid-template-columns: 1fr; } }
+.sb { background: var(--card); border: 1px solid var(--line); border-radius: 26px; padding: 26px; }
+.sb .brand { display: flex; align-items: center; gap: 12px; font-family: "Bricolage"; font-size: 22px; color: var(--pine); margin-bottom: 18px; }
+.sb .brand img { width: 42px; height: 42px; }
+.sb .grp { font-size: 12.5px; letter-spacing: 2px; color: var(--soft); margin: 20px 0 8px; font-weight: 700; }
+.sb .mi { display: flex; gap: 12px; align-items: center; font-size: 18px; padding: 12px 14px; border-radius: 14px; }
+.sb .mi.on { background: var(--mist); font-weight: 700; color: var(--pine); }
+.sb .dot { width: 11px; height: 11px; border-radius: 50%; }
+.sb .foot { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px; font-size: 15px; color: var(--soft); }
+.strip { border-radius: 22px; padding: 24px 28px; margin-top: 22px; }
+.strip h3 { margin-bottom: 8px; }
+.strip p, .strip li { font-size: 16px; color: var(--ink); }
+.strip ul { margin: 6px 0 0; padding-left: 20px; }
+.strip li { margin-bottom: 6px; }
+.s-wait { background: #FDF1E3; border: 1px solid #F2D3AC; }
+.s-park { background: #EDF0FB; border: 1px solid #C9D2F5; }
+.s-change { background: #F3F5FA; border: 1px solid var(--line); }
+.s-call { background: #FDECEF; border: 1px solid #F3C3CF; }
+.foot { margin-top: 70px; font-size: 13.5px; color: var(--soft); text-align: center; line-height: 1.7; }
+.tag { display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: 1px; padding: 5px 12px; border-radius: 999px; margin-bottom: 12px; }
+.tag.built { background: #EAF5EE; color: #256B3F; }
+.tag.lock { background: #FDF1E3; color: #8A5A17; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <img class="mark" src="icon.svg" alt="Pace Calendar mark">
+    <div>
+      <h1>Pace Calendar — The Guide</h1>
+      <p>Every menu. Everything inside it. Straight from the build itself.</p>
+      <span class="buildline">The 100% build · pace-v16-4 · Certificate #2 stands on it (Store Review) · Quality PASS · Efficiency PASS · QA close-out running</span>
+    </div>
+  </div>
+  <p>Every picture on this page is a real screen of this build. Nothing is drawn from memory. Where something is not in the build, this page says so, in the open.</p>
+
+  <section>
+    <h2>The whole app, on one map</h2>
+    <div class="card">
+      <svg class="map" viewBox="0 0 1120 560" role="img" aria-label="Mind map of Pace Calendar">
+        <g stroke="#AEB8EC" stroke-width="3" fill="none">
+          <path d="M560 280 C 420 280, 380 90, 250 90"/>
+          <path d="M560 280 C 430 280, 390 200, 250 200"/>
+          <path d="M560 280 C 430 280, 390 310, 250 310"/>
+          <path d="M560 280 C 420 280, 380 440, 250 440"/>
+          <path d="M560 280 C 700 280, 740 90, 870 90"/>
+          <path d="M560 280 C 690 280, 730 200, 870 200"/>
+          <path d="M560 280 C 690 280, 730 310, 870 310"/>
+          <path d="M560 280 C 700 280, 740 440, 870 440"/>
+        </g>
+        <g font-family="Manrope, sans-serif" font-size="19" fill="#21392E">
+          <rect x="430" y="238" width="260" height="84" rx="22" fill="#5B6BD5"/>
+          <text x="560" y="276" text-anchor="middle" fill="#FFFFFF" font-weight="700" font-size="24">Pace Calendar</text>
+          <text x="560" y="302" text-anchor="middle" fill="#E4E8FC" font-size="15">Your day, at your pace</text>
+
+          <rect x="30" y="58" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="140" y="86" text-anchor="middle" font-weight="700">The door</text>
+          <text x="140" y="108" text-anchor="middle" font-size="14" fill="#5C6B62">Sign up, big + simple</text>
+
+          <rect x="30" y="168" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="140" y="196" text-anchor="middle" font-weight="700">Skip's tour</text>
+          <text x="140" y="218" text-anchor="middle" font-size="14" fill="#5C6B62">Asks your name first</text>
+
+          <rect x="30" y="278" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="140" y="306" text-anchor="middle" font-weight="700">Calendar</text>
+          <text x="140" y="328" text-anchor="middle" font-size="14" fill="#5C6B62">Feelings first, day adapts</text>
+
+          <rect x="30" y="408" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="140" y="436" text-anchor="middle" font-weight="700">Progress</text>
+          <text x="140" y="458" text-anchor="middle" font-size="14" fill="#5C6B62">Done + left, kindly counted</text>
+
+          <rect x="870" y="58" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="980" y="86" text-anchor="middle" font-weight="700">To do</text>
+          <text x="980" y="108" text-anchor="middle" font-size="14" fill="#5C6B62">Fast list, feeds the calendar</text>
+
+          <rect x="870" y="168" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="980" y="196" text-anchor="middle" font-weight="700">Habits</text>
+          <text x="980" y="218" text-anchor="middle" font-size="14" fill="#5C6B62">Small things, most days</text>
+
+          <rect x="870" y="278" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="980" y="306" text-anchor="middle" font-weight="700">Talk to it</text>
+          <text x="980" y="328" text-anchor="middle" font-size="14" fill="#5C6B62">Words in, a list comes out</text>
+
+          <rect x="870" y="408" width="220" height="64" rx="18" fill="#FFFFFF" stroke="#DFE4F2"/>
+          <text x="980" y="436" text-anchor="middle" font-weight="700">Settings</text>
+          <text x="980" y="458" text-anchor="middle" font-size="14" fill="#5C6B62">Looks · reminders · account</text>
+        </g>
+      </svg>
+      <p style="text-align:center">Under the waterline, holding it all up: your account + sync · <b>Bring my calendar in</b> · Plans + Plus · the whole app in Spanish.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The menu, exactly as it stands</h2>
+    <p>Read from the build itself, in its real order. The menu starts hidden. One tap on the little ship opens it, wide. A tap on the thin edge closes it.</p>
+    <div class="menurow">
+      <div class="sb">
+        <div class="brand"><img src="icon.svg" alt=""> Pace Calendar</div>
+        <div class="grp">PLAN</div>
+        <div class="mi on"><span class="dot" style="background:#5B6BD5"></span> Calendar</div>
+        <div class="mi"><span class="dot" style="background:#5B6BD5"></span> Progress</div>
+        <div class="grp">LISTS</div>
+        <div class="mi"><span class="dot" style="background:#F0A868"></span> To do</div>
+        <div class="mi"><span class="dot" style="background:#F0A868"></span> Habits</div>
+        <div class="grp">ADD + APP</div>
+        <div class="mi"><span class="dot" style="background:#E85D8A"></span> Talk to it</div>
+        <div class="mi"><span class="dot" style="background:#E85D8A"></span> Settings</div>
+        <div class="foot">At the bottom: a small ring — how much of today is done — and today's level.</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>Two menus for planning. Two for lists. Two for adding + the app itself.</li>
+          <li>Nothing else lives in the menu. Calm on purpose.</li>
+          <li>The whole menu speaks the phone's language — the Spanish one is pictured under Settings.</li>
+        </ul>
+        <div class="verdict ok"><b>You ordered:</b> side bar menus for the jobs. <b>Built ✓</b><span class="gate">Gate: Quality PASS on this build, 17 Oct (the open menu is a named frame in every language walk).</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag built">THE FRONT DOOR</span>
+    <h2>The door + Skip's tour</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Inside, in the build's own order</h3>
+        <ul class="inside">
+          <li><span class="n">1</span> The big mark, in the middle</li>
+          <li><span class="n">2</span> "Pace Calendar" · "Sign in or make your account"</li>
+          <li><span class="n">3</span> Google button (icon only)</li>
+          <li><span class="n">4</span> "or with email" · one email field · the big round arrow</li>
+          <li><span class="n">5</span> Step 2: "Your password" · "Continue" · "Forgot password?"</li>
+          <li><span class="n">6</span> "Just looking? Explore the app first"</li>
+          <li><span class="n">7</span> Then Skip's tour opens over the whole app — first stop asks your name</li>
+          <li><span class="n">8</span> "Skip tour" or the ✕ closes it, any time</li>
+        </ul>
+      </div>
+      <div>
+        <img class="frame" src="proof-pack/01-door.png" alt="The sign-in door">
+        <div class="cap">The door, as it ships</div>
+        <img class="frame" src="proof-pack/02b-tour-name.png" alt="Skip asks your name">
+        <div class="cap">The tour's first stop for a new account</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>One page. One job. Nothing else on it.</li>
+          <li>One button does both: it signs you in, or makes your account if you are new.</li>
+          <li>No separate name moment: Skip asks inside the tour.</li>
+        </ul>
+        <div class="verdict ok"><b>You ordered:</b> this exact shape (your approval, 15 Oct). <b>Built ✓</b><span class="gate">Gate: accounts battery 39/39 · Quality + Efficiency PASS, 17 Oct.</span></div>
+        <div class="verdict wait"><b>Not in yet:</b> the Apple button. The door is wired for it; it shows the day your Apple web sign-in is made at your sitting.<span class="gate">Your lock — named, not hidden.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag built">PLAN · 1 OF 2</span>
+    <h2>Calendar</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Inside, in the build's own order</h3>
+        <ul class="inside">
+          <li><span class="n">1</span> The month strip: days + coloured dots</li>
+          <li><span class="n">2</span> Day · Week · Month · Year · Agenda</li>
+          <li><span class="n">3</span> "How are you feeling today?" — "The day adapts."</li>
+          <li><span class="n">4</span> Bad · Ok · Great (coloured, in that order)</li>
+          <li><span class="n">5</span> Up next: the one thing, with a Start button</li>
+          <li><span class="n">6</span> The day itself, hour by hour</li>
+          <li><span class="n">7</span> The + button: a new task — Title · Date · Time · Minutes</li>
+          <li><span class="n">8</span> On each task: Smallest version (for low days) · Biggest version (for full days) · "This one must not slip"</li>
+          <li><span class="n">9</span> "Break this into small steps"</li>
+          <li><span class="n">10</span> Drag any task to a new time</li>
+        </ul>
+      </div>
+      <div>
+        <img class="frame" src="proof-pack/05-day-bad.png" alt="Day view on a Bad day">
+        <div class="cap">A Bad day: one thing up next, the rest parked, safe</div>
+        <img class="frame" src="proof-pack/03-month.png" alt="Month view">
+        <div class="cap">Month</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>Feelings first. Then the calendar shapes itself around them.</li>
+          <li>Bad day: the list shrinks to what must not slip. Ok: a capped list. Great: more opens up.</li>
+          <li>Change your feeling any time. The day re-adapts on the spot.</li>
+        </ul>
+        <div class="verdict ok"><b>You ordered:</b> the morning feeling question, three levels in colours, the day adapting, changeable all day (your note, 12 Oct). <b>Built ✓</b><span class="gate">Gates: feelings battery 14/14 · features 47/47 · drag-and-drop 7/7 · Quality PASS.</span></div>
+        <div class="verdict wait"><b>Your call, still open:</b> the day strip above the calendar, and the day window (06:00–22:00). Both stand as built. Your word changes them, nothing else.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag built">PLAN · 2 OF 2</span>
+    <h2>Progress</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Inside, in the build's own order</h3>
+        <ul class="inside">
+          <li><span class="n">1</span> "0 of 6 done today, at your pace"</li>
+          <li><span class="n">2</span> "0 in progress"</li>
+          <li><span class="n">3</span> "8 still on the list, all safe"</li>
+          <li><span class="n">4</span> "0 things finished, counted forever"</li>
+          <li><span class="n">5</span> Next — what's coming, with its colour, day + time</li>
+          <li><span class="n">6</span> Doing — what is started</li>
+          <li><span class="n">7</span> Done — what is finished</li>
+        </ul>
+      </div>
+      <div>
+        <img class="frame" src="proof-pack/14-progress.png" alt="Progress">
+        <div class="cap">Progress, on the app's own sample day</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>Proof you are moving, without a scolding anywhere.</li>
+          <li>Nothing left behind reads as lost. It reads as safe.</li>
+        </ul>
+        <div class="verdict ok"><b>You ordered:</b> a side bar menu to see all tasks, what is completed and what is left (your note, 12 Oct). <b>Built ✓</b><span class="gate">Gate: features battery 47/47 · Quality PASS.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag built">LISTS · 1 OF 2</span>
+    <h2>To do</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Inside, in the build's own order</h3>
+        <ul class="inside">
+          <li><span class="n">1</span> "Write it, fast" — one field, one + button</li>
+          <li><span class="n">2</span> Speak — say it instead</li>
+          <li><span class="n">3</span> Photo — "From your photo. Tick the keepers."</li>
+          <li><span class="n">4</span> The list itself, tickable</li>
+          <li><span class="n">5</span> "All to calendar" — send the whole list over</li>
+          <li><span class="n">6</span> "Clear done" — with Undo in the toast</li>
+        </ul>
+      </div>
+      <div>
+        <img class="frame" src="proof-pack/15-todo.png" alt="To do">
+        <div class="cap">To do, empty and ready</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>Catch a thought before it runs away. One field. No forms.</li>
+          <li>When you are ready, the list becomes calendar tasks in one tap.</li>
+        </ul>
+        <div class="verdict ok"><b>You ordered:</b> the list that feeds the calendar (your note, 12 Oct). <b>Built ✓</b><span class="gate">Gate: features battery 47/47 · photo words 5/5 · Quality PASS.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag built">LISTS · 2 OF 2</span>
+    <h2>Habits</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Inside, in the build's own order</h3>
+        <ul class="inside">
+          <li><span class="n">1</span> "No habits yet. Name one and pick its icon below."</li>
+          <li><span class="n">2</span> New habit — one name field</li>
+          <li><span class="n">3</span> Twelve icons to pick from</li>
+          <li><span class="n">4</span> "Add habit"</li>
+          <li><span class="n">5</span> Each habit then stands with its week: seven day ticks + its streak</li>
+        </ul>
+      </div>
+      <div>
+        <img class="frame" src="proof-pack/16-habits.png" alt="Habits">
+        <div class="cap">Habits, empty-start</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>Small things, most days. A tick is all it asks.</li>
+          <li>It starts empty. Every habit here is one the user chose.</li>
+        </ul>
+        <div class="verdict ok"><b>You ordered:</b> habits inside the side bar menus (your additions, 12 Oct). <b>Built ✓</b><span class="gate">Gate: features battery 47/47 · Quality PASS.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag built">ADD + APP · 1 OF 2</span>
+    <h2>Talk to it</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Inside, in the build's own order</h3>
+        <ul class="inside">
+          <li><span class="n">1</span> One big box: type, or paste a journal page</li>
+          <li><span class="n">2</span> Speak — voice instead of typing</li>
+          <li><span class="n">3</span> Journal file — upload the words</li>
+          <li><span class="n">4</span> Photo of notes — handwriting counts</li>
+          <li><span class="n">5</span> "Make my list"</li>
+          <li><span class="n">6</span> "Here is what I made from that. Fix any of it." — every draft editable: title · day · time · minutes · must not slip</li>
+          <li><span class="n">7</span> "Add all to my calendar" · "Start again"</li>
+          <li><span class="n">8</span> "Keep the original words" — your exact words, kept with the list</li>
+        </ul>
+      </div>
+      <div>
+        <img class="frame" src="proof-pack/08-talk.png" alt="Talk to it making a list">
+        <div class="cap">Two typed lines became an editable list</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>Dump the whole pile here, any way it comes out of your head.</li>
+          <li>It hands back a tidy list, with colours and times.</li>
+          <li>You fix anything before it lands. Nothing lands without you.</li>
+        </ul>
+        <div class="verdict ok"><b>You ordered:</b> talk to it like a person; journal, voice and handwriting in; a to-do list out, with colour + time (your note, 12 Oct). <b>Built ✓</b><span class="gate">Gates: list-maker 44/44 · photo words 5/5 · voice 9/9 on the sealed line. Honest note: the live-voice proof on a real phone rides your device sitting, as Quality's record states.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag built">ADD + APP · 2 OF 2</span>
+    <h2>Settings</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Inside, in the build's own order</h3>
+        <ul class="inside">
+          <li><span class="n">1</span> <b>How it looks</b> — White · Black · Brand · Blush · Sky · Mint · Lavender</li>
+          <li><span class="n">2</span> "Upload your own photo" — "A soft veil keeps every word readable over a photo."</li>
+          <li><span class="n">3</span> Cute mode · Menu open</li>
+          <li><span class="n">4</span> <b>Morning check-in</b> — "Ask me at" (your time) · "Bad day is called" · "Ok day is called" · "Great day is called"</li>
+          <li><span class="n">5</span> <b>Notifications</b> — your choices: check-in reminder · start nudge + lead-in · the gentle round-up · the done note · test · pause for today</li>
+          <li><span class="n">6</span> <b>Your tasks</b> — "Remove the sample tasks"</li>
+          <li><span class="n">7</span> <b>Bring my calendar in</b> — Google · Apple / iCloud · Outlook · a file, read-only</li>
+          <li><span class="n">8</span> <b>Plans</b> — Free forever · Plus, with its prices</li>
+          <li><span class="n">9</span> <b>Account</b> — your name · sign in / out · "Download my data" · bring this device's guest things into your account · "Delete my account" · remove cached data</li>
+          <li><span class="n">10</span> <b>Help + privacy</b> — Support · Privacy</li>
+        </ul>
+      </div>
+      <div>
+        <img class="frame" src="proof-pack/11-settings.png" alt="Settings">
+        <div class="cap">Settings: looks, check-in, notifications</div>
+        <img class="frame" src="proof-pack/12-import.png" alt="Bring my calendar in">
+        <div class="cap">Bring my calendar in</div>
+        <img class="frame" src="proof-pack/10-plans.png" alt="Plans">
+        <div class="cap">Plans — the honest line stands</div>
+      </div>
+      <div class="card">
+        <h3>In simple words</h3>
+        <ul class="simple">
+          <li>Your look. Your reminder times. Your words for the feelings. All yours to change.</li>
+          <li>Your account lives here too: your data out, or your account gone, both by your hand only.</li>
+          <li>The whole app reads in the phone's language — Spanish is complete today.</li>
+        </ul>
+        <img class="frame" src="proof-pack/13-es-menu.png" alt="The app in Spanish" style="margin-top:16px">
+        <div class="cap">The same app, in Spanish</div>
+        <div class="verdict ok"><b>You ordered:</b> notifications the user chooses (your additions, 12 Oct) · backgrounds in your colours or your own photo (your law, 14 Oct). <b>Built ✓</b><span class="gate">Gates: backgrounds 20/20 · notifications in features 47/47 · import 26/26 + 11/11 + 8/8 · the Spanish build's own gates (v16 line).</span></div>
+        <div class="verdict wait"><b>Not in yet, in Plans + Account:</b> Plus is not on sale ("Not on sale yet. Nothing to pay today." — the plans picture shows it) · prices stand in A$ until your Paid Apps sitting brings each country's own prices · the Apple door (see the front door) · your CEO pin, written the hour you first sign in.<span class="gate">Your locks, every one named.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The honest edges</h2>
+    <div class="strip s-wait">
+      <h3>Honestly NOT IN this build</h3>
+      <ul>
+        <li><b>The Apple sign-in button</b> — wired, hidden, waiting on your Apple sitting.</li>
+        <li><b>Plus for sale</b> — the popup + Plans stand truthful; selling waits on your Paid Apps sitting.</li>
+        <li><b>Prices in each country's own currency</b> — lands at the same sitting, from Finance's country build.</li>
+        <li><b>Your CEO owner pin</b> — the dashboard is built + live; the pin is written the hour you first sign in.</li>
+      </ul>
+    </div>
+    <div class="strip s-park">
+      <h3>Parked by your own word</h3>
+      <ul>
+        <li><b>Notifications while the app is closed</b> — in-app reminders work today; the closed-app wake-up is Phase 7b, parked by your decision. No push code stands in the build.</li>
+        <li><b>An AI key for Talk to it</b> — the list-maker runs on the device today; the AI brain is Phase 6, parked by your decision.</li>
+      </ul>
+    </div>
+    <div class="strip s-change">
+      <h3>Changed along the way — named, not hidden</h3>
+      <ul>
+        <li><b>The name moment:</b> an early build asked your name on its own page. Your 15 Oct approval moved it — the name is now asked once, inside Skip's tour (pictured at the door). The old page is retired, by your word.</li>
+        <li><b>The sign-in page:</b> the same approval replaced the older sign-in sheet with the big door page that ships today.</li>
+        <li><b>The sample day:</b> a new account starts empty. The sample tasks live only in the guest look-around, and Settings can remove them.</li>
+      </ul>
+    </div>
+    <div class="strip s-call">
+      <h3>Your call</h3>
+      <ul>
+        <li><b>The date strip</b> above the calendar (in the Calendar pictures) — keep it, or drop it there?</li>
+        <li><b>The day window</b>, 06:00–22:00 — the desk's note: keep it, and open the day scrolled to the first task when one sits outside it.</li>
+        <li><b>The brand board paper</b> — the mark itself is approved + byte-matched in this build; the board's own approval line is yours to sign.</li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="foot">Pace Calendar — The Guide · Read from the build itself: tree pace-v16-4 · AAB SHA256 e0338257b8829ce78cf33da854fe67700c7b2f87710a2e8451433b43fbf6c226<br>Icon in this build: MD5 99d021582d15efb874233493ca7732b2 — byte-identical to your approved mark (variant D, approved 14 Oct).<br>All frames: proof-pack/ in this tree, shot from this build's own bytes.</p>
+
+</div>
+</body>
+</html>
