@@ -407,3 +407,80 @@ exactly that. The sandbox also lost its full Chromium this
 day (headless shell only) — the two notification legs in
 browser-check cannot go green there; environmental, proven
 at three desks, no delta touches that code.
+
+## DOOR-FIRST LINE (pace-v15.9 → v15.11, 15–16 Oct 2026)
+v15.9 built Ilse's approved v4 shape: the door is a full page
+(sign-up only, big and in the middle — mark tile, icon doors,
+one email field, password on step 2), then the whole app with
+Skip's tour pop-up in the middle (the name asked inside it,
+first visit only; plans chosen later only). v15.10 added the
+name re-ask chain (once, next visit, then never), the ruled
+step-2 words ("Your password" · "Continue" · the one-button
+caption) and removed the mockup annotation lines from the door.
+v15.11 built the upgrade moment: "That's a Plus thing." with the
+locked price words (A$4.99/mo · A$39.99/yr · first month free ·
+A$99.99 lifetime on Plans only), the honest lines standing
+("Nothing is locked today, and nothing charges…" · "Not on sale
+yet. Nothing to pay today."), calm cap once per visit per edge.
+Line fully gated 16 Oct (accounts 39/39 · features 47/47).
+
+## LANGUAGE BUILD (pace-v16 → v16.1, 16 Oct 2026)
+i18n.js: key-by-source-string layer, device language decides
+(Spanish complete, 313+ entries), FullCalendar locale wired,
+four legal strings fenced to English until a human signs them.
+v16.1 fixed QA's one finding (the six sidebar labels now carry
+the layer; "Calendar" = "Calendario"). The open menu is a named
+frame in every language walk from this build on. SR-B7 closed
+for Pace at pack level — the programme's first full language
+close. Gates: Quality PASS · Efficiency PASS · QA retest PASS.
+
+## P5 STORE-TRUTH FLIP (16 Oct 2026)
+privacy.html + the three listing papers flipped to the accounts
+truth from P5-STORE-TRUTH-PREP.md (Firebase named; guest posture
+true; date 16 October 2026). Deployment lesson of record: Vercel
+auto-deploy silently skipped the night's commits — fixed by
+creating a deployment from branch main at the newest commit in
+the dashboard; never "Redeploy" an old one.
+
+## THE SR-OBSERVATION PAIR (pace-v16.2 + v16.3, 16 Oct 2026)
+v16.2: the Settings rename captions now read "Bad day is
+called · Ok day is called · Great day is called" (+ Spanish),
+and a full nested-text sweep (now a standing part of the
+layer's proof) wired 7 more leaks. v16.3: all 12 static aria
+surfaces carry the layer; aria-label and its mirroring title
+translate through the same call so they cannot drift.
+Certificate #2 stands on the v16.3 pack: AAB SHA256
+442393158403aabc852a4c50eae0b3e81b9948deb7a18ab0426ecb6c70228e93.
+
+## 17 OCT 2026 — SUBMISSION TRUTH + THE 100% LINE
+The submitted v16.1 build drew Apple's Guideline 2.1 letter
+(new-account information gate; no app fault found). Ilse ruled:
+resubmissions hold until the app reads 100%; one filing vehicle.
+Pace's inventory: 23 of 27 (85%) — the four open rows are her
+locks (Apple door · Plus selling · own-currency prices · CEO
+pin). Pace's own B-F items, from SR's spine: B-F1 = raw provider
+error text at the door; B-F2 = the privacy-manifest correction.
+Both fixed 17 Oct: B-F1 by one calm translator (PaceFB.userError)
+at all five error display sites, its fourteen lines in Spanish,
+proven on six shaped errors; B-F2 written into
+pace-store/ios/App/App/PrivacyInfo.xcprivacy (Email · Name ·
+User ID · Other User Content, Linked · no tracking · App
+Functionality), plist-parse verified. Also landed: the fleet
+import-module verification (module SHA256 68492ade…, batteries
+26/26 · 11/11 · 8/8 fresh; one stale harness leg found +
+repaired with its reason commented, and the accounts harness's
+pot-door race closed the same way), the inert billing groundwork
+(billing.js seam + pace-store/BILLING.md), and the Apple door's
+browser half wired behind appleEnabled. The 100% build was cut
+(pace-v16-4; AAB 9,681,435 B · SHA256
+e0338257b8829ce78cf33da854fe67700c7b2f87710a2e8451433b43fbf6c226)
+and the visual proof pack built from its bytes (proof-pack/:
+12 real frames + PACK.md; the bundle's icon.svg reads MD5
+99d021582d15efb874233493ca7732b2 — byte-identical to the approved
+variant D). Regression on the tree: features 47/47 · accounts
+39/39 (confirmation run; a 36/3 first read under load was the
+box). Her locks re-based by her 16:09 order to the TestFlight
+100% build after her visual confirmation; the 17 Oct console
+watch for her first sign-in ran its window and found the Auth
+list still empty, so no pins stand yet — the pin writes + reads
+back the hour her sign-in lands.
