@@ -40,8 +40,12 @@ async function dismissOverlays() {
   // NEVER click while the pot sheet is up — it owns the screen
   // (and a retry-click through the race can land on its buttons).
   if (await p.evaluate(() => !document.getElementById("potSheet").hidden)) return;
-  if (await p.locator("#welcome").isVisible().catch(() => false)) { await p.click("#welcomeSkip"); await p.waitForTimeout(300); }
-  if (await p.locator("#guideSheet").isVisible().catch(() => false)) { await p.click("#guideSkip"); await p.waitForTimeout(300); }
+  // The check above cannot close the race on a loaded box: the pot
+  // door can rise BETWEEN the check and the click (seen 17 Oct — a
+  // 9s actionability burn against the risen sheet). Short-timeout
+  // clicks that fail soft let waitPotDoor's loop re-evaluate instead.
+  if (await p.locator("#welcome").isVisible().catch(() => false)) { await p.click("#welcomeSkip", { timeout: 1500 }).catch(() => {}); await p.waitForTimeout(300); }
+  if (await p.locator("#guideSheet").isVisible().catch(() => false)) { await p.click("#guideSkip", { timeout: 1500 }).catch(() => {}); await p.waitForTimeout(300); }
 }
 async function waitPotDoor(ms) {
   // The door rides the reconcile chain; on a loaded VM it can
