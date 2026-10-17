@@ -158,7 +158,9 @@ QA's own run (17 Oct night) — the leg is CLOSED. Import-ui:
 QA's hand the same night — Efficiency's timeouts close as a box
 stall. GATE CHAIN COMPLETE on this build: SR certificate #2 ·
 Quality PASS · Efficiency PASS · QA PASS (closure verdict
-pace-v164-CLOSURE-VERDICT.md, repo sha c3b165c5). What remains is
+pace-v164-CLOSURE-VERDICT.md, repo sha c3b165c5, + its addendum
+a65646a1 recording B-F1's delete half on the desk's behavioural
+firing). What remains is
 hers: visual confirmation of this pack → TestFlight → the
 filing, in her 16:09 order; none of it runs overnight.
 
