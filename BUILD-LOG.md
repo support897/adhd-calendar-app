@@ -484,3 +484,15 @@ box). Her locks re-based by her 16:09 order to the TestFlight
 watch for her first sign-in ran its window and found the Auth
 list still empty, so no pins stand yet — the pin writes + reads
 back the hour her sign-in lands.
+
+## CERTIFICATE MOVE (17 Oct 2026)
+Store Review's delta read verified both B-F marks in the 100%
+build's bytes (B-F2 by their own plist parse; B-F1 at the
+architecture + string level, QA's behavioural re-proof its
+closing mark) and reproduced the icon byte-match at their
+hand. Certificate #2 moves to the pace-v16-4 pack: AAB SHA256
+e0338257b8829ce78cf33da854fe67700c7b2f87710a2e8451433b43fbf6c226
+— Pace's build of record. Same day: the shells' display name
+was fixed to "Pace Calendar" in the store package (the App
+Checker's census item; rides the next cut), and the proof
+pack gained its addendum carrying the census dispositions.
