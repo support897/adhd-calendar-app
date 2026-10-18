@@ -1210,15 +1210,18 @@ var PaceRemind = (function () {
     var s = state.settings, n = s.notif, out = [];
     if (s.pausedDate === dayKey) return out;
     var ad = adaptedFor(dayKey);
-    function push(kind, ref, hhmm, title, body) {
+    function push(kind, ref, hhmm, title, body, taskId) {
       var at = atMs(dayKey, hhmm);
-      if (at > floor) out.push({ id: nid(kind, ref, dayKey), title: title, body: body, at: at });
+      // The tap payload rides every reminder (HQ ruling: a tap
+      // routes to the task) — the task id for start nudges, the
+      // day alone for the day-shaped moments.
+      if (at > floor) out.push({ id: nid(kind, ref, dayKey), title: title, body: body, at: at, extra: { paceKind: kind, paceTask: taskId || "", paceDate: dayKey } });
     }
     if (n.checkin && (dayKey !== L.todayKey() || !state.feelings[dayKey]))
       push("checkin", "day", s.checkinTime, tr("How are you feeling today?"), tr("One tap sets the shape of your day."));
     if (n.start) ad.visible.forEach(function (t) {
       if (!t.time) return;
-      push("start", String(t.id), L.nudgeTime(t, n.setup), tr("Time to start: {title}", { title: (t.displayTitle || t.title) }), tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin }));
+      push("start", String(t.id), L.nudgeTime(t, n.setup), tr("Time to start: {title}", { title: (t.displayTitle || t.title) }), tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin }), String(t.id));
     });
     if (n.digest) n.digestTimes.forEach(function (hhmm) {
       push("digest", hhmm, hhmm, tr("Your day, gently"), L.digestText(ad.visible));
@@ -1240,7 +1243,7 @@ var PaceRemind = (function () {
         notes = planDay(tk, floor).concat(planDay(mk, floor));
       }
       try { localStorage.setItem("pace-remind-ids", JSON.stringify(notes.map(function (x) { return x.id; }))); } catch (e) {}
-      if (notes.length) P.schedule({ notifications: notes.map(function (x) { return { id: x.id, title: x.title, body: x.body, schedule: { at: new Date(x.at) } }; }) }).catch(function () {});
+      if (notes.length) P.schedule({ notifications: notes.map(function (x) { return { id: x.id, title: x.title, body: x.body, schedule: { at: new Date(x.at) }, extra: x.extra }; }) }).catch(function () {});
     } catch (e) {}
   }
   function sync() { if (!plugin()) return; if (timer) clearTimeout(timer); timer = setTimeout(run, 400); }
@@ -1267,17 +1270,43 @@ function renderNotifStatus() {
     n.perm === "denied" ? tr("Notifications are blocked in the browser. You can allow them in the browser site settings.") :
     tr("Notifications are off.");
 }
-function notify(title, body, key) {
+function notify(title, body, key, tap) {
   if (state.sent[key]) return;
   state.sent[key] = 1; save();
+  var data = tap || {};
   function fire() {
     try {
       if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-        navigator.serviceWorker.ready.then(function (reg) { if (reg.showNotification) reg.showNotification(title, { body: body, icon: "icon.svg" }); else new Notification(title, { body: body, icon: "icon.svg" }); }).catch(function () { new Notification(title, { body: body }); });
-      } else new Notification(title, { body: body });
+        navigator.serviceWorker.ready.then(function (reg) { if (reg.showNotification) reg.showNotification(title, { body: body, icon: "icon.svg", data: data }); else attachTap(new Notification(title, { body: body, icon: "icon.svg" }), data); }).catch(function () { attachTap(new Notification(title, { body: body }), data); });
+      } else attachTap(new Notification(title, { body: body }), data);
     } catch (e) {}
   }
   fire();
+}
+function attachTap(n, data) { try { n.onclick = function () { try { window.focus(); } catch (e) {} routeNotifTap(data); }; } catch (e) {} return n; }
+
+/* ---------- notification tap -> the task (HQ ruling) ----------
+   A reminder exists so the user can act on that task; a tap that
+   only opens the app to its home state is a dead end for the exact
+   moment the reminder was for. routeNotifTap lands on the task's
+   day with the task open; the floor is the right DAY, never a
+   bare home open. Payload: { task, date } — task empty for the
+   day-shaped moments (check-in, digest, done, test). */
+var pendingNotifTap = null;
+function routeNotifTap(p) {
+  p = p || {};
+  var t = p.task ? baseTask(String(p.task)) : null;
+  var dayKey = (t && t.date) || p.date || L.todayKey();
+  try {
+    var dayBtn = document.querySelector('.segmented button[data-view="timeGridDay"]');
+    if (dayBtn) dayBtn.click();
+    selectDate(dayKey, true);
+    if (t) openTask(t.id, dayKey);
+  } catch (e) {}
+}
+function queueNotifTap(p) {
+  pendingNotifTap = p || {};
+  setTimeout(function () { if (pendingNotifTap) { var q = pendingNotifTap; pendingNotifTap = null; routeNotifTap(q); } }, 350);
 }
 function requestNotif() {
   var P = PaceRemind.plugin();
@@ -1301,7 +1330,7 @@ $("notifTest").addEventListener("click", function () {
   var P = PaceRemind.plugin();
   if (P) {
     if (state.settings.notif.perm !== "granted") { toast(tr("Turn notifications on first, then the test can arrive.")); return; }
-    try { P.schedule({ notifications: [{ id: PaceRemind.nid("test", "pace", "test"), title: "Pace", body: tr("This is your test. Gentle, like the real ones."), schedule: { at: new Date(Date.now() + 3000) } }] }).catch(function () {}); } catch (e) {}
+    try { P.schedule({ notifications: [{ id: PaceRemind.nid("test", "pace", "test"), title: "Pace", body: tr("This is your test. Gentle, like the real ones."), schedule: { at: new Date(Date.now() + 3000) }, extra: { paceKind: "test", paceTask: "", paceDate: L.todayKey() } }] }).catch(function () {}); } catch (e) {}
     return;
   }
   if (!("Notification" in window)) { toast(tr("This browser does not offer notifications.")); return; }
@@ -1319,27 +1348,41 @@ function checkNotifications() {
   var now = new Date(), hhmm = L.pad(now.getHours()) + ":" + L.pad(now.getMinutes());
   var n = s.notif;
   if (n.checkin && hhmm === s.checkinTime && !state.feelings[today]) {
-    notify(tr("How are you feeling today?"), tr("One tap sets the shape of your day."), "checkin-" + today);
+    notify(tr("How are you feeling today?"), tr("One tap sets the shape of your day."), "checkin-" + today, { task: "", date: today });
   }
   var ad = adaptedFor(today);
   if (n.start) {
     ad.visible.forEach(function (t) {
       if (!t.time) return;
       if (L.nudgeTime(t, n.setup) === hhmm) {
-        notify(tr("Time to start: {title}", { title: (t.displayTitle || t.title) }), tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin }), "start-" + t.id + "-" + today);
+        notify(tr("Time to start: {title}", { title: (t.displayTitle || t.title) }), tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin }), "start-" + t.id + "-" + today, { task: String(t.id), date: today });
       }
     });
   }
   if (n.digest && n.digestTimes.indexOf(hhmm) !== -1) {
-    notify(tr("Your day, gently"), L.digestText(ad.visible), "digest-" + today + "-" + hhmm);
+    notify(tr("Your day, gently"), L.digestText(ad.visible), "digest-" + today + "-" + hhmm, { task: "", date: today });
   }
   if (n.done && hhmm === n.doneTime && ad.done.length) {
-    notify(tr("Today, done"), tr(ad.done.length === 1 ? "{n} thing done today. The rest is parked for tomorrow." : "{n} things done today. The rest is parked for tomorrow.", { n: ad.done.length }), "done-" + today);
+    notify(tr("Today, done"), tr(ad.done.length === 1 ? "{n} thing done today. The rest is parked for tomorrow." : "{n} things done today. The rest is parked for tomorrow.", { n: ad.done.length }), "done-" + today, { task: "", date: today });
   }
 }
 setInterval(checkNotifications, 30000);
+/* Tap entries: the service worker's notificationclick posts the
+   payload (or opens the app with it in the address); a packaged
+   cold start can also carry it the same way. */
+try {
+  var nqs = new URLSearchParams(location.search);
+  if (nqs.get("paceTask") || nqs.get("paceDay")) queueNotifTap({ task: nqs.get("paceTask") || "", date: nqs.get("paceDay") || "" });
+} catch (e) {}
+if (navigator.serviceWorker) { try { navigator.serviceWorker.addEventListener("message", function (ev) { if (ev.data && ev.data.paceTap) queueNotifTap(ev.data.paceTap); }); } catch (e) {} }
 /* Native boot: mirror the device's real permission, then plan. */
 if (PaceRemind.available()) {
+  try {
+    PaceRemind.plugin().addListener("localNotificationActionPerformed", function (ev) {
+      var x = ev && ev.notification && ev.notification.extra;
+      queueNotifTap(x ? { task: x.paceTask || "", date: x.paceDate || "" } : null);
+    });
+  } catch (e) {}
   PaceRemind.plugin().checkPermissions().then(function (res) {
     if (res) state.settings.notif.perm = res.display === "granted" ? "granted" : (res.display === "denied" ? "denied" : state.settings.notif.perm);
     renderNotifStatus(); PaceRemind.sync();
