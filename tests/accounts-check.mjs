@@ -361,6 +361,62 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   check("after the re-offer is skipped, it never asks a third time", !(await p4.locator("#tourName").isVisible().catch(() => false)));
 }
 
+/* ---------- 11c. the native doors (18 Oct, the packaged-app fix) ----
+   Inside the package the web popups cannot complete (Google blocks
+   OAuth in webviews), so the plugin runs the OS-level sign-in and
+   hands its credential to the SAME REST exchanges the web doors use.
+   A stubbed Capacitor bridge stands in for the plugin; the mock
+   records every signInWithIdp body so the Apple nonce can be read
+   verbatim. The web legs above ran WITHOUT the stub — both worlds
+   are proven, and neither disturbs the other. */
+{
+  const ctxN = await b.newContext({ viewport: { width: 540, height: 960 } });
+  const pN = await ctxN.newPage();
+  pN.setDefaultTimeout(9000);
+  await pN.addInitScript(() => {
+    window.Capacitor = { isNativePlatform: () => true, Plugins: { FirebaseAuthentication: {
+      signInWithGoogle: async () => ({ credential: { idToken: "tok-google-1", providerId: "google.com" }, user: { uid: "native-g" } }),
+      signInWithApple: async () => ({ credential: { idToken: "tok-apple-1", providerId: "apple.com", nonce: "raw-nonce-42" }, user: { displayName: "Native Tester" } }),
+    } } };
+  });
+  const settleN = async () => {
+    for (let i = 0; i < 14; i++) {
+      if (await pN.locator("#welcome").isVisible().catch(() => false)) { await pN.click("#welcomeSkip", { timeout: 1500 }).catch(() => {}); }
+      else if (await pN.locator("#guideSheet").isVisible().catch(() => false)) { await pN.click("#guideSkip", { timeout: 1500 }).catch(() => {}); }
+      else break;
+      await pN.waitForTimeout(400);
+    }
+  };
+  const settingsN = async () => { await pN.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); }); await pN.click('.side-item[data-panel="settings"]'); await pN.waitForTimeout(400); };
+  const sessN = () => pN.evaluate(() => { try { return JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return null; } });
+  await pN.goto("http://localhost:9123/", { waitUntil: "networkidle" });
+  await pN.waitForTimeout(600);
+  await settleN();
+  await settingsN();
+  await pN.click("#accountOpen"); await pN.waitForSelector("#authSheet:not([hidden])");
+  check("native: the Apple button shows on native even with the web Apple door off", await pN.locator("#appleBtn").isVisible());
+  const idpBefore = mock.idpCalls.length;
+  await pN.click("#googleBtn");
+  await pN.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
+  const sessG = await sessN();
+  const callG = mock.idpCalls.slice(idpBefore).find((c) => c.providerId === "google.com");
+  check("native: Google door — the plugin's token crossed the REST exchange into a session", !!(sessG && sessG.uid) && !!callG && callG.idToken === "tok-google-1");
+  await pN.waitForTimeout(800);
+  await settleN();
+  await settingsN();
+  await pN.click("#accountOut"); await pN.waitForTimeout(900);
+  check("native: sign-out clears the native session", !(await sessN()));
+  await settingsN();
+  await pN.click("#accountOpen"); await pN.waitForSelector("#authSheet:not([hidden])");
+  await pN.click("#appleBtn");
+  await pN.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
+  const sessA = await sessN();
+  const callA = mock.idpCalls.slice(idpBefore).find((c) => c.providerId === "apple.com");
+  check("native: Apple door — a session lands from the plugin's credential", !!(sessA && sessA.uid) && !!callA && callA.idToken === "tok-apple-1");
+  check("native: the Apple raw nonce crossed VERBATIM (never re-hashed — the classic trap)", !!callA && callA.nonce === "raw-nonce-42");
+  await ctxN.close();
+}
+
 /* ---------- 12. no-Ilse sweep over the shipped app files ---------- */
 {
   const fs = await import("node:fs");
