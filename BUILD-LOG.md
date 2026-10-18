@@ -496,3 +496,25 @@ e0338257b8829ce78cf33da854fe67700c7b2f87710a2e8451433b43fbf6c226
 was fixed to "Pace Calendar" in the store package (the App
 Checker's census item; rides the next cut), and the proof
 pack gained its addendum carrying the census dispositions.
+
+## 18 Oct 2026 — BUILD 4 (the fix build; TESTFLIGHT TEST COPY)
+
+Contents: import v16-5 (file-only sheet + privacy re-cut) · safe-area
+insets (load · drawer-open · scroll, battery 13/13) · native doors
+(Caresitters recipe of record: @capacitor-firebase/authentication
+8.5.2, the plugin's idToken feeding the REST exchanges, the Apple raw
+nonce verbatim; accounts battery 44/44). iOS app registered in
+pace-app-calendar: bundle shop.ilseplacencia.pace, GOOGLE_APP_ID
+1:1098367119523:ios:48edaa4c53f22dd28ecf16. IPA run #5, sha256
+7ff9a0cf, delivery dc7533f2. Gates on the packaged bytes: SR delta
+PASS · Quality delta PASS · (Efficiency + QA packaged runs fired).
+NOT SUBMITTED — her hold: TestFlight test + her approval first.
+
+★ CONDITION OF RECORD (Quality, 18 Oct 2026): the shipped
+GoogleService-Info.plist is the value-identical reconstruction
+(md5 48592a16) — the run's checkout raced the minted file by seconds.
+Acceptable for the test copy (values verified exact inside the
+shipped bytes). ANY STORE-BOUND BUILD MUST CARRY THE GENUINE MINTED
+BYTES (md5 ab1932ed4d2fa11c5d31fa195a00750d), already in the repo at
+store/ios/App/App/GoogleService-Info.plist (blob bde2e94c). Assert
+the shipped plist's md5 at that build's gate.
