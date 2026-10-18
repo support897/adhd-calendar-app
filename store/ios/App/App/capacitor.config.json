@@ -3,7 +3,13 @@
 	"appName": "Pace Calendar",
 	"backgroundColor": "#f3f5fa",
 	"webDir": "www",
+	"plugins": {
+		"FirebaseAuthentication": {
+			"skipNativeAuth": true
+		}
+	},
 	"packageClassList": [
-		"SpeechRecognition"
+		"SpeechRecognition",
+		"FirebaseAuthenticationPlugin"
 	]
 }
