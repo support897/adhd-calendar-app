@@ -518,3 +518,44 @@ shipped bytes). ANY STORE-BOUND BUILD MUST CARRY THE GENUINE MINTED
 BYTES (md5 ab1932ed4d2fa11c5d31fa195a00750d), already in the repo at
 store/ios/App/App/GoogleService-Info.plist (blob bde2e94c). Assert
 the shipped plist's md5 at that build's gate.
+
+## 18 Oct 2026 — BUILD 5 (splash fix; EVIDENCE ONLY, never seated)
+
+SR's §6 splash scope law (fleet-wide, born of the Meal Prep catch)
+failed build 4 at the splash: the imageset still carried the
+pre-rebrand coloured-steps tile (generated 13 Oct, never
+regenerated). Build 5 regenerated the Splash imageset from the
+boat master (light blob 8ff73039 · dark e6946407, pine-night
+ground); the generator's sources were re-anchored in the same
+pass (assets/icon.png was also the steps mark — replaced with
+the shipped AppIcon bytes 4cc4b6bf; build-splash-source.mjs's
+dark pass now renders on #141F1B — it previously rendered the
+"dark" splash on white). Android drawables regenerated too.
+IPA run #6, zip 2976d14f. SR three-surface §6 PASS on its bytes.
+Attach HELD by this desk: build 6 (below) followed inside the
+hour; her one sitting meets the full fix set.
+
+## 18 Oct 2026 — BUILD 6 (notifications bridge + native export)
+
+QA's web-only API sweep found the Meal Prep fault in Pace: the
+Settings notifications block ran the web machinery (can only read
+"This browser does not offer notifications." in the package) and
+Export was a blob-download anchor (dead in a WebView). The fix,
+Fit's A-4 shape: PaceRemind schedules Pace's own moments (check-in
+· task starts · digests · done-line; today + tomorrow) on-device
+via @capacitor/local-notifications 8.3.1 — hashed ids, cancel-
+then-replan on every save, permission mirrored into Settings,
+the in-app loop stood down on native. Export writes
+pace-calendar-data.json via @capacitor/filesystem 8.1.5 and
+shares it via @capacitor/share 8.0.3. Web paths untouched.
+Batteries: notifications 13/13 · features 47/47 · accounts 44/44
+(confirmation run; first run crashed on a navigation race after
+40+ PASSes — flake per the standard, disclosed to the gates).
+IPA run #7, zip 199234c9, IPA sha256 c17158b7. Gates on the
+packaged bytes: SR delta PASS (three-surface §6 re-verified
+inside — Assets.car md5 717f8149, byte-identical to build 5's
+proven car) · Quality PASS · Efficiency PASS · App Checker PASS
+(all three surfaces). Seated in her TestFlight as the sitting
+candidate. Store-bound builds still carry Quality's condition:
+the genuine minted GoogleService-Info.plist bytes (ab1932ed4d),
+md5-asserted at the gate.
