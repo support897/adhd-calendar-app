@@ -10,7 +10,7 @@ const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass+
 const browser = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
 
 const seedSrc = `
-  localStorage.setItem("calmcal-v1:guest", JSON.stringify({ settings: { guide: "done", onboarded: true },
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify({ welcomed: true, settings: { guide: "done", guideDone: true, onboarded: true },
     tasks: [], todos: [], habits: [], feelings: {}, checks: {}, habitLog: {}, imports: [], samplesLoaded: false }));
 `;
 async function freshPage(setupSrc) {
