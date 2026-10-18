@@ -1,6 +1,6 @@
 // Pace billing layer — the seam the Paid Apps sitting switches on.
 //
-// GROUNDWORK (built 17 Oct 2026, behind Ilse's lock): while
+// GROUNDWORK (built 17 Oct 2026, behind the selling lock): while
 // window.PACE_BILLING is null this layer is inert and every answer
 // it gives is today's truth — Plus is not on sale and nothing in
 // the app calls a purchase. The wiring the sitting activates:
