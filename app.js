@@ -1450,7 +1450,7 @@ document.querySelectorAll(".import-src").forEach(function (b) {
 /* One import path only: the file. A pasted-link fetch stood here until
    18 Oct — it could never work (calendar hosts send no CORS headers, so
    the platform blocks the read; iCloud links are webcal://, which fetch
-   cannot open), and Ilse hit exactly that on her phone. The link field,
+   cannot open), exactly as a real phone report showed. The link field,
    its button and the fetch are gone; the file is the path. */
 $("importFileBtn").addEventListener("click", function () { $("importFile").click(); });
 $("importFile").addEventListener("change", function () {
@@ -1665,6 +1665,22 @@ function renderAccount() {
     $("accountUncache").hidden = !(lastUid && localStorage.getItem(STORE + ":" + lastUid));
   }
 }
+/* The native doors (18 Oct, the Caresitters recipe of record): inside
+   the packaged app the web popups cannot complete (Google blocks OAuth
+   in webviews; Apple's web JS likewise), so on native the
+   @capacitor-firebase/authentication plugin runs the OS-level sign-in
+   and hands back a credential; Pace's own REST exchanges
+   (FB.googleSignIn / FB.appleSignIn) own the session from there —
+   skipNativeAuth is set in capacitor.config.json, so the plugin
+   creates no parallel session. On the web this returns null and the
+   doors run exactly as before. */
+function nativeAuthPlugin() {
+  try {
+    var C = window.Capacitor;
+    if (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.FirebaseAuthentication) return C.Plugins.FirebaseAuthentication;
+  } catch (e) {}
+  return null;
+}
 function openAuth() {
   if (!FB.configured) return;
   $("authMsg").textContent = "";
@@ -1672,7 +1688,7 @@ function openAuth() {
   $("authPass").value = "";
   $("doorStep1").hidden = false;
   $("doorStep2").hidden = true;
-  $("appleBtn").hidden = !(window.PACE_FB_CONFIG && window.PACE_FB_CONFIG.appleEnabled);
+  $("appleBtn").hidden = !(window.PACE_FB_CONFIG && window.PACE_FB_CONFIG.appleEnabled) && !nativeAuthPlugin();
   $("authSheet").hidden = false;
 }
 function authBusy(msg) { $("authMsg").textContent = msg; }
@@ -1749,6 +1765,17 @@ function bindAccounts() {
       .catch(function (e) { authBusy(tr(FB.userError(e))); });
   });
   $("googleBtn").addEventListener("click", function () {
+    var natG = nativeAuthPlugin();
+    if (natG) {
+      authBusy(tr("Opening Google…"));
+      natG.signInWithGoogle().then(function (res) {
+        var tok = res && res.credential && res.credential.idToken;
+        if (!tok) { authBusy(tr("Google sign-in was closed. Nothing changed.")); return; }
+        FB.googleSignIn(tok).then(function (s) { ACTIVE_UID = s.uid; afterSignIn(); })
+          .catch(function (e) { authBusy(tr(FB.userError(e))); });
+      }).catch(function () { authBusy(tr("Google sign-in was closed. Nothing changed.")); });
+      return;
+    }
     var cid = window.PACE_FB_CONFIG && window.PACE_FB_CONFIG.googleClientId;
     if (!cid) { authBusy(tr("Google sign-in is not switched on yet. Email + password works now.")); return; }
     authBusy(tr("Opening Google…"));
@@ -1776,6 +1803,21 @@ function bindAccounts() {
     // runs the sign-in popup; the id_token it returns crosses to
     // Firebase through FB.appleSignIn. While the flag is off the
     // button is hidden and this handler is unreachable.
+    var natA = nativeAuthPlugin();
+    if (natA) {
+      authBusy(tr("Opening Apple…"));
+      natA.signInWithApple().then(function (res) {
+        var cred = res && res.credential;
+        if (!cred || !cred.idToken) { authBusy(tr("Apple sign-in was closed. Nothing changed.")); return; }
+        try { // The plugin offers the name on first authorisation — carry it for the tour, like the web door.
+          var nmA = res.user && (res.user.displayName || [res.user.name && res.user.name.givenName, res.user.name && res.user.name.familyName].filter(Boolean).join(" "));
+          if (nmA && !localStorage.getItem("pace-pending-name")) localStorage.setItem("pace-pending-name", String(nmA).slice(0, 60));
+        } catch (e) {}
+        FB.appleSignIn(cred.idToken, null, cred.nonce || null).then(function (sess) { ACTIVE_UID = sess.uid; afterSignIn(); })
+          .catch(function (e) { authBusy(tr(FB.userError(e))); });
+      }).catch(function () { authBusy(tr("Apple sign-in was closed. Nothing changed.")); });
+      return;
+    }
     var cfgA = window.PACE_FB_CONFIG || {};
     if (!cfgA.appleEnabled || !cfgA.appleClientId) { authBusy(tr("Apple sign-in is not switched on yet. Email + password works now.")); return; }
     authBusy(tr("Opening Apple…"));
