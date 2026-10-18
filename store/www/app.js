@@ -1488,9 +1488,14 @@ $("guideAgain").addEventListener("click", function () { TOUR = []; buildTour(); 
    popup or no popup. (Pace has no repeat picker — repeats
    arrive through Talk to it, already an edge, and through
    import, a completed flow with no wanting-moment.) */
-var plusShown = {};
+var plusShown = {}, plusEntries = {};
 function maybePlus(edge) {
   if (DEMO_SESSION || plusShown[edge]) return;
+  /* PACE-002 (HQ ruling): the FIRST entry to an edge lands clean —
+     the first minute belongs to the feature. The edge speaks on a
+     repeat visit, still at most once per visit. */
+  plusEntries[edge] = (plusEntries[edge] || 0) + 1;
+  if (plusEntries[edge] < 2) return;
   plusShown[edge] = 1;
   $("plusArt").innerHTML = skipSvg("welcome");
   $("plusSheet").hidden = false;
