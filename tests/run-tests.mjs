@@ -1,5 +1,6 @@
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
+globalThis.window = { t: (s, vars) => vars ? String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m)) : s }; /* logic.js reads window.t at load; in the app i18n.js loads first — this stub mirrors its interpolation */
 const L = require("../logic.js");
 let pass = 0, fail = 0;
 function check(name, cond) { if (cond) { pass++; console.log("PASS " + name); } else { fail++; console.log("FAIL " + name); } }
@@ -31,6 +32,16 @@ check("parse duration 60", p5 && p5.durationMin === 60);
 const p6 = L.parseItem("flight to Sydney on 25/12 at 6am", B);
 check("parse AU date 25/12", p6 && p6.date === "2026-12-25");
 check("parse 6am", p6 && p6.time === "06:00");
+const p7 = L.parseItem("Call the plumber on Monday at 10am", B);
+check("parse PACE-004: 'on Monday' leaves no dangling 'on' in the title", p7 && p7.title === "Call the plumber");
+check("parse PACE-004: date + time still read (Mon 10:00)", p7 && p7.date === "2026-10-12" && p7.time === "10:00");
+check("parse PACE-004: the 10 minutes is the call estimate (house word table), not the clock time", p7 && p7.durationMin === 10);
+const p8 = L.parseItem("pay the rent on friday", B);
+check("parse PACE-004: title exactly clean for 'on friday'", p8 && p8.title === "Pay the rent" && p8.date === "2026-10-16");
+const p9 = L.parseItem("team lunch on next monday", B);
+check("parse PACE-004: 'on next monday' clean + dated", p9 && p9.title === "Team lunch" && p9.date === "2026-10-19");
+const p10 = L.parseItem("dentist on 5 may", B);
+check("parse PACE-004: 'on 5 may' clean + dated", p10 && p10.title === "Dentist" && p10.date === "2027-05-05");
 const dump = L.parseDump("email the client about the quote\nclean the kitchen\ncall mum tomorrow at 5pm", B);
 check("dump splits 3 lines into 3 tasks", dump.length === 3);
 const dump2 = L.parseDump("Need to book the car service and then pick up the dry cleaning", B);
