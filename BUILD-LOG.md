@@ -559,3 +559,29 @@ proven car) · Quality PASS · Efficiency PASS · App Checker PASS
 candidate. Store-bound builds still carry Quality's condition:
 the genuine minted GoogleService-Info.plist bytes (ab1932ed4d),
 md5-asserted at the gate.
+
+## 18 Oct 2026 — BUILD 7 (the door fix)
+
+Root cause, proven fleet-wide from the installed plugin source:
+@capacitor-firebase/authentication builds its Google/Apple
+handlers ONLY for providers named in the FirebaseAuthentication
+config's "providers" list (FirebaseAuthenticationConfig.swift —
+the list defaults EMPTY; FirebaseAuthentication.swift gates the
+handlers on it, and the rejection "provider is not enabled"
+hid behind the friendly door line). Builds 4-6 shipped
+{skipNativeAuth: true} alone — every config-presence read passed
+(plist · scheme · entitlement · plugin aboard) while the doors
+were dead on device. Ilse found the class at her Caresitters
+sitting. Build 7 adds providers ["google.com", "apple.com"]
+beside skipNativeAuth (config blobs 4b9355bc · 1f02fde3) and
+pins it forever: tests/native-config-check.mjs (7/7; fails on
+build 6's config by construction). Nothing else moves. IPA
+run #8, zip c098b120, IPA sha256 294f0b2b. Gates: SU config
+byte-leg PASS in the shipped bytes · SR re-delta PASS ·
+Quality PASS · Efficiency PASS. SEATING GATE (new standing
+discipline): QA's real-device round trip (Google + Apple +
+email on a real iPhone, test accounts) must PASS, relayed via
+HQ, before the build attaches to her TestFlight. The fault's
+origin was the fleet recipe (NATIVE-DOORS-RECIPE.md taught the
+bare block); corrected at its home (b69a0d42); Pace's repos
+hold no copy (verified by tree grep).
