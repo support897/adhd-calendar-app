@@ -9,10 +9,11 @@
 @font-face { font-family: "Bricolage Grotesque"; src: url("fonts/BricolageGrotesque.ttf") format("truetype"); font-weight: 200 800; font-display: swap; }
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope.ttf") format("truetype"); font-weight: 200 800; font-display: swap; }
 :root {
-  /* Safe-area insets (18 Oct, Ilse's phone on build 3): the packaged app
-     draws full-bleed under the status bar (viewport-fit=cover), and the
-     fixed menu button at top:14px sat half under the clock, untappable.
-     Every top/bottom-anchored shell piece now adds the device inset. */
+  /* Safe-area insets (18 Oct, a real phone report on build 3): the
+     packaged app draws full-bleed under the status bar
+     (viewport-fit=cover), and the fixed menu button at top:14px sat
+     half under the clock, untappable. Every top/bottom-anchored shell
+     piece now adds the device inset. */
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --font-ui: "Manrope", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
@@ -238,7 +239,7 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .add-btn { width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 24px; line-height: 1; flex: 0 0 auto; }
 
 /* DayTicker */
-#ticker { display: flex; gap: 2px; overflow-x: auto; padding: 10px 2px 12px; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); scrollbar-width: none; position: sticky; top: 0; background: var(--ground); z-index: 30; }
+#ticker { display: flex; gap: 2px; overflow-x: auto; padding: 10px 2px 12px; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); scrollbar-width: none; position: sticky; top: var(--sat); background: var(--ground); z-index: 30; }
 #ticker::-webkit-scrollbar { display: none; }
 .tick { flex: 0 0 auto; width: 56px; border: 0; background: none; padding: 5px 0 4px; border-radius: var(--radius); text-align: center; color: var(--ink); }
 .tick .tick-wd { display: block; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -515,13 +516,13 @@ html[data-cute="1"] .add-btn { border-radius: 16px; }
    close button) brings the full content back. Hidden on every
    load still; opening is per session, from the floating mark. */
 @media (max-width: 700px) {
-  #sidebar { width: min(84vw, 340px); padding: 18px 14px; }
+  #sidebar { width: min(84vw, 340px); padding: calc(18px + var(--sat)) 14px calc(18px + var(--sab)); }
   html:not([data-sb="collapsed"]) #sbSliver {
     display: block; position: fixed; top: 0; right: 0; bottom: 0;
     width: calc(100vw - min(84vw, 340px)); z-index: 45; cursor: pointer;
   }
   html[data-sb="collapsed"] #main { padding-left: 66px; }
-  #main { padding: 16px 16px 56px; }
+  #main { padding: calc(16px + var(--sat)) 16px calc(56px + var(--sab)); }
   .fc .fc-daygrid-day-frame { min-height: 80px; }
   /* Phone month: dots, not truncated words — the list below the month
      carries the titles, the grid just shows the shape of the month. */
