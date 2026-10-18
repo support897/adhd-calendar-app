@@ -70,6 +70,8 @@
     "Bring this device's guest things into my account": "Traer las cosas de invitado de este dispositivo a mi cuenta",
     "Bring your things into your account?": "¿Traer tus cosas a tu cuenta?",
     "Broken down. Only the first step matters right now.": "Dividido. Solo importa el primer paso ahora.",
+    "This one already has its steps.": "Este ya tiene sus pasos.",
+    "Reminders are set on this phone, so they can ring even when the app is closed.": "Los recordatorios se guardan en este teléfono, así que pueden sonar aunque la app esté cerrada.",
     "Brought to today. Only because you asked.": "Traído a hoy. Solo porque lo pediste.",
     "Calendar brought in.": "Calendario traído.",
     "Calendar": "Calendario",
