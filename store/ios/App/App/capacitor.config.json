@@ -5,7 +5,11 @@
 	"webDir": "www",
 	"plugins": {
 		"FirebaseAuthentication": {
-			"skipNativeAuth": true
+			"skipNativeAuth": true,
+			"providers": [
+				"google.com",
+				"apple.com"
+			]
 		}
 	},
 	"packageClassList": [
