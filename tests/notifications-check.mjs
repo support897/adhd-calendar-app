@@ -35,13 +35,14 @@ const seedState = {
   settings: { appearance: { theme: "white", cute: false }, guideDone: true, sidebarCollapsed: true, checkinTime: "23:59", notif: { perm: "off", checkin: true, start: true, setup: 5, digest: true, digestTimes: ["23:58"], done: false, doneTime: "20:00" } },
 };
 const stub = () => {
-  window.__ln = { perm: "prompt", requests: 0, scheduled: [], cancelled: [], writes: [], shares: [] };
+  window.__ln = { perm: "prompt", requests: 0, scheduled: [], cancelled: [], writes: [], shares: [], listeners: {} };
   window.Capacitor = { isNativePlatform: () => true, Plugins: {
     LocalNotifications: {
       checkPermissions: async () => ({ display: window.__ln.perm }),
       requestPermissions: async () => { window.__ln.requests++; window.__ln.perm = "granted"; return { display: "granted" }; },
       schedule: async (o) => { window.__ln.scheduled.push(o); return {}; },
       cancel: async (o) => { window.__ln.cancelled.push(o); return {}; },
+      addListener: async (name, fn) => { (window.__ln.listeners[name] = window.__ln.listeners[name] || []).push(fn); return {}; },
     },
     Filesystem: { writeFile: async (o) => { window.__ln.writes.push(o); return {}; }, getUri: async (o) => ({ uri: "file:///cache/" + o.path }) },
     Share: { share: async (o) => { window.__ln.shares.push(o); return {}; } },
@@ -52,6 +53,8 @@ const stub = () => {
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
 await ctx.addInitScript(stub);
 const p = await ctx.newPage();
+const pageErrors = [];
+p.on("pageerror", (e) => pageErrors.push(String(e)));
 await p.goto("http://localhost:8953/", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)), seedState);
 await p.reload({ waitUntil: "networkidle" });
@@ -79,6 +82,23 @@ const idsTomorrow = ids1.filter((id) => !idsToday.includes(id));
 await p.click("#notifTest"); await p.waitForTimeout(300);
 const testNote = await p.evaluate(() => window.__ln.scheduled.flatMap((c) => c.notifications).find((n) => n.title === "Pace"));
 check("native: the test button schedules a device notification", !!testNote && /test/.test(testNote.body));
+/* Tap -> the task (HQ ruling): payloads at the seam, the live
+   route through the registered action listener, and the floor. */
+const startNote = plan1.find((n) => /Time to start/.test(n.title));
+check("tap payload: the start nudge carries its task id + day", !!startNote && !!startNote.extra && startNote.extra.paceTask === "nt1" && startNote.extra.paceDate === tk);
+const checkinNote = plan1.find((n) => /How are you feeling/.test(n.title));
+check("tap payload: the check-in carries its day and no task", !!checkinNote && !!checkinNote.extra && checkinNote.extra.paceTask === "" && checkinNote.extra.paceDate === tk && checkinNote.extra.paceKind === "checkin");
+const listenerCount = await p.evaluate(() => (window.__ln.listeners["localNotificationActionPerformed"] || []).length);
+check("tap route: the app registered the notification action listener", listenerCount >= 1);
+await p.evaluate((key) => { window.__ln.listeners["localNotificationActionPerformed"].forEach((fn) => fn({ notification: { extra: { paceTask: "nt1", paceDate: key } } })); }, tk);
+await p.waitForTimeout(700);
+const sheetAfterTap = await p.evaluate(() => ({ hidden: document.querySelector("#taskSheet").hidden, title: document.querySelector("#dTitle").textContent }));
+check("tap route: a tap on nt1's start reminder opens nt1's task sheet", sheetAfterTap.hidden === false && /Ring the dentist/.test(sheetAfterTap.title));
+await p.evaluate(() => { document.querySelector("#taskSheet").hidden = true; });
+await p.evaluate((key) => { window.__ln.listeners["localNotificationActionPerformed"].forEach((fn) => fn({ notification: { extra: { paceTask: "gone-task", paceDate: key } } })); }, tk);
+await p.waitForTimeout(700);
+const floorState = await p.evaluate(() => document.querySelector("#taskSheet").hidden);
+check("tap floor: a tap for a gone task still lands (sheet closed, the day stands, no crash)", floorState === true && pageErrors.length === 0);
 await p.click("#notifPause"); await p.waitForTimeout(900);
 const afterPause = await p.evaluate(() => ({ cancelled: window.__ln.cancelled.flatMap((c) => c.notifications.map((x) => x.id)), ids: JSON.parse(localStorage.getItem("pace-remind-ids") || "[]") }));
 check("native: pausing for today cancelled the old plan", ids1.every((id) => afterPause.cancelled.includes(id)));
@@ -104,6 +124,12 @@ check("web control: no bridge — the web machinery's own status stands (\"" + w
 const whint = await p2.locator("#notifHint").textContent();
 check("PACE-007 web control: the hint keeps the web truth (\"" + whint.trim() + "\")", /fire while the app is open/.test(whint));
 await ctx2.close();
+/* The web seam of the same ruling: SW-shown notifications route
+   through notificationclick, and the app consumes the payload. */
+const swText = readFileSync(path.join(ROOT, "service-worker.js"), "utf8");
+const appText = readFileSync(path.join(ROOT, "app.js"), "utf8");
+check("web: the service worker routes notification taps (notificationclick + paceTap)", /notificationclick/.test(swText) && /paceTap/.test(swText));
+check("web: the app consumes tap payloads (query + message + the router)", /paceTask/.test(appText) && /routeNotifTap/.test(appText) && /showNotification\(title, \{ body: body, icon: "icon.svg", data: data \}\)/.test(appText));
 await b.close(); server.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 process.exit(fail ? 1 : 0);
