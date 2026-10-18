@@ -585,3 +585,89 @@ HQ, before the build attaches to her TestFlight. The fault's
 origin was the fleet recipe (NATIVE-DOORS-RECIPE.md taught the
 bare block); corrected at its home (b69a0d42); Pace's repos
 hold no copy (verified by tree grep).
+
+## 18 Oct 2026 — BUILD 8 (the dogfood fix round)
+
+Test — Pace walked the shipped build-7 bundle (72 steps) under
+HQ's sequencing law; 8 findings filed, 7 fixed here (+1 design
+call to HQ — see build 9). PACE-001 (HIGH): door status/error text
+wrote only to step 2's message line, so a failed Google/Apple tap
+on step 1 read as a dead, silent button — authBusy() now writes
+both step lines, mirrored. PACE-003: the email arrow's test
+toughens to a full address shape. PACE-004: the weekday/next/5-May
+grammars eat their optional "on " whole (no more "Call the plumber
+on"); legs also caught a pre-existing bug — any "5 May" parsed to
+month "00"; fixed with full-name-first month resolution. The
+"duration 10" half was the call-word estimate by design — pinned
+as named, not a fault. PACE-005: at 390px the view switcher
+overflowed a measured 60px; it now takes its own full line
+(overflow 0, desktop unchanged). PACE-006: the task sheet's
+Minutes field clipped at 390px; min-width:0 on the field-rows
+(Minutes measures 106px, fully inside). PACE-007: the reminder
+hint claimed "while the app is open" in every build — false in
+the native package; renderNotifStatus owns the line in both
+branches now. PACE-008: Break it down stacked a fresh step set on
+every tap (1→3→6); the handler now refuses politely once steps
+exist and the button hides. Batteries: accounts 48/48 · logic
+50/50 · safearea 14/14 · notifications 15/15 · features 47/47 ·
+native-config 7/7 · browser 38/2-environmental. Harness repair of
+record: run-tests.mjs had not loaded since the i18n window.t line
+landed (stub fitted). Run #9 (39112081182). Gates: Quality delta
+PASS · Efficiency delta PASS · tester source sweep PASS (7 fixes;
+002 code-verified). NEVER SEATED — superseded by build 9, then
+10, before its device slot.
+
+## 18 Oct 2026 — BUILD 9 (PACE-002: the first minute belongs to the feature)
+
+HQ ruling on the dogfood round's open design item: the Plus sheet
+had fired OVER a feature on the user's FIRST entry to it (Talk to
+it included), behind copy saying nothing was locked. Ruled: the
+first entry lands CLEAN everywhere; an edge speaks on a REPEAT
+visit, at most once per visit. maybePlus() now counts entries per
+edge (look · cute · talk) and shows the sheet only from entry 2.
+The sheet itself — design + honest copy — is untouched. Desk
+proof: the timing state machine driven in Node from the shipped
+function, 7/7 (entry 1 clean · entry 2 speaks · silent after);
+the features battery's Plus block re-cut to the ruling's timing.
+Gates: Quality delta PASS · Efficiency delta PASS (the Chromium
+suite leg named outstanding at both chairs — the box could not
+spawn renderers that evening; see the environment note at build
+10). Blobs: app.js 03df7392 · SW pace-v16-9 a1537289 · pbxproj
+cd8868d3. NEVER SEATED — superseded by build 10.
+
+## 18 Oct 2026 — BUILD 10 (the master-plan round) — CURRENT CANDIDATE
+
+Test — Pace's master-plan battery (test everything, no skips)
+filed PACE-009…015 on the current tree; six fixed here, one
+disproven with evidence. PACE-009 (HIGH, silent loss): impossible
+dates ("29 Feb", "31 April") were stored as keys no real day can
+equal — the task rendered NOWHERE. realDate() now normalises
+every parse's final date at the parser's choke point: Feb 29
+rolls to the next leap year, other overflows clamp to the month's
+real last day, and a literally typed impossible ISO date is
+caught the same way. PACE-010: impossible clock times (25:99)
+are consumed but never stored — the task keeps its words, time
+empty. PACE-011: a written year wins exactly (no roll-forward)
+and "at noon" leaves no dangling "at". PACE-012: every
+morning/evening/night is a daily repeat. PACE-014: .icon-btn
+touch boxes were ~30px; min 44px now, glyph centred.
+PACE-015 (silent loss): one-letter titles ("X at 9am") were
+dropped entirely; a letter/digit test replaces the length floor
+— wordless debris still refuses. PACE-013 DISPROVEN: the two
+"missing" Spanish lines both carry entries (i18n.js:277/:280);
+the flag came from a textual sweep blind to \u2019 escapes.
+The runtime-accurate sweep — tests/i18n-check.mjs, permanent —
+reads 141 tr() literals, 0 missing, 3/3. Logic battery 58/58 with
+a leg per finding. Blobs: logic a5b7bd99 · styles 9d9bbaf4 · SW
+pace-v16-10 fde4a7c2 · run-tests 58111d4e · i18n-check 9209730b ·
+pbxproj 57c48f1f. Seat path: SU custody + byte-leg → SR re-delta
+→ tester shipped-bytes retest (001–015) → QA packaged chain +
+real-device round trip → HQ relays → her TestFlight.
+ENVIRONMENT NOTE (18 Oct evening): this box's exec-write layer
+failed mid-session (shell/python writes land empty or EPERM;
+Chromium cannot spawn renderers; load ~7.9 after a VM
+replacement). File-tool writes, the GitHub API and the browser
+routes stayed healthy and carried these builds; the local
+pace-store www mirror lags the repo meanwhile (repo bytes are
+the truth; CI builds from them). Owed on recovery: mirror
+restore + the desk's Chromium re-runs for builds 9–10.
