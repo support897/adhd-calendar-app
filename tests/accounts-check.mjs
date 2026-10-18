@@ -236,9 +236,23 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   await p4.waitForSelector("#authSheet:not([hidden])");
   check("the door is a full first page: big mark + name, icon doors, email + arrow only (no password, no name field)", await p4.locator(".door-hero").isVisible() && (await p4.locator(".door-title").innerText()) === "Pace Calendar" && await p4.locator("#googleBtn").isVisible() && await p4.locator("#doorNext").isVisible()
     && !(await p4.locator("#authPass").isVisible().catch(() => false)) && (await p4.locator("#authName").count()) === 0 && (await p4.locator("#nameSheet").count()) === 0 && (await p4.locator("#nameBubble").count()) === 0);
+  // PACE-001: a door message must land where the user stands. On step 1
+  // the Google tap's outcome (here: the GIS script cannot load in the
+  // sandbox) must appear in #authMsg1, mirrored in #authMsg — build 7
+  // wrote it only to the hidden step-2 line and the button read dead.
+  await p4.click("#googleBtn");
+  await p4.waitForFunction(() => document.querySelector("#authMsg1").textContent.trim().length > 0, null, { timeout: 8000 }).catch(() => {});
+  check("PACE-001: a step-1 Google failure speaks ON step 1", (await p4.locator("#authMsg1").innerText()).includes("Google") && await p4.locator("#doorStep1").isVisible());
+  check("PACE-001: the two step lines mirror (one message, both homes)", (await p4.locator("#authMsg").innerText()) === (await p4.locator("#authMsg1").innerText()));
   await p4.fill("#authEmail", "not-an-email");
   await p4.click("#doorNext"); await p4.waitForTimeout(300);
   check("a bad email is refused at the arrow, in plain words", (await p4.locator("#authMsg1").innerText()).toLowerCase().includes("email") && await p4.locator("#doorStep1").isVisible());
+  await p4.fill("#authEmail", "bad@@");
+  await p4.click("#doorNext"); await p4.waitForTimeout(300);
+  check("PACE-003: 'bad@@' is refused at the arrow too", (await p4.locator("#authMsg1").innerText()).includes("look right") && await p4.locator("#doorStep1").isVisible());
+  await p4.fill("#authEmail", "a@b");
+  await p4.click("#doorNext"); await p4.waitForTimeout(300);
+  check("PACE-003: 'a@b' (no dot in the domain) is refused at the arrow", (await p4.locator("#authMsg1").innerText()).includes("look right") && await p4.locator("#doorStep1").isVisible());
   await p4.fill("#authEmail", "named@test.dev");
   await p4.click("#doorNext");
   await p4.waitForSelector("#doorStep2:not([hidden])");
