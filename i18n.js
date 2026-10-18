@@ -286,6 +286,8 @@
     "The reading tool did not load. Typing or speaking works the same.": "La herramienta de lectura no cargó. Escribir o hablar funciona igual.",
     "The words this came from": "Las palabras de las que salió",
     "This browser does not offer notifications.": "Este navegador no ofrece notificaciones.",
+    "Notifications are blocked. You can allow them in your phone's settings for Pace.": "Las notificaciones están bloqueadas. Puedes permitirlas en los ajustes de tu teléfono para Pace.",
+    "Export did not work. Nothing was changed.": "La exportación no funcionó. Nada cambió.",
     "This device has a guest calendar on it.": "Este dispositivo tiene un calendario de invitado.",
     "This is your test. Gentle, like the real ones.": "Esta es tu prueba. Suave, como las de verdad.",
     "This one button does both. It signs you in, or makes your account if you are new.": "Este botón hace las dos cosas. Te inicia la sesión, o crea tu cuenta si eres nuevo.",
