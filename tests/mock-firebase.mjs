@@ -8,6 +8,7 @@ import http from "http";
 export function startMock() {
   const users = new Map(); // email -> { uid, email, password }
   const docs = new Map(); // path -> fields object (decoded values)
+  const idpCalls = []; // every signInWithIdp postBody, decoded (the native-door legs read this)
   let uidN = 0;
   const ownerUids = [];
   const tok = (uid) => Buffer.from(JSON.stringify({ uid })).toString("base64");
@@ -81,6 +82,17 @@ export function startMock() {
           if (!u) return send(400, { error: { message: "EMAIL_NOT_FOUND" } });
           if (u.password !== b.password) return send(400, { error: { message: "INVALID_PASSWORD" } });
           return send(200, { localId: u.uid, email: u.email, idToken: tok(u.uid), refreshToken: "rt-" + u.uid, expiresIn: "3600" });
+        }
+        if (action === "signInWithIdp") {
+          const params = new URLSearchParams(b.postBody || "");
+          const providerId = params.get("providerId") || "";
+          const idTok = params.get("id_token") || "";
+          idpCalls.push({ providerId, idToken: idTok, nonce: params.get("nonce"), raw: b.postBody || "" });
+          if (!idTok || !/^(google|apple)\.com$/.test(providerId)) return send(400, { error: { message: "INVALID_IDP_RESPONSE" } });
+          const key = providerId + ":" + idTok;
+          let u = users.get(key);
+          if (!u) { const uid = "uid-" + ++uidN; u = { uid, email: "", password: null }; users.set(key, u); }
+          return send(200, { localId: u.uid, email: u.email, idToken: tok(u.uid), refreshToken: "rt-" + u.uid, expiresIn: "3600", federatedId: key, providerId });
         }
         if (action === "sendOobCode") return send(200, { email: b.email });
         if (action === "delete") {
@@ -165,7 +177,7 @@ export function startMock() {
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve({
     port: server.address().port,
-    users, docs, ownerUids,
+    users, docs, ownerUids, idpCalls,
     close: () => server.close(),
   })));
 }
