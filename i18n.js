@@ -125,6 +125,7 @@
     "Apple sign-in is not switched on yet. Email + password works now.": "El acceso con Apple aún no está activado. El correo y la contraseña funcionan ahora.",
     "Opening Apple…": "Abriendo Apple…",
     "Apple sign-in was closed. Nothing changed.": "El acceso con Apple se cerró. Nada cambió.",
+    "Google sign-in was closed. Nothing changed.": "El acceso con Google se cerró. Nada cambió.",
     "Apple did not load. Check your connection, or use email + password.": "Apple no cargó. Revisa tu conexión, o usa el correo y la contraseña.",
     "That email already has an account. Try signing in.": "Ese correo ya tiene una cuenta. Prueba a entrar.",
     "No account with that email yet. Create one first.": "Aún no hay una cuenta con ese correo. Crea una primero.",
