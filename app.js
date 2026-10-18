@@ -123,6 +123,7 @@ function save() {
     if (state) state.updatedAt = Date.now();
     localStorage.setItem(storeKey(), JSON.stringify(state));
   } catch (e) {}
+  try { if (typeof PaceRemind !== "undefined") PaceRemind.sync(); } catch (e) {}
   scheduleSync();
 }
 
@@ -1179,9 +1180,79 @@ $("clearSamples").addEventListener("click", function () {
   toast(tr("Sample tasks removed. This is fully yours now."), samples.length ? function () { samples.forEach(function (p) { restoreAt(state.tasks, p[0], p[1]); }); save(); refreshAll(); toast(tr("Back again.")); } : undefined);
 });
 
+/* ---------- native notifications bridge ----------
+   Inside the store wrap, the same gentle moments are scheduled ON
+   the device with Capacitor LocalNotifications (the shape of record,
+   Fit's Tranche A-4): the OS fires them even when the app is closed —
+   no server, nothing leaves the phone. On the web there is no
+   plugin: the plan is a no-op and the browser machinery below
+   carries the moments while the app is open, exactly as before.
+   Every save replans (cancel the old set, schedule the new), so a
+   check-in, a pause, or a settings change rewrites the plan at once.
+   A failure here must never break a save: every call is fenced. */
+var PaceRemind = (function () {
+  var timer = null;
+  function plugin() {
+    try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null; }
+    catch (e) { return null; }
+  }
+  function nid(kind, ref, key) {
+    var s = kind + "|" + ref + "|" + key, h = 0;
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return 1000 + (h % 2000000000);
+  }
+  function atMs(dayKey, hhmm) { var p = dayKey.split("-"), t = String(hhmm).split(":"); return new Date(+p[0], +p[1] - 1, +p[2], +t[0], +t[1], 0, 0).getTime(); }
+  function planDay(dayKey, floor) {
+    var s = state.settings, n = s.notif, out = [];
+    if (s.pausedDate === dayKey) return out;
+    var ad = adaptedFor(dayKey);
+    function push(kind, ref, hhmm, title, body) {
+      var at = atMs(dayKey, hhmm);
+      if (at > floor) out.push({ id: nid(kind, ref, dayKey), title: title, body: body, at: at });
+    }
+    if (n.checkin && (dayKey !== L.todayKey() || !state.feelings[dayKey]))
+      push("checkin", "day", s.checkinTime, tr("How are you feeling today?"), tr("One tap sets the shape of your day."));
+    if (n.start) ad.visible.forEach(function (t) {
+      if (!t.time) return;
+      push("start", String(t.id), L.nudgeTime(t, n.setup), tr("Time to start: {title}", { title: (t.displayTitle || t.title) }), tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin }));
+    });
+    if (n.digest) n.digestTimes.forEach(function (hhmm) {
+      push("digest", hhmm, hhmm, tr("Your day, gently"), L.digestText(ad.visible));
+    });
+    if (n.done && dayKey === L.todayKey() && ad.done.length)
+      push("done", "day", n.doneTime, tr("Today, done"), tr(ad.done.length === 1 ? "{n} thing done today. The rest is parked for tomorrow." : "{n} things done today. The rest is parked for tomorrow.", { n: ad.done.length }));
+    return out;
+  }
+  function run() {
+    var P = plugin(); if (!P) return;
+    try {
+      var old = [];
+      try { old = JSON.parse(localStorage.getItem("pace-remind-ids") || "[]"); } catch (e) {}
+      if (old.length) P.cancel({ notifications: old.map(function (id) { return { id: id }; }) }).catch(function () {});
+      var notes = [];
+      if (state.settings.notif.perm === "granted") {
+        var floor = Date.now() + 30000, tk = L.todayKey(), tm = new Date(); tm.setDate(tm.getDate() + 1);
+        var mk = tm.getFullYear() + "-" + L.pad(tm.getMonth() + 1) + "-" + L.pad(tm.getDate());
+        notes = planDay(tk, floor).concat(planDay(mk, floor));
+      }
+      try { localStorage.setItem("pace-remind-ids", JSON.stringify(notes.map(function (x) { return x.id; }))); } catch (e) {}
+      if (notes.length) P.schedule({ notifications: notes.map(function (x) { return { id: x.id, title: x.title, body: x.body, schedule: { at: new Date(x.at) } }; }) }).catch(function () {});
+    } catch (e) {}
+  }
+  function sync() { if (!plugin()) return; if (timer) clearTimeout(timer); timer = setTimeout(run, 400); }
+  return { sync: sync, plugin: plugin, nid: nid, available: function () { return !!plugin(); } };
+})();
+
 /* ---------- notifications ---------- */
 function renderNotifStatus() {
   var n = state.settings.notif;
+  if (PaceRemind.available()) {
+    $("notifStatus").textContent =
+      n.perm === "granted" ? tr("Notifications are on. You choose what they say and when.") :
+      n.perm === "denied" ? tr("Notifications are blocked. You can allow them in your phone's settings for Pace.") :
+      tr("Notifications are off.");
+    return;
+  }
   $("notifStatus").textContent = !("Notification" in window) ? tr("This browser does not offer notifications.") :
     n.perm === "granted" ? tr("Notifications are on. You choose what they say and when.") :
     n.perm === "denied" ? tr("Notifications are blocked in the browser. You can allow them in the browser site settings.") :
@@ -1200,6 +1271,15 @@ function notify(title, body, key) {
   fire();
 }
 function requestNotif() {
+  var P = PaceRemind.plugin();
+  if (P) {
+    P.requestPermissions().then(function (res) {
+      state.settings.notif.perm = res && res.display === "granted" ? "granted" : "denied";
+      save(); renderNotifStatus();
+      toast(state.settings.notif.perm === "granted" ? tr("Notifications on. Gentle ones, chosen by you.") : tr("No problem. The app still works fully without them."));
+    }).catch(function () { toast(tr("No problem. The app still works fully without them.")); });
+    return;
+  }
   if (!("Notification" in window)) { toast(tr("This browser does not offer notifications.")); return; }
   Notification.requestPermission().then(function (p) {
     state.settings.notif.perm = p; save(); renderNotifStatus();
@@ -1209,6 +1289,12 @@ function requestNotif() {
 }
 $("notifEnable").addEventListener("click", requestNotif);
 $("notifTest").addEventListener("click", function () {
+  var P = PaceRemind.plugin();
+  if (P) {
+    if (state.settings.notif.perm !== "granted") { toast(tr("Turn notifications on first, then the test can arrive.")); return; }
+    try { P.schedule({ notifications: [{ id: PaceRemind.nid("test", "pace", "test"), title: "Pace", body: tr("This is your test. Gentle, like the real ones."), schedule: { at: new Date(Date.now() + 3000) } }] }).catch(function () {}); } catch (e) {}
+    return;
+  }
   if (!("Notification" in window)) { toast(tr("This browser does not offer notifications.")); return; }
   if (Notification.permission !== "granted") { toast(tr("Turn notifications on first, then the test can arrive.")); return; }
   try { new Notification("Pace", { body: tr("This is your test. Gentle, like the real ones.") }); } catch (e) {}
@@ -1217,6 +1303,7 @@ $("notifPause").addEventListener("click", function () {
   state.settings.pausedDate = L.todayKey(); save(); toast(tr("Paused for today. Silence is a fine choice."));
 });
 function checkNotifications() {
+  if (PaceRemind.available()) return; /* native: the device plan carries the moments */
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   var s = state.settings, today = L.todayKey();
   if (s.pausedDate === today) return;
@@ -1242,6 +1329,13 @@ function checkNotifications() {
   }
 }
 setInterval(checkNotifications, 30000);
+/* Native boot: mirror the device's real permission, then plan. */
+if (PaceRemind.available()) {
+  PaceRemind.plugin().checkPermissions().then(function (res) {
+    if (res) state.settings.notif.perm = res.display === "granted" ? "granted" : (res.display === "denied" ? "denied" : state.settings.notif.perm);
+    renderNotifStatus(); PaceRemind.sync();
+  }).catch(function () { PaceRemind.sync(); });
+}
 
 /* ---------- welcome ---------- */
 if (!state.welcomed) {
@@ -1847,7 +1941,19 @@ function bindAccounts() {
     FB.signOut(); location.reload();
   });
   $("accountDownload").addEventListener("click", function () {
-    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var json = JSON.stringify(state, null, 2);
+    /* Native: a download anchor does nothing inside the wrap — write
+       the file and offer it through the share sheet instead. */
+    var FS = null, SH = null;
+    try { FS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem; SH = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share; } catch (e) {}
+    if (FS && SH) {
+      FS.writeFile({ path: "pace-calendar-data.json", data: json, directory: "CACHE", encoding: "utf8" })
+        .then(function () { return FS.getUri({ path: "pace-calendar-data.json", directory: "CACHE" }); })
+        .then(function (r) { return SH.share({ title: "Pace Calendar data", url: r.uri }); })
+        .catch(function () { toast(tr("Export did not work. Nothing was changed.")); });
+      return;
+    }
+    var blob = new Blob([json], { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "pace-calendar-data.json"; a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
