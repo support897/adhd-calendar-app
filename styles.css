@@ -407,7 +407,10 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .field { display: block; font-size: 13px; color: var(--ink-3); margin-top: 12px; }
 .field input { display: block; width: 100%; margin-top: 5px; border: 1px solid var(--hair); border-radius: 9px; padding: 9px 11px; font-size: 16px; color: var(--ink); background: var(--card); }
 .field-row { display: flex; gap: 10px; }
-.field-row .field { flex: 1; }
+/* min-width: 0 lets the three fields truly share the row — the native
+   date/time inputs otherwise hold their intrinsic width and push the
+   Minutes field off the sheet's edge (PACE-006). */
+.field-row .field { flex: 1; min-width: 0; }
 .quick-preview { background: var(--ground-2); border-radius: 10px; padding: 11px 13px; font-size: 14.5px; margin-top: 12px; line-height: 1.5; }
 .details-fallback { margin-top: 12px; }
 .sheet-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
@@ -534,6 +537,11 @@ html[data-cute="1"] .add-btn { border-radius: 16px; }
   .checkin-card { padding: 16px 2px; }
   .month-title { font-size: 22px; }
   .segmented button { padding: 6px 8px; font-size: 12px; }
+  /* Phone: the view switcher takes its own full line under the title,
+     so all five views are visible at once — Agenda used to hide
+     off the right edge of a sideways scroll (PACE-005). */
+  .top-actions { flex: 1 1 100%; flex-wrap: wrap; }
+  .segmented { order: -1; flex: 1 1 100%; justify-content: space-between; }
   .board { grid-template-columns: 1fr; }
   .sheet { align-items: flex-end; }
   .level-btn { padding: 10px 13px; font-size: 14.5px; }
