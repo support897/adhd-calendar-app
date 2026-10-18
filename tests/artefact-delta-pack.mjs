@@ -49,7 +49,7 @@ const stub = () => {
       schedule: async (o) => { window.__ln.scheduled.push(o); return {}; },
       cancel: async () => ({}),
       addListener: async (name, fn) => { (window.__ln.listeners[name] = window.__ln.listeners[name] || []).push(fn); return {}; },
-    } };
+    } } };
 };
 const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
