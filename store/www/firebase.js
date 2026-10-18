@@ -154,9 +154,14 @@
         requestUri: requestUri || location.origin, returnIdpCredential: true, returnSecureToken: true,
       }).then(function (j) { return adopt(j); });
     },
-    appleSignIn: function (idToken, requestUri) {
+    appleSignIn: function (idToken, requestUri, nonce) {
+      /* The native door (18 Oct) mints the id_token against a nonce the
+         plugin presented to Apple in hashed form; Firebase verifies it
+         against the RAW nonce, passed here verbatim — never hashed at
+         this layer (the double-hash is the classic native-Apple trap).
+         The web popup path passes no nonce, exactly as before. */
       return authCall("signInWithIdp", {
-        postBody: "id_token=" + encodeURIComponent(idToken) + "&providerId=apple.com",
+        postBody: "id_token=" + encodeURIComponent(idToken) + "&providerId=apple.com" + (nonce ? "&nonce=" + encodeURIComponent(nonce) : ""),
         requestUri: requestUri || location.origin, returnIdpCredential: true, returnSecureToken: true,
       }).then(function (j) { return adopt(j); });
     },
