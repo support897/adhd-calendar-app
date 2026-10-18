@@ -21,6 +21,9 @@ check("css: the menu button's top adds the inset", /\.expand-btn\s*\{[^}]*top:\s
 check("css: the phone-width override also adds the inset (a bare top:10px stood here and won at phone widths — the battery's first run caught it)", /\.expand-btn\s*\{\s*top:\s*calc\(10px \+ var\(--sat\)\)/.test(css));
 check("css: #main top padding adds the inset", /#main\s*\{[^}]*padding:\s*calc\(26px \+ var\(--sat\)\)/.test(css));
 check("css: the sidebar's top padding adds the inset", /#sidebar\s*\{[^}]*padding:\s*calc\(22px \+ var\(--sat\)\)/.test(css));
+check("css: the phone-width sidebar override adds the inset too (Quality's finding — a bare 18px won the cascade there)", /#sidebar\s*\{\s*width:\s*min\(84vw, 340px\);\s*padding:\s*calc\(18px \+ var\(--sat\)\)/.test(css));
+check("css: the phone-width #main override adds the inset too (the same trap, third instance)", /#main\s*\{\s*padding:\s*calc\(16px \+ var\(--sat\)\)\s*16px/.test(css));
+check("css: the sticky ticker pins below the inset, not at the viewport top", /#ticker\s*\{[^}]*position:\s*sticky;\s*top:\s*var\(--sat\)/.test(css));
 check("html: viewport-fit=cover set (so env() is live on device)", /viewport-fit=cover/.test(html));
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ttf": "font/ttf", ".webmanifest": "application/manifest+json" };
@@ -41,6 +44,29 @@ await p.evaluate(() => document.documentElement.style.setProperty("--sat", "47px
 await p.waitForTimeout(120);
 const r = await p.locator("#sbExpand").evaluate((el) => { const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; });
 check("render: with a 47px inset (a notched phone) the button sits fully below it — top " + r.top + ", bottom " + r.bottom, Math.abs(r.top - 57) < 1.5 && r.top >= 47);
+// The OPEN state (Quality's finding): a fresh page with the menu open
+// from load, inset driven — the drawer's brand head must clear it too.
+const p2 = await b.newPage({ viewport: { width: 390, height: 844 } });
+await p2.goto("http://localhost:8949/", { waitUntil: "networkidle" });
+await p2.evaluate(() => {
+  const st = { tasks: [], feelings: {}, settings: { appearance: { theme: "white", cute: false }, guideDone: true, sidebarCollapsed: false, notif: { digestTimes: ["12:30"] } }, welcomed: true, sent: {}, todos: [], habits: [], imports: [] };
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify(st));
+});
+await p2.reload({ waitUntil: "networkidle" });
+await p2.waitForTimeout(500);
+// The menu is hidden on every load by law — open it the user's way,
+// by tapping the boat button, with the inset already driven.
+await p2.evaluate(() => document.documentElement.style.setProperty("--sat", "47px"));
+await p2.click("#sbExpand");
+await p2.waitForTimeout(400);
+const headTop = await p2.locator("#sidebar .brand").evaluate((el) => el.getBoundingClientRect().top);
+check("render: drawer OPEN at 47px inset — the brand head clears the bar (top " + headTop + ", want 65 = 18 + 47)", Math.abs(headTop - 65) < 2 && headTop >= 47);
+// The SCROLL state (the ticker ruling): scroll until the sticky ticker
+// pins; it must pin below the inset, not under the clock.
+await p.evaluate(() => window.scrollTo(0, 900));
+await p.waitForTimeout(200);
+const tick = await p.locator("#ticker").evaluate((el) => { const b = el.getBoundingClientRect(); return { top: b.top, h: b.height }; }).catch(() => null);
+check("render: scrolled — the ticker pins at the inset (top " + (tick && tick.top) + ", want ~47)", !!tick && Math.abs(tick.top - 47) < 2);
 await b.close(); server.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 process.exit(fail ? 1 : 0);
