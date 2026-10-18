@@ -77,17 +77,30 @@ function nextWeekday(baseKey, wd, strictlyAfter) {
   return toKey(d);
 }
 
+/* An impossible date key (2027-02-29, 2027-04-31) matches no real
+   day in any view — the task would exist nowhere. Normalise at the
+   parser's choke point: Feb 29 rolls forward to the next leap year;
+   any other overflow clamps to the month's real last day (PACE-009). */
+function realDate(key) {
+  var p = String(key).split("-"); var y = +p[0], m = +p[1], d = +p[2];
+  if (!y || m < 1 || m > 12 || !d) return key;
+  var dim = new Date(y, m, 0).getDate();
+  if (d <= dim) return key;
+  if (m === 2 && d === 29) { do { y++; dim = new Date(y, 2, 0).getDate(); } while (dim < 29); return y + "-02-29"; }
+  return y + "-" + pad(m) + "-" + pad(dim);
+}
+
 function parseItem(raw, baseKey) {
   var s = " " + String(raw).trim().replace(/\s+/g, " ") + " ";
-  if (s.trim().length < 2) return null;
+  if (s.trim().length < 1) return null;
   var priority = 0;
   var bang = s.match(/(!+)\s*$/);
   if (bang) { priority = Math.min(3, bang[1].length); s = s.replace(/!+\s*$/, " "); }
   s = s.replace(/^\s*(task|todo|reminder)\s*[:\-]\s*/i, " ");
   s = s.replace(/\b(remind me to|i need to|need to|remember to)\b/i, " ");
   var repeat = null;
-  var rm = s.match(/\bevery (day|weekday|week|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
-  if (rm) { repeat = "every " + rm[1].toLowerCase(); s = s.replace(rm[0], " "); }
+  var rm = s.match(/\bevery (day|weekday|week|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|evening|night)\b/i);
+  if (rm) { var rw = rm[1].toLowerCase(); repeat = (rw === "morning" || rw === "evening" || rw === "night") ? "every day" : "every " + rw; s = s.replace(rm[0], " "); }
   else if (/\bdaily\b/i.test(s)) { repeat = "every day"; s = s.replace(/\bdaily\b/i, " "); }
   else if (/\bweekly\b/i.test(s)) { repeat = "every week"; s = s.replace(/\bweekly\b/i, " "); }
 
@@ -101,16 +114,18 @@ function parseItem(raw, baseKey) {
   else if ((dm = s.match(/\b(?:on\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i))) { date = nextWeekday(baseKey, WEEKDAYS.indexOf(dm[1].toLowerCase().slice(0, 3) === "mon" ? "monday" : dm[1].toLowerCase()), false); if (date === baseKey) { /* same weekday means today */ } s = s.replace(dm[0], " "); }
   else if ((dm = s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/))) { date = dm[1] + "-" + dm[2] + "-" + dm[3]; s = s.replace(dm[0], " "); }
   else if ((dm = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) { var yr = dm[3] ? (+dm[3] < 100 ? 2000 + (+dm[3]) : +dm[3]) : parseKey(baseKey).getFullYear(); date = yr + "-" + pad(+dm[2]) + "-" + pad(+dm[1]); s = s.replace(dm[0], " "); }
-  else if ((dm = s.match(/\b(?:on\s+)?(\d{1,2}) (january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b/i))) { var monWord = dm[2].toLowerCase(); var mo = MONTHS.indexOf(monWord.length > 3 ? monWord : ({ jan: "january", feb: "february", mar: "march", apr: "april", jun: "june", jul: "july", aug: "august", sep: "september", oct: "october", nov: "november", dec: "december" }[monWord] || monWord)); var y2 = parseKey(baseKey).getFullYear(); var cand = y2 + "-" + pad(mo + 1) + "-" + pad(+dm[1]); if (cand < baseKey) cand = (y2 + 1) + "-" + pad(mo + 1) + "-" + pad(+dm[1]); date = cand; s = s.replace(dm[0], " "); }
+  else if ((dm = s.match(/\b(?:on\s+)?(\d{1,2}) (january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)(?:\s+(\d{4}))?\b/i))) { var monWord = dm[2].toLowerCase(); var mo = MONTHS.indexOf(monWord.length > 3 ? monWord : ({ jan: "january", feb: "february", mar: "march", apr: "april", jun: "june", jul: "july", aug: "august", sep: "september", oct: "october", nov: "november", dec: "december" }[monWord] || monWord)); var y2 = dm[3] ? +dm[3] : parseKey(baseKey).getFullYear(); var cand = y2 + "-" + pad(mo + 1) + "-" + pad(+dm[1]); if (!dm[3] && cand < baseKey) cand = (y2 + 1) + "-" + pad(mo + 1) + "-" + pad(+dm[1]); date = cand; s = s.replace(dm[0], " "); }
 
   var time = null, tm;
   if ((tm = s.match(/\bat (\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i)) || (tm = s.match(/\b(\d{1,2})(?::(\d{2}))\s*(am|pm)\b/i)) || (tm = s.match(/\b(\d{1,2})(am|pm)\b/i)) || (tm = s.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/))) {
     var h = +tm[1], mi = +(tm[2] || 0), ap = (tm[3] || "").toLowerCase();
     if (ap === "pm" && h < 12) h += 12;
     if (ap === "am" && h === 12) h = 0;
-    time = pad(h) + ":" + pad(mi);
+    /* An impossible clock time (25:99) is consumed but never stored —
+       the task keeps its words and simply has no time (PACE-010). */
+    time = (h <= 23 && mi <= 59) ? pad(h) + ":" + pad(mi) : null;
     s = s.replace(tm[0], " ");
-  } else if (/\bnoon\b/i.test(s)) { time = "12:00"; s = s.replace(/\bnoon\b/i, " "); }
+  } else if (/\bnoon\b/i.test(s)) { time = "12:00"; s = s.replace(/\b(?:at\s+)?noon\b/i, " "); }
   else if (/\bin the morning\b/i.test(s)) { time = "09:00"; s = s.replace(/\bin the morning\b/i, " "); }
   else if (/\bin the afternoon\b/i.test(s)) { time = "14:00"; s = s.replace(/\bin the afternoon\b/i, " "); }
   else if (/\bin the evening\b/i.test(s)) { time = "19:00"; s = s.replace(/\bin the evening\b/i, " "); }
@@ -121,11 +136,14 @@ function parseItem(raw, baseKey) {
     s = s.replace(um[0], " ");
   }
   var title = s.replace(/\s+/g, " ").trim().replace(/^[\s,.\-]+|[\s,.\-]+$/g, "");
-  if (title.length < 2) return null;
+  /* A one-letter title is a real title ("X at 9am") — only wordless
+     debris is refused, never a letter or a digit (PACE-015). */
+  if (!/[a-z0-9]/i.test(title)) return null;
   title = title.charAt(0).toUpperCase() + title.slice(1);
   if (!durationMin) durationMin = estimateDuration(title);
   var cat = categoryFor(title);
   var essential = priority >= 3 || /\b(must|deadline|due|appointment|pick up|pickup|flight|doctor|dentist)\b/i.test(title);
+  date = realDate(date);
   return {
     title: title, date: date, time: time, durationMin: durationMin,
     priority: priority, repeat: repeat, category: cat.id, color: cat.color,
