@@ -679,6 +679,7 @@ function openTask(id, instanceDate) {
 }
 function renderSteps(t) {
   var box = $("dSteps");
+  $("dBreak").hidden = !!(t.steps && t.steps.length);
   if (!t.steps || !t.steps.length) { box.innerHTML = '<p class="hint">' + tr("No steps yet.") + '</p>'; return; }
   box.innerHTML = t.steps.map(function (s, i) {
     return '<label class="step-row' + (s.done ? " is-done" : "") + '"><input type="checkbox" data-step="' + i + '"' + (s.done ? " checked" : "") + "><span>" + esc(s.text) + "</span></label>";
@@ -692,8 +693,11 @@ function renderSteps(t) {
 }
 $("dBreak").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
-  if (!t.steps || !t.steps.length) t.steps = L.decompose(t.title, t.durationMin, true);
-  else t.steps = t.steps.concat(L.decompose(t.title, t.durationMin, true));
+  /* One break per task: a second tap used to append a whole duplicate
+     set of steps (PACE-008). The button hides once steps exist; this
+     guard covers a fast double-tap before the hide lands. */
+  if (t.steps && t.steps.length) { toast(tr("This one already has its steps.")); return; }
+  t.steps = L.decompose(t.title, t.durationMin, true);
   save(); renderSteps(t); refreshAll(); toast(tr("Broken down. Only the first step matters right now."));
 });
 function persistSheetFields() {
@@ -1251,8 +1255,13 @@ function renderNotifStatus() {
       n.perm === "granted" ? tr("Notifications are on. You choose what they say and when.") :
       n.perm === "denied" ? tr("Notifications are blocked. You can allow them in your phone's settings for Pace.") :
       tr("Notifications are off.");
+    /* PACE-007: the static hint line is web truth only — in the phone
+       app the reminders are scheduled on the device and ring while
+       the app is closed. */
+    $("notifHint").textContent = tr("Reminders are set on this phone, so they can ring even when the app is closed.");
     return;
   }
+  $("notifHint").textContent = tr("Reminders fire while the app is open.");
   $("notifStatus").textContent = !("Notification" in window) ? tr("This browser does not offer notifications.") :
     n.perm === "granted" ? tr("Notifications are on. You choose what they say and when.") :
     n.perm === "denied" ? tr("Notifications are blocked in the browser. You can allow them in the browser site settings.") :
@@ -1785,7 +1794,10 @@ function openAuth() {
   $("appleBtn").hidden = !(window.PACE_FB_CONFIG && window.PACE_FB_CONFIG.appleEnabled) && !nativeAuthPlugin();
   $("authSheet").hidden = false;
 }
-function authBusy(msg) { $("authMsg").textContent = msg; }
+/* Door messages land on BOTH step lines: only one step is ever
+   visible, and a message written to the hidden step reads as a dead
+   button (PACE-001, found by dogfood on the shipped build 7). */
+function authBusy(msg) { $("authMsg").textContent = msg; $("authMsg1").textContent = msg; }
 function afterSignIn() { try { localStorage.setItem("pace-last-uid", ACTIVE_UID || ""); } catch (e) {} location.reload(); }
 function bindAccounts() {
   if (!FB.configured) return;
@@ -1828,8 +1840,8 @@ function bindAccounts() {
   // walks back. Enter on the email does what the arrow does.
   var doorNext = function () {
     var email = $("authEmail").value.trim();
-    if (!email || email.indexOf("@") < 1) { $("authMsg1").textContent = tr("That email address does not look right."); return; }
-    $("authMsg1").textContent = "";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "")) { $("authMsg1").textContent = tr("That email address does not look right."); return; }
+    $("authMsg1").textContent = ""; $("authMsg").textContent = "";
     $("doorEmailEcho").textContent = email;
     $("doorStep1").hidden = true;
     $("doorStep2").hidden = false;
