@@ -185,7 +185,9 @@ html[data-sb="collapsed"] #sidebar { display: none; }
 .brand-mark { width: 26px; height: 26px; flex: 0 0 auto; }
 .brand-mark.sm { width: 22px; height: 22px; }
 .brand-name { flex: 1 1 auto; letter-spacing: -0.01em; font-family: var(--font-display); font-weight: 800; font-size: 19px; }
-.icon-btn { border: 0; background: none; color: var(--ink-3); padding: 6px; border-radius: 8px; display: inline-flex; }
+/* The touch box is 44px even though the glyph is 18 — small targets
+   cost this app's users real taps (PACE-014). */
+.icon-btn { border: 0; background: none; color: var(--ink-3); padding: 6px; border-radius: 8px; display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; }
 .icon-btn:hover { background: var(--ground-2); color: var(--ink); }
 .icon-btn .ico { width: 18px; height: 18px; }
 .expand-btn {
