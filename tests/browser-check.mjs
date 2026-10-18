@@ -93,6 +93,37 @@ await page.click("#dNotToday");
 await page.waitForTimeout(300);
 check("not today removes it from today list", (await page.locator("#dayList .task-row").count()) < rowCountToday + 1);
 
+/* PACE-006 + PACE-008: the task sheet at phone width (Test — Pace dogfood) */
+const p5 = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await p5.goto("http://localhost:8911/", { waitUntil: "networkidle" });
+await p5.evaluate(() => {
+  const now = new Date(); const tk = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify({ tasks: [{ id: "sheet1", title: "Clean the whole house", date: tk, time: null, durationMin: 45, priority: 0, repeat: null, category: "home", color: "#5B6BD5", essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "", source: "test", originalText: "", skipDates: [], doneDates: [] }], feelings: {}, welcomed: true, settings: { appearance: { theme: "white", cute: false }, guideDone: true, sidebarCollapsed: true, notif: { digestTimes: ["12:30"] } }, sent: {}, todos: [], habits: [], imports: [] }));
+});
+await p5.reload({ waitUntil: "networkidle" });
+await p5.waitForTimeout(600);
+await p5.locator("#dayList .task-row").first().click();
+await p5.waitForTimeout(300);
+check("PACE-006 setup: the task sheet opens at 390px", await p5.locator("#taskSheet:not([hidden])").count() === 1);
+const geo = await p5.evaluate(() => {
+  const card = document.querySelector("#taskSheet .sheet-card").getBoundingClientRect();
+  const out = { cardL: card.left, cardR: card.right };
+  for (const id of ["dDate", "dTime", "dDur"]) { const r = document.getElementById(id).getBoundingClientRect(); out[id] = { l: r.left, r: r.right, w: r.width }; }
+  return out;
+});
+check("PACE-006: Date/Time/Minutes all sit INSIDE the sheet at 390px (Minutes read " + Math.round(geo.dDur.w) + "px wide, card edge " + Math.round(geo.cardR) + ")", ["dDate", "dTime", "dDur"].every((id) => geo[id].l >= geo.cardL - 1 && geo[id].r <= geo.cardR + 1 && geo[id].w > 40));
+check("PACE-008 setup: no steps yet — the break button shows", await p5.locator("#dBreak").isVisible());
+await p5.click("#dBreak");
+await p5.waitForTimeout(300);
+const steps1 = await p5.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks[0].steps.length);
+check("PACE-008: one tap breaks it into steps (" + steps1 + ")", steps1 > 0);
+check("PACE-008: with steps present the break button hides", !(await p5.locator("#dBreak").isVisible().catch(() => false)));
+await p5.evaluate(() => document.getElementById("dBreak").click());
+await p5.waitForTimeout(250);
+const steps2 = await p5.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks[0].steps.length);
+check("PACE-008: a second (forced) tap adds NOTHING — still " + steps2 + " steps", steps2 === steps1);
+await p5.close();
+
 /* capture: brain dump to drafts to calendar */
 await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
 await page.click('.side-item[data-panel="capture"]');
