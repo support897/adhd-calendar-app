@@ -67,6 +67,10 @@ await p.evaluate(() => window.scrollTo(0, 900));
 await p.waitForTimeout(200);
 const tick = await p.locator("#ticker").evaluate((el) => { const b = el.getBoundingClientRect(); return { top: b.top, h: b.height }; }).catch(() => null);
 check("render: scrolled — the ticker pins at the inset (top " + (tick && tick.top) + ", want ~47)", !!tick && Math.abs(tick.top - 47) < 2);
+// PACE-005: at phone width all five views sit inside the switcher pill
+// (Agenda used to hide off the right edge of a sideways scroll).
+const seg = await p.locator(".segmented").evaluate((el) => { const box = el.getBoundingClientRect(); const btns = [...el.querySelectorAll("button")]; return { overflow: el.scrollWidth - el.clientWidth, allIn: btns.every((b2) => { const r = b2.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1; }), n: btns.length }; });
+check("render: PACE-005 — phone view switcher shows all five views, nothing off the edge", seg.overflow === 0 && seg.allIn && seg.n === 5);
 await b.close(); server.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 process.exit(fail ? 1 : 0);
