@@ -121,11 +121,57 @@ await p2.fill("#dumpText", "call the dentist tomorrow at 3pm");
 await p2.evaluate(() => document.getElementById("parseBtn").click()); await p2.waitForTimeout(500);
 check("locked Talk tap speaks and builds NO draft list", (await p2.locator("#plusSheet").isVisible()) && (await p2.locator("#draftList .draft-card").count()) === 0);
 await p2.click("#plusNotNow"); await p2.waitForTimeout(300);
+await p2.evaluate(() => document.querySelector('.side-item[data-panel="progress"]').click()); await p2.waitForTimeout(500);
+check("locked Board tap speaks and the panel does NOT open", (await p2.locator("#plusSheet").isVisible()) && !(await p2.evaluate(() => document.getElementById("panel-progress").classList.contains("is-active"))));
+await p2.click("#plusNotNow"); await p2.waitForTimeout(300);
+await p2.evaluate(() => document.getElementById("addBtn").click()); await p2.waitForTimeout(700);
+await p2.fill("#quickText", "water the plants");
+await p2.evaluate(() => document.querySelector("details.details-fallback summary").click()); await p2.waitForTimeout(300);
+await p2.fill("#fMin", "just the balcony pots");
+await p2.evaluate(() => document.getElementById("addSave").click()); await p2.waitForTimeout(700);
+const taught = await p2.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}"); const t = (s.tasks || []).find((x) => (x.title || "").toLowerCase().includes("water the plants")); return t ? { saved: true, min: t.minVersion } : { saved: false }; });
+check("locked teach at creation: the task saves, the taught version does NOT", taught.saved === true && taught.min === "");
+check("locked teach at creation SPEAKS (the Plus sheet is up)", await p2.locator("#plusSheet").isVisible());
+await p2.evaluate(() => document.getElementById("plusNotNow").click()); await p2.waitForTimeout(300);
+await p2.evaluate(() => document.querySelector('.side-item[data-panel="settings"]').click()); await p2.waitForTimeout(400);
+await p2.evaluate(() => { const i = document.getElementById("nameLow"); i.value = "Rough"; i.dispatchEvent(new Event("change", { bubbles: true })); });
+await p2.waitForTimeout(500);
+const nameKept = await p2.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}").settings?.names?.low);
+check("locked energy rename SPEAKS and the factory word stays", (await p2.locator("#plusSheet").isVisible()) && nameKept === "Bad");
+await p2.evaluate(() => document.getElementById("plusNotNow").click()); await p2.waitForTimeout(300);
 await p2.evaluate(async () => { await window.PaceBilling.refresh({ fsGet: () => Promise.resolve({ entitlement: "plus", status: "active", period_ends_at: new Date(Date.now() + 10 * 864e5).toISOString() }) }, "u-aged", new Date(Date.now() - 40 * 864e5).toISOString()); });
 await p2.evaluate(() => document.querySelector('.side-item[data-panel="settings"]').click()); await p2.waitForTimeout(300);
 await p2.evaluate(() => document.querySelector('.swatch[data-theme-set="sky"]').click()); await p2.waitForTimeout(400);
 check("with a live record the same look applies silently", (await p2.locator("#plusSheet").isHidden()) && (await p2.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "sky");
 await ctx2.close();
+
+/* ---- stretch + break, on a seeded aged guest ---- */
+const K = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
+const K2 = (() => { const d = new Date(Date.now() + 864e5); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
+const mkT = (id, title, date, steps) => ({ id, title, date, time: null, durationMin: 30, priority: 0, repeat: null, category: "work", color: "#5B6BD5", essential: false, status: "todo", steps: steps || [], minVersion: "", fullVersion: "", source: "manual", originalText: "", skipDates: [], doneDates: [] });
+const seed3 = { settings: { guideDone: true }, welcomed: true, samplesLoaded: true, imports: [], feelings: { [K]: "full" }, checks: {}, habitLog: {}, habits: [], todos: [], tasks: [mkT("s1", "Seeded today task", K, []), mkT("s2", "Seeded tomorrow task", K2, [])] };
+const ctx3 = await b.newContext({ viewport: { width: 540, height: 960 } });
+await ctx3.addInitScript((s) => { try { localStorage.setItem("pace-first-run", String(Date.now() - 40 * 864e5)); if (!localStorage.getItem("calmcal-v1:guest")) localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)); } catch (e) {} }, seed3);
+const p3 = await ctx3.newPage();
+p3.on("pageerror", (e) => errors.push("seeded: " + e.message));
+await p3.goto("http://localhost:9131/", { waitUntil: "networkidle" });
+await p3.waitForTimeout(1500);
+check("the stretch note offers tomorrow's task on a Great day", await p3.locator('[data-act="stretch"]').isVisible().catch(() => false));
+await p3.evaluate(() => document.querySelector('[data-act="stretch"]').click()); await p3.waitForTimeout(500);
+const s2date = await p3.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}"); const t = (s.tasks || []).find((x) => x.id === "s2"); return t ? t.date : null; });
+check("locked stretch tap SPEAKS and the task stays on tomorrow", (await p3.locator("#plusSheet").isVisible()) && s2date === K2);
+await p3.evaluate(() => document.getElementById("plusNotNow").click()); await p3.waitForTimeout(300);
+await p3.evaluate(() => { const el = [...document.querySelectorAll(".task-row, .day-task, [data-open-task]")].find((x) => x.textContent.includes("Seeded today task")); if (el) el.click(); });
+await p3.waitForTimeout(800);
+const breakSeen = await p3.locator("#dBreak").isVisible().catch(() => false);
+if (breakSeen) {
+  await p3.evaluate(() => document.getElementById("dBreak").click()); await p3.waitForTimeout(500);
+  const stepsAfter = await p3.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}"); const t = (s.tasks || []).find((x) => x.id === "s1"); return t ? (t.steps || []).length : -1; });
+  check("locked Break tap SPEAKS and no steps are made", (await p3.locator("#plusSheet").isVisible()) && stepsAfter === 0);
+} else {
+  check("locked Break tap SPEAKS and no steps are made", false);
+}
+await ctx3.close();
 check("zero page errors in the payments battery", errors.length === 0);
 if (errors.length) console.log(errors.slice(0, 4).join(" | "));
 console.log("RESULT pass=" + pass + " fail=" + fail);
