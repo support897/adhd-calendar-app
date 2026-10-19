@@ -911,3 +911,9 @@ Next: SU conveyor → custody → SR G7 re-read on the
 artefact → QA's packaged pass + the sandbox sweep
 (free/paid/restore/cancel) → free-phone legs → her
 TestFlight for the payments test. Her hold bars submission.
+
+## Build 18 — the hang cure + QA's F2 + Finance's cancellation pin (b)
+- THE HANG CURE (fleet census, her order): firebase.js gains fetchT — every REST call aborts at 15s (the layer had NO bound; six bare fetches); userError checks AbortError FIRST (a DOMException's legacy numeric code otherwise reads as a generic failure). app.js: the native Google/Apple door promises race a generous 45s bound with an honest fallback ("Google did not answer. Nothing changed. Try again, or use email + password." + ES twins); reconcileAccount gains a 15s watchdog that runs the tail's own settle (the sync gate can no longer wedge for a session); billing.js's RC read races a 12s bound. Proof: tests/hang-check.mjs 4/4 against never-settling counterparts (hanging auth endpoint · never-settling plugin promise · hanging Firestore, saves keep attempting past the bound).
+- QA F2 closed at the root: PaceBilling.productPrice now EXISTS (the locked A$ anchors per slot) and is exported — renderPlans' disclosure fallback is real; a partial offerings response composes store strings + anchors (payments leg proves it).
+- Finance's cancellation pin (b): evalRecord opens on cancelled with period_ends_at in the future (the receiver's true write); cancelled with no period standing stays shut; past_due untouched.
+- Regressions on the cut bytes: payments 48/48 · accounts 50/50 · features 48/48 · race 36/36 · hang 4/4 · i18n 3/3.
