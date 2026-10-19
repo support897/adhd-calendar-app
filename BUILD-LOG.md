@@ -671,3 +671,74 @@ routes stayed healthy and carried these builds; the local
 pace-store www mirror lags the repo meanwhile (repo bytes are
 the truth; CI builds from them). Owed on recovery: mirror
 restore + the desk's Chromium re-runs for builds 9–10.
+
+## Build 11 (18 Oct) — support-page truth fix (custody-only)
+support.html's "Where is my information?" answer falsely claimed
+"On your device only. Pace has no accounts and no server." The
+corrected line (of record): local-first truth — on the device,
+and with an account also saved to the account via Google
+Firebase under the user's own sign-in; deleting the account in
+Settings deletes everything saved to it. Delta = support.html +
+service-worker (pace-v16-11) only. Pins (md5): support b1908a9f ·
+SW a35bec16. Run #12 (39118067223) — VALID in App Store Connect
+(ab9c950e). Stands custody-only; its chain was superseded by
+build 12 the same evening.
+
+## Build 12 (18–19 Oct) — notification tap → task routing
+HQ ruling: a tap that only opens the app is a dead end. Every
+scheduled reminder now carries a tap payload {paceKind, paceTask,
+paceDate} (the plugin's extra / the notification's data); a
+router opens the task's day with its sheet up (the day alone is
+the floor for day-shaped moments and gone tasks). Native
+listener at boot, web handler in the worker (pace-v16-12) with
+message + address-payload cold-open paths. Batteries:
+notifications 22/22 (7 new legs) · features 49/49 · logic 58/58 ·
+accounts 48/48 · voice 9/9 (the owed re-run; two harness faults
+fixed — no server on its port + a stale seed). Pins (md5):
+app.js 374ac120 · SW ba472200 · support b1908a9f. Run #13
+(39118979377) — VALID in ASC (702fca25) · SU custody byte-leg
+exact (IPA sha256 e5ba78b1) · delta pack 6/6 ON THE ARTEFACT ·
+SR packaged delta PASS · QA PACKAGED PASS. Then QA's remainder
+round found the sync race (below) — build 12 does NOT seat.
+
+## Build 13 (19 Oct) — THE SYNC RACE FIX (remainder round)
+QA's pot/save-forever scripts diverged run to run on build 12:
+one run lost BOTH accounts' data server-side after
+sign-out/sign-in; the next lost nothing. Diagnosis (code-read +
+a deterministic repro): three holes, one disease — content
+could move backwards while its stamps moved forwards.
+(1) Debounced pushes landed DURING the sign-in reconcile,
+stamping pre-adopt content onto the server. (2) A push arriving
+while another was in flight was DROPPED, leaving older server
+content under a fresher write-time stamp; the next adopt then
+discarded newer local data (the Leg 5 restart loss, exactly).
+(3) Sign-out reloaded without flushing the pending push (the
+fast-cycle loss). Plus a design gap the repro exposed: reconcile
+only adopted — when local was the newer truth, nothing pushed
+it up, so a behind-server never healed.
+THE FIX (app.js, sync core only): pushes GATE on the reconcile
+(held, never dropped — fired at gate-lift with post-adopt
+state) · a busy push re-queues (syncDirty) · the state doc's
+updatedAt is the CONTENT's own stamp (state.updatedAt), never
+the write time · the adopt decision reads the payload's inner
+stamp, so stale content can never outrank fresher local data ·
+local-newer (or doc-absent) marks the state owed and the
+gate-lift flush pushes it (the server heals at every sign-in) ·
+sign-out flushes before the reload (1.5s cap) · the tour
+decision reads the settled state on signed-in boots (Leg 6's
+wobble).
+PROOF — tests/race-check.mjs (reads slowed past the debounce,
+QA's exact cycle): on the SHIPPED b12 bytes it FAILS twice at
+the server-doc layer (the fast-cycle task never persists; the
+overlapped saves are not held) while the renders pass — the
+loss hides in the cache, as QA found. On the fixed tree:
+36/36 across THREE consecutive full cycles. Regressions:
+accounts 48/48 · features 49/49 · notifications 22/22.
+LEG 7 RULING (desk): the deleted email re-joining at the door
+is NOT a defect — the approved one-button door ("this one
+button does both") announced "Creating your account…", and the
+new account is genuinely new (new uid; the old account's
+deletion stands proven server-side). Recorded; no code change.
+Pins (md5): app.js a6fbf6fb · SW pace-v16-13 7cce5880 ·
+race-check ae8abcbc. Seat path: gates → QA re-runs their
+pot/save-forever scripts (their count) → device round → HQ.
