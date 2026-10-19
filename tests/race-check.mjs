@@ -28,7 +28,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(9129, r));
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
 // The race's network shape: document READS take 2000ms (slower
 // than the 1200ms sync debounce), writes 250ms, auth instant.
