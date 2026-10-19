@@ -231,9 +231,9 @@ function applySidebar() {
   if (calendar) calendar.updateSize();
 }
 document.querySelectorAll(".swatch[data-theme-set]").forEach(function (b) {
-  b.addEventListener("click", function () { var t = b.getAttribute("data-theme-set"); state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); if (t !== "white" && t !== "dark") maybePlus("look"); });
+  b.addEventListener("click", function () { var t = b.getAttribute("data-theme-set"); if (t !== "white" && t !== "dark" && !plusGate("look")) return; state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); });
 });
-$("cuteToggle").addEventListener("change", function () { state.settings.appearance.cute = $("cuteToggle").checked; save(); applyAppearance(); if ($("cuteToggle").checked) maybePlus("cute"); });
+$("cuteToggle").addEventListener("change", function () { if ($("cuteToggle").checked && !plusGate("cute")) { $("cuteToggle").checked = false; return; } state.settings.appearance.cute = $("cuteToggle").checked; save(); applyAppearance(); });
 /* Law E — the user's own photo as the background. The photo is user
    data: picking another look never deletes it; only Remove does,
    and Remove carries Undo (Law B2). A soft veil + an ink set chosen
@@ -243,6 +243,7 @@ $("bgPhotoFile").addEventListener("change", function () {
   var f = $("bgPhotoFile").files && $("bgPhotoFile").files[0];
   $("bgPhotoFile").value = "";
   if (!f) return;
+  if (!plusGate("look")) return;
   var url = URL.createObjectURL(f);
   var img = new Image();
   img.onload = function () {
@@ -277,6 +278,7 @@ $("bgPhotoFile").addEventListener("change", function () {
 });
 $("photoApply").addEventListener("click", function () {
   if (!state.settings.appearance.photo) return;
+  if (!plusGate("look")) return;
   state.settings.appearance.bgChoice = "photo"; save(); applyAppearance();
 });
 $("photoRemove").addEventListener("click", function () {
@@ -597,7 +599,7 @@ document.querySelectorAll(".side-item").forEach(function (b) {
     b.classList.add("is-active");
     $("panel-" + b.getAttribute("data-panel")).classList.add("is-active");
     if (b.getAttribute("data-panel") === "progress") renderProgress();
-    if (b.getAttribute("data-panel") === "capture") maybePlus("talk");
+
     // Phone + the Muse-app shape: choosing an area shows it —
     // the menu gives the screen back (the sliver tap and the
     // close button do the same when no choice is made).
@@ -751,6 +753,7 @@ $("dDelete").addEventListener("click", function () {
 
 /* ---------- capture ---------- */
 $("parseBtn").addEventListener("click", function () {
+  if (!plusGate("talk")) return;
   var text = $("dumpText").value;
   drafts = L.parseDump(text, L.todayKey());
   if (!drafts.length) { $("captureMsg").textContent = tr("Nothing I could sort yet. Try one thing per line, like: call the dentist tomorrow at 3pm."); return; }
@@ -1531,24 +1534,31 @@ $("guideNext").addEventListener("click", function () {
 $("guideAgain").addEventListener("click", function () { TOUR = []; buildTour(); showGuide(0); });
 
 /* ---------- the upgrade moment ---------- */
-/* Fires ONLY on a paid-edge tap (a Plus look, Cute mode,
-   Talk to it) — never on open, never twice for the same
-   edge in one visit. It invites to Plans; it never charges
-   and never locks: the tapped thing works exactly as today,
-   popup or no popup. (Pace has no repeat picker — repeats
-   arrive through Talk to it, already an edge, and through
-   import, a completed flow with no wanting-moment.) */
-var plusShown = {}, plusEntries = {};
+/* THE LOCKED TAP (the paid/free rules, 19 Oct: paid features release
+   only on an active entitlement; a locked tap SPEAKS and opens
+   the plans path — never silent, never a partial unlock).
+   plusGate(edge) is the single door every Plus feature's apply
+   point passes: entitled (a live subscriptions record or the
+   free month — PaceBilling.plusActive) applies silently; not
+   entitled speaks through maybePlus and the feature does NOT
+   apply. This supersedes the PACE-002 timing of the
+   nothing-locked era (first entry clean, speak on a repeat
+   visit): that ruling governed a popup over features that
+   still worked; with real locks the first locked tap speaks
+   too. (Pace has no repeat picker — repeats arrive through
+   Talk to it, already an edge, and through import, a completed
+   flow with no wanting-moment.) */
+var plusShown = {};
 function maybePlus(edge) {
-  if (DEMO_SESSION || plusShown[edge]) return;
-  /* PACE-002 (HQ ruling): the FIRST entry to an edge lands clean —
-     the first minute belongs to the feature. The edge speaks on a
-     repeat visit, still at most once per visit. */
-  plusEntries[edge] = (plusEntries[edge] || 0) + 1;
-  if (plusEntries[edge] < 2) return;
+  if (DEMO_SESSION) return;
   plusShown[edge] = 1;
   $("plusArt").innerHTML = skipSvg("welcome");
   $("plusSheet").hidden = false;
+}
+function plusGate(edge) {
+  if (window.PaceBilling && PaceBilling.plusActive()) return true;
+  maybePlus(edge);
+  return false;
 }
 function closePlus() { $("plusSheet").hidden = true; }
 $("plusClose").addEventListener("click", closePlus);
