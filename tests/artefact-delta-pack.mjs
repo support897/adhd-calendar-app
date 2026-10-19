@@ -52,7 +52,7 @@ const stub = () => {
       addListener: async (name, fn) => { (window.__ln.listeners[name] = window.__ln.listeners[name] || []).push(fn); return {}; },
     } } };
 };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
 await ctx.addInitScript(stub);
 const p = await ctx.newPage();
