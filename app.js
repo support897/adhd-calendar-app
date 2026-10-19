@@ -1602,6 +1602,18 @@ function renderPlans() {
   var on = billingOnDevice();
   $("planBuy").hidden = !on;
   $("planTerms").hidden = !on;
+  if (on) {
+    // The disclosure's prices come from the same source as
+    // the buttons' prices, so the two can never drift.
+    PaceBilling.storePrices().then(function (sp) {
+      var t = $("planTermsText"); if (!t) return;
+      t.textContent = tr("Plus, monthly ({m}) and Plus, yearly ({y}) renew automatically at those prices, until you cancel. Cancel anytime in your Apple ID subscriptions. Plus stays open until the end of the paid period. Plus for life ({l}) is one payment. It never renews.", {
+        m: sp[PaceBilling.products.monthly] || PaceBilling.productPrice("monthly"),
+        y: sp[PaceBilling.products.yearly] || PaceBilling.productPrice("yearly"),
+        l: sp[PaceBilling.products.lifetime] || PaceBilling.productPrice("lifetime")
+      });
+    }).catch(function () {});
+  }
   var honest = $("plusHonest");
   if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Unlock with a paid plan when plans open at launch. Nothing can be charged today.");
   var st = $("planState"); if (!st) return;
