@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(9123, r));
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
 const p = await ctx.newPage();
 p.setDefaultTimeout(9000);
@@ -425,7 +425,16 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
     }
   };
   const settingsN = async () => { await pN.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); }); await pN.click('.side-item[data-panel="settings"]'); await pN.waitForTimeout(400); };
-  const sessN = () => pN.evaluate(() => { try { return JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return null; } });
+  // Navigation-tolerant: the native sign-in reloads the page
+  // (afterSignIn), and an evaluate landing mid-navigation dies
+  // with "Execution context was destroyed" — retry it briefly.
+  const sessN = async () => {
+    for (let i = 0; i < 8; i++) {
+      try { return await pN.evaluate(() => { try { return JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return null; } }); }
+      catch (e) { await pN.waitForTimeout(450); }
+    }
+    return null;
+  };
   await pN.goto("http://localhost:9123/", { waitUntil: "networkidle" });
   await pN.waitForTimeout(600);
   await settleN();
