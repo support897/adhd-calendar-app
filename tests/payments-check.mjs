@@ -89,6 +89,43 @@ await p.waitForTimeout(2500);
 const inApp = await p.evaluate(() => ({ plus: window.PaceBilling.plusActive(), source: window.PaceBilling.state().source, subWrites: window.__subWrites || [] }));
 check("a fresh account sits in its free month (plus open, source free-month)", inApp.plus === true && inApp.source === "free-month");
 check("the client wrote NOTHING to subscriptions/ during sign-up", inApp.subWrites.length === 0);
+/* ---- THE LOCKED TAP (aged guest: free month spent, no record).
+        Every Plus apply point refuses AND speaks; free features
+        never read the record and keep working. ---- */
+const ctx2 = await b.newContext({ viewport: { width: 540, height: 960 } });
+await ctx2.addInitScript(() => { try { localStorage.setItem("pace-first-run", String(Date.now() - 40 * 864e5)); } catch (e) {} });
+const p2 = await ctx2.newPage();
+p2.on("pageerror", (e) => errors.push("aged: " + e.message));
+await p2.goto("http://localhost:9131/", { waitUntil: "networkidle" });
+await p2.waitForFunction(() => window.PaceBilling, null, { timeout: 9000 }).catch(() => {});
+for (let i = 0; i < 16; i++) {
+  if (await p2.locator("#welcome").isVisible().catch(() => false)) { await p2.evaluate(() => document.getElementById("welcomeSkip").click()); await p2.waitForTimeout(600); }
+  if (await p2.locator("#guideSheet").isVisible().catch(() => false)) { await p2.evaluate(() => document.getElementById("guideSkip").click()); await p2.waitForTimeout(600); }
+  if (!(await p2.locator("#welcome").isVisible().catch(() => false)) && !(await p2.locator("#guideSheet").isVisible().catch(() => false))) break;
+  await p2.waitForTimeout(400);
+}
+check("aged guest: plus is NOT active (free month spent, no record)", await p2.evaluate(() => window.PaceBilling.plusActive()) === false);
+await p2.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+await p2.click('.side-item[data-panel="settings"]'); await p2.waitForTimeout(400);
+await p2.evaluate(() => document.querySelector('.swatch[data-theme-set="blush"]').click()); await p2.waitForTimeout(500);
+check("locked look tap SPEAKS (the Plus sheet, the unlock words)", (await p2.locator("#plusSheet").isVisible()) && (await p2.locator(".plus-title").textContent()) === "That's a Plus thing." && (await p2.locator(".plus-card").textContent()).includes("Unlock with a paid plan"));
+check("locked look tap does NOT apply (theme unchanged)", (await p2.evaluate(() => document.documentElement.getAttribute("data-theme"))) !== "blush");
+await p2.click("#plusNotNow"); await p2.waitForTimeout(300);
+await p2.evaluate(() => document.getElementById("cuteToggle").click()); await p2.waitForTimeout(500);
+check("locked Cute tap speaks and does NOT apply", (await p2.locator("#plusSheet").isVisible()) && (await p2.evaluate(() => document.documentElement.getAttribute("data-cute"))) !== "1");
+await p2.click("#plusNotNow"); await p2.waitForTimeout(300);
+await p2.evaluate(() => document.querySelector('.swatch[data-theme-set="white"]').click()); await p2.waitForTimeout(300);
+check("a Free Forever look still applies on the locked context, no sheet", (await p2.locator("#plusSheet").isHidden()));
+await p2.evaluate(() => document.querySelector('.side-item[data-panel="capture"]').click()); await p2.waitForTimeout(400);
+await p2.fill("#dumpText", "call the dentist tomorrow at 3pm");
+await p2.evaluate(() => document.getElementById("parseBtn").click()); await p2.waitForTimeout(500);
+check("locked Talk tap speaks and builds NO draft list", (await p2.locator("#plusSheet").isVisible()) && (await p2.locator("#draftList .draft-card").count()) === 0);
+await p2.click("#plusNotNow"); await p2.waitForTimeout(300);
+await p2.evaluate(async () => { await window.PaceBilling.refresh({ fsGet: () => Promise.resolve({ entitlement: "plus", status: "active", period_ends_at: new Date(Date.now() + 10 * 864e5).toISOString() }) }, "u-aged", new Date(Date.now() - 40 * 864e5).toISOString()); });
+await p2.evaluate(() => document.querySelector('.side-item[data-panel="settings"]').click()); await p2.waitForTimeout(300);
+await p2.evaluate(() => document.querySelector('.swatch[data-theme-set="sky"]').click()); await p2.waitForTimeout(400);
+check("with a live record the same look applies silently", (await p2.locator("#plusSheet").isHidden()) && (await p2.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "sky");
+await ctx2.close();
 check("zero page errors in the payments battery", errors.length === 0);
 if (errors.length) console.log(errors.slice(0, 4).join(" | "));
 console.log("RESULT pass=" + pass + " fail=" + fail);
