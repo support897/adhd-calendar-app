@@ -1601,6 +1601,7 @@ function billingOnDevice() {
 function renderPlans() {
   var on = billingOnDevice();
   $("planBuy").hidden = !on;
+  $("planTerms").hidden = !on;
   var honest = $("plusHonest");
   if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Unlock with a paid plan when plans open at launch. Nothing can be charged today.");
   var st = $("planState"); if (!st) return;
