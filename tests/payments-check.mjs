@@ -34,6 +34,8 @@ const evals = await p.evaluate(async ({ DAY, NOW }) => {
   out.plusTrialing = await B.refresh(stub({ entitlement: "plus", status: "trialing", trial_ends_at: iso(NOW + 20 * DAY), period_ends_at: iso(NOW + 20 * DAY) }), "u1", old).then(() => B.plusActive());
   out.lifetimeForever = await B.refresh(stub({ entitlement: "lifetime", status: "active", product: "pace_lifetime" }), "u1", old).then(() => B.plusActive());
   out.cancelledPastPeriod = await B.refresh(stub({ entitlement: "plus", status: "cancelled", period_ends_at: iso(NOW - DAY) }), "u1", old).then(() => B.plusActive());
+  out.cancelledInPeriod = await B.refresh(stub({ entitlement: "plus", status: "cancelled", period_ends_at: iso(NOW + 10 * DAY) }), "u1", old).then(() => B.plusActive());
+  out.cancelledNoEnd = await B.refresh(stub({ entitlement: "plus", status: "cancelled" }), "u1", old).then(() => B.plusActive());
   out.activePastPeriod = await B.refresh(stub({ entitlement: "plus", status: "active", period_ends_at: iso(NOW - DAY) }), "u1", old).then(() => B.plusActive());
   out.pastDue = await B.refresh(stub({ entitlement: "plus", status: "past_due", period_ends_at: iso(NOW + 10 * DAY) }), "u1", old).then(() => B.plusActive());
   out.otherEntitlement = await B.refresh(stub({ entitlement: "studio", status: "active" }), "u1", old).then(() => B.plusActive());
@@ -47,6 +49,8 @@ check("record plus/active inside its period: open", evals.plusActiveRec === true
 check("record plus/trialing: open", evals.plusTrialing === true);
 check("record lifetime/active with no period end: open", evals.lifetimeForever === true);
 check("record cancelled past its period end: shut", evals.cancelledPastPeriod === false);
+check("Finance pin (b): record cancelled with its period standing: OPEN (paid time is kept)", evals.cancelledInPeriod === true);
+check("Finance pin (b): record cancelled with no period standing: shut", evals.cancelledNoEnd === false);
 check("record active but period already ended: shut", evals.activePastPeriod === false);
 check("record past_due: shut", evals.pastDue === false);
 check("a different entitlement's record: shut", evals.otherEntitlement === false);
