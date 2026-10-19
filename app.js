@@ -1794,8 +1794,13 @@ function reconcileAccount() {
       // billing layer reads it). The aggregate shard (owner
       // space) is the only outward fact: this account exists,
       // and when it arrived.
-      FB.fsSet("aggSignups/" + ACTIVE_UID, { createdAt: spine.createdAt }).catch(function () {});
-      return FB.fsSet(spinePath(), spine).then(function () { return null; });
+      // createdAt crosses the wire as a true timestamp (rules
+      // v2.3: server-checked at create, write-once after) — it
+      // anchors the free month, so it is born unfakeable; in
+      // memory it stays the ISO string every reader expects.
+      var born = new Date(spine.createdAt);
+      FB.fsSet("aggSignups/" + ACTIVE_UID, { createdAt: born }).catch(function () {});
+      return FB.fsSet(spinePath(), Object.assign({}, spine, { createdAt: born })).then(function () { return null; });
     }
     spine = sp; return null;
   }).then(function () {
