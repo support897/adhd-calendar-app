@@ -396,6 +396,7 @@ function bindRows(root) {
   });
   var st = root.querySelector('[data-act="stretch"]');
   if (st) st.addEventListener("click", function () {
+    if (!plusGate("stretch")) return;
     var t = baseTask(st.getAttribute("data-id"));
     if (t) { moveInstance(t, L.addDays(selected, 1), selected); toast(tr("Brought to today. Only because you asked.")); refreshAll(); }
   });
@@ -594,6 +595,9 @@ function renderYear() {
 /* ---------- panels ---------- */
 document.querySelectorAll(".side-item").forEach(function (b) {
   b.addEventListener("click", function () {
+    // The Progress panel holds the To Do board + the round-up
+    // (both Plus rows of the split) — its entry is the gate.
+    if (b.getAttribute("data-panel") === "progress" && !plusGate("board")) return;
     document.querySelectorAll(".side-item").forEach(function (x) { x.classList.remove("is-active"); });
     document.querySelectorAll(".panel").forEach(function (x) { x.classList.remove("is-active"); });
     b.classList.add("is-active");
@@ -638,14 +642,18 @@ $("quickText").addEventListener("input", function () {
     (item.repeat ? " · " + esc(item.repeat) : "") + (item.essential ? " · must not slip" : "");
 });
 $("addSave").addEventListener("click", function () {
+  // A smallest version typed at creation is a teach (Plus);
+  // refused, the task still saves — without the taught version.
+  var minV = $("fMin").value.trim();
+  if (minV && !plusGate("steps")) minV = "";
   var task = null;
   var manualTitle = $("fTitle").value.trim();
   if (manualTitle) {
     var cat = L.categoryFor(manualTitle);
-    task = { title: manualTitle, date: $("fDate").value || selected, time: $("fTime").value || null, durationMin: Math.max(5, +$("fDur").value || 25), priority: 0, repeat: null, category: cat.id, color: cat.color, essential: $("fEssential").checked, steps: L.decompose(manualTitle, +$("fDur").value || 25, false), minVersion: $("fMin").value.trim(), fullVersion: $("fFull").value.trim() };
+    task = { title: manualTitle, date: $("fDate").value || selected, time: $("fTime").value || null, durationMin: Math.max(5, +$("fDur").value || 25), priority: 0, repeat: null, category: cat.id, color: cat.color, essential: $("fEssential").checked, steps: L.decompose(manualTitle, +$("fDur").value || 25, false), minVersion: minV, fullVersion: $("fFull").value.trim() };
   } else if ($("quickText").value.trim()) {
     var item = L.parseItem($("quickText").value.trim(), selected);
-    if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: $("fMin").value.trim(), fullVersion: $("fFull").value.trim() };
+    if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: minV, fullVersion: $("fFull").value.trim() };
   }
   if (!task) { toast(tr("Give it a title first, even a messy one.")); return; }
   task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = $("quickText").value.trim(); task.skipDates = []; task.doneDates = [];
@@ -695,6 +703,7 @@ function renderSteps(t) {
 }
 $("dBreak").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  if (!plusGate("steps")) return;
   /* One break per task: a second tap used to append a whole duplicate
      set of steps (PACE-008). The button hides once steps exist; this
      guard covers a fast double-tap before the hide lands. */
@@ -704,7 +713,12 @@ $("dBreak").addEventListener("click", function () {
 });
 function persistSheetFields() {
   var t = baseTask(currentTaskId); if (!t) return;
-  t.minVersion = $("dMin").value.trim();
+  // Teaching (or re-teaching) the smallest version is a Plus
+  // act; USING a taught version on a low day stays free. A
+  // refused teach keeps the version already taught.
+  var taught = $("dMin").value.trim();
+  if (taught !== (t.minVersion || "") && !plusGate("steps")) taught = t.minVersion || "";
+  t.minVersion = taught;
   t.fullVersion = $("dFull").value.trim();
   t.time = $("dTime").value || null;
   t.durationMin = Math.max(5, +$("dDur").value || t.durationMin);
@@ -1164,9 +1178,15 @@ function bindSettings() {
 function readSettings() {
   var s = state.settings;
   s.checkinTime = $("checkinTime").value || "08:00";
-  s.names.low = $("nameLow").value.trim() || "Low";
-  s.names.steady = $("nameSteady").value.trim() || "Steady";
-  s.names.full = $("nameFull").value.trim() || "Full";
+  // The energy levels in your own words is a Plus row: a
+  // refused rename keeps the names already in place (the
+  // check-in itself, with the factory words, stays free).
+  var wantNames = { low: $("nameLow").value.trim() || "Low", steady: $("nameSteady").value.trim() || "Steady", full: $("nameFull").value.trim() || "Full" };
+  if ((wantNames.low !== s.names.low || wantNames.steady !== s.names.steady || wantNames.full !== s.names.full) && !plusGate("names")) {
+    $("nameLow").value = s.names.low; $("nameSteady").value = s.names.steady; $("nameFull").value = s.names.full;
+  } else {
+    s.names.low = wantNames.low; s.names.steady = wantNames.steady; s.names.full = wantNames.full;
+  }
   s.notif.checkin = $("nCheckin").checked; s.notif.start = $("nStart").checked;
   s.notif.setup = Math.max(0, Math.min(60, +$("nSetup").value || 5));
   s.notif.digest = $("nDigest").checked;
