@@ -200,7 +200,7 @@
     "Nothing I could sort yet. Try one thing per line, like: call the dentist tomorrow at 3pm.": "Aún no pude ordenar nada. Prueba una cosa por línea, como: call the dentist tomorrow at 3pm.",
     "Nothing here right now.": "Nada por aquí ahora mismo.",
     "Nothing here. Write one fast, above.": "Nada por aquí. Escribe una rápido, arriba.",
-    "Nothing is locked today, and nothing charges. This is simply where this will live when Plus arrives.": "Hoy nada está bloqueado y nada cobra. Esto es simplemente donde vivirá esto cuando llegue Plus.",
+    "Unlock with a paid plan when plans open at launch. Nothing can be charged today.": "Desbloquéalo con un plan pago cuando los planes abran en el lanzamiento. Hoy no se puede cobrar nada.",
     "Nothing left showing today. The rest is parked, safe.": "No queda nada visible hoy. El resto está aparcado, a salvo.",
     "Nothing new to bring in.": "Nada nuevo que traer.",
     "Nothing ticked, nothing added.": "Nada marcado, nada añadido.",
