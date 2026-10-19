@@ -742,3 +742,32 @@ deletion stands proven server-side). Recorded; no code change.
 Pins (md5): app.js a6fbf6fb · SW pace-v16-13 7cce5880 ·
 race-check ae8abcbc. Seat path: gates → QA re-runs their
 pot/save-forever scripts (their count) → device round → HQ.
+
+## Build 14 (19 Oct) — Leg 6: the second boot stays silent
+QA's b13 verdict: legs 1/5/7 PASS (the race core is fixed);
+Leg 6 failed Run 1 — a sheet visible over the restored session
+at the second boot, nondeterministically. TRACED on production
+with QA's exact rig (their common, the b13 DIST, the relay): the
+sheet is NOT the tour. guideDone stood true in the slot AND the
+server doc at every step of session 1. What rises ~1s into the
+second boot is the NAME RE-OFFER ("Ahoy! I'm Skip. What's your
+name?") — its same-visit guard compared per-BOOT stamps, so the
+very next reload counted as "the next visit" and re-asked;
+whether QA's single read caught it was a coin flip on reconcile
+timing. The re-offer's own design comment says "never the same
+session" — the fix makes the guard mean it: noteNameSkip also
+stamps the SITTING (sessionStorage), and maybeJoinDoor returns
+early when the skip happened this sitting. A genuinely later
+sitting (app closed and reopened) still earns the one re-offer.
+PROOF: the desk repro on QA's production shape — b13 bytes show
+the sheet at ~1s; the fixed tree: THREE consecutive cycles, the
+second boot silent for a full 15s watch, session restored, task
+visible, zero errors (15/15). The accounts battery's re-offer
+legs moved to the sitting definition (same-sitting reload
+silent · new sitting re-offers once · never a third) — accounts
+50/50 · features 49/49 · race 36/36 on these bytes.
+Pins (md5): app.js 84d738a0 (blob 9c5d1cc1) · SW pace-v16-14
+7dbcb321 (blob e26b045b) · accounts-check 0f105ff3 (blob
+6f642f8d) · pbxproj CURRENT_PROJECT_VERSION 14 (blob 1c5eeb21).
+Next: gates → SU conveyor → custody → QA's three-run series
+resumes → device round.
