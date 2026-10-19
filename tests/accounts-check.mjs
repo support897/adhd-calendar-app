@@ -341,16 +341,28 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   });
   check("an empty Next moves the tour on and sets no name", noName && !(await p4.locator("#tourName").isVisible().catch(() => false)));
   await p4.click("#guideSkip").catch(() => {});
-  // THE GENTLE RE-OFFER (HQ ruling): empty@ skipped its name
-  // step this visit; a NEW visit re-offers it — once.
+  // THE GENTLE RE-OFFER (HQ ruling, sitting-shaped by the
+  // Leg 6 law): a same-sitting reload stays silent — no re-ask
+  // rides a page reload. The "next visit" is a NEW sitting: a
+  // fresh context holding the same stored sign-in (the app
+  // closed and reopened; sessionStorage does not carry). The
+  // re-offer fires there, once.
   await p4.reload({ waitUntil: "networkidle" }); await p4.waitForTimeout(900);
+  let sameSitting = false;
+  for (let i = 0; i < 10; i++) { if (await p4.locator("#tourName").isVisible().catch(() => false)) { sameSitting = true; break; } await p4.waitForTimeout(400); }
+  check("no name re-ask on a same-sitting reload (the Leg 6 law)", !sameSitting);
+  const ctx5 = await b.newContext({ viewport: { width: 540, height: 960 }, storageState: await ctx.storageState() });
+  const p5 = await ctx5.newPage();
+  p5.on("pageerror", (e) => errors.push("p5: " + e.message));
+  await p5.goto("http://localhost:9123/", { waitUntil: "networkidle" }); await p5.waitForTimeout(900);
   let reUp = false;
-  for (let i = 0; i < 20 && !reUp; i++) { reUp = await p4.locator("#tourName").isVisible().catch(() => false); if (!reUp) await p4.waitForTimeout(400); }
-  check("a skipped name is re-offered once, on the next visit", reUp);
-  await p4.fill("#tourName", "Em Test");
-  await p4.click("#guideNext"); await p4.waitForTimeout(600);
-  const profEm = await p4.evaluate(() => { const sess = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); const uk = sess && sess.uid ? "calmcal-v1:" + sess.uid : null; return uk ? (JSON.parse(localStorage.getItem(uk) || "{}").settings || {}).profileName : null; });
+  for (let i = 0; i < 20 && !reUp; i++) { reUp = await p5.locator("#tourName").isVisible().catch(() => false); if (!reUp) await p5.waitForTimeout(400); }
+  check("a skipped name is re-offered once, on the next visit (a new sitting)", reUp);
+  await p5.fill("#tourName", "Em Test");
+  await p5.click("#guideNext"); await p5.waitForTimeout(600);
+  const profEm = await p5.evaluate(() => { const sess = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); const uk = sess && sess.uid ? "calmcal-v1:" + sess.uid : null; return uk ? (JSON.parse(localStorage.getItem(uk) || "{}").settings || {}).profileName : null; });
   check("the re-offered name lands on the profile", profEm === "Em Test");
+  await ctx5.close();
   // A second skipper proves the never-a-third-time half.
   await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
   await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
@@ -367,12 +379,23 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   }
   await p4.click("#guideSkip").catch(() => {}); await p4.waitForTimeout(400); // skip the name step
   await p4.reload({ waitUntil: "networkidle" }); await p4.waitForTimeout(900);
+  let re2Same = false;
+  for (let i = 0; i < 10; i++) { if (await p4.locator("#tourName").isVisible().catch(() => false)) { re2Same = true; break; } await p4.waitForTimeout(400); }
+  check("the second skipper: no re-ask on the same-sitting reload either", !re2Same);
+  const ctx6 = await b.newContext({ viewport: { width: 540, height: 960 }, storageState: await ctx.storageState() });
+  const p6 = await ctx6.newPage();
+  p6.on("pageerror", (e) => errors.push("p6: " + e.message));
+  await p6.goto("http://localhost:9123/", { waitUntil: "networkidle" }); await p6.waitForTimeout(900);
   let re2 = false;
-  for (let i = 0; i < 20 && !re2; i++) { re2 = await p4.locator("#tourName").isVisible().catch(() => false); if (!re2) await p4.waitForTimeout(400); }
-  check("the second skipper gets the same one re-offer", re2);
-  await p4.click("#guideSkip").catch(() => {}); await p4.waitForTimeout(400); // skip the re-offer too
-  await p4.reload({ waitUntil: "networkidle" }); await p4.waitForTimeout(5000);
-  check("after the re-offer is skipped, it never asks a third time", !(await p4.locator("#tourName").isVisible().catch(() => false)));
+  for (let i = 0; i < 20 && !re2; i++) { re2 = await p6.locator("#tourName").isVisible().catch(() => false); if (!re2) await p6.waitForTimeout(400); }
+  check("the second skipper gets the same one re-offer (its next sitting)", re2);
+  await p6.click("#guideSkip").catch(() => {}); await p6.waitForTimeout(400); // skip the re-offer too
+  const ctx7 = await b.newContext({ viewport: { width: 540, height: 960 }, storageState: await ctx6.storageState() });
+  await ctx6.close();
+  const p7 = await ctx7.newPage();
+  await p7.goto("http://localhost:9123/", { waitUntil: "networkidle" }); await p7.waitForTimeout(5000);
+  check("after the re-offer is skipped, it never asks a third time", !(await p7.locator("#tourName").isVisible().catch(() => false)));
+  await ctx7.close();
 }
 
 /* ---------- 11c. the native doors (18 Oct, the packaged-app fix) ----
