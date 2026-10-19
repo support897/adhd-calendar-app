@@ -1574,6 +1574,7 @@ function maybePlus(edge) {
   plusShown[edge] = 1;
   $("plusArt").innerHTML = skipSvg("welcome");
   $("plusSheet").hidden = false;
+  renderPlans();
 }
 function plusGate(edge) {
   if (window.PaceBilling && PaceBilling.plusActive()) return true;
@@ -1583,9 +1584,53 @@ function plusGate(edge) {
 function closePlus() { $("plusSheet").hidden = true; }
 $("plusClose").addEventListener("click", closePlus);
 $("plusNotNow").addEventListener("click", closePlus);
-$("plusPlans").addEventListener("click", function () { closePlus(); $("plansSheet").hidden = false; });
-$("plansOpen").addEventListener("click", function () { $("plansSheet").hidden = false; });
+$("plusPlans").addEventListener("click", function () { closePlus(); renderPlans(); $("plansSheet").hidden = false; });
+$("plansOpen").addEventListener("click", function () { renderPlans(); $("plansSheet").hidden = false; });
 $("plansClose").addEventListener("click", function () { $("plansSheet").hidden = true; });
+
+/* ---------- plans + buying (the enabling build) ----------
+   The buy buttons are Pace's own (the sheet's classes, the
+   app's voice) and they live only where a store lives: the
+   packaged app, once billing is configured. Everywhere else
+   the sheet keeps the honest not-on-sale line. Prices on the
+   buttons are the store's own strings for the reader's
+   storefront, with the A$ anchors as the fallback. */
+function billingOnDevice() {
+  try { return !!(window.PaceBilling && PaceBilling.live() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases); } catch (e) { return false; }
+}
+function renderPlans() {
+  var on = billingOnDevice();
+  $("planBuy").hidden = !on;
+  var honest = $("plusHonest");
+  if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Unlock with a paid plan when plans open at launch. Nothing can be charged today.");
+  var st = $("planState"); if (!st) return;
+  if (!on) { st.textContent = tr("Not on sale yet. Nothing to pay today."); return; }
+  var s = PaceBilling.state();
+  if (PaceBilling.plusActive() && s.owned) st.textContent = tr("Plus is yours. Everything is open.");
+  else if (PaceBilling.plusActive()) st.textContent = tr("Your first month is free, on us. The buttons are here when you are ready.");
+  else st.textContent = tr("Pick a plan to unlock everything.");
+  PaceBilling.storePrices().then(function (p) {
+    if (!p) return;
+    $("buyMonthly").textContent = tr("Plus, monthly") + " — " + (p[PaceBilling.products.monthly] || "A$4.99");
+    $("buyYearly").textContent = tr("Plus, yearly") + " — " + (p[PaceBilling.products.yearly] || "A$39.99");
+    $("buyLifetime").textContent = tr("Plus for life") + " — " + (p[PaceBilling.products.lifetime] || "A$99.99");
+  }).catch(function () {});
+}
+function buyFlow(productId) {
+  PaceBilling.buy(productId).then(function () {
+    renderPlans();
+    toast(PaceBilling.plusActive() ? tr("Plus is yours. Everything is open.") : tr("That did not go through. Nothing was charged."));
+  }).catch(function () { toast(tr("That did not go through. Nothing was charged.")); });
+}
+$("buyMonthly").addEventListener("click", function () { buyFlow(PaceBilling.products.monthly); });
+$("buyYearly").addEventListener("click", function () { buyFlow(PaceBilling.products.yearly); });
+$("buyLifetime").addEventListener("click", function () { buyFlow(PaceBilling.products.lifetime); });
+$("buyRestore").addEventListener("click", function () {
+  PaceBilling.restore().then(function () {
+    renderPlans();
+    toast(PaceBilling.plusActive() ? tr("Welcome back. Plus is yours again.") : tr("No past purchase found for this account."));
+  }).catch(function () { toast(tr("That did not go through. Nothing was charged.")); });
+});
 
 /* ---------- bring my calendar in (shared module: IMPORT-DESIGN.md) ---------- */
 var DEMO_SESSION = /[?&]demo=1\b/.test(location.search) || !!(state.settings && state.settings.demo);
