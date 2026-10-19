@@ -1604,6 +1604,10 @@ function renderPlans() {
   var honest = $("plusHonest");
   if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Unlock with a paid plan when plans open at launch. Nothing can be charged today.");
   var st = $("planState"); if (!st) return;
+  var holds = $("planHolds");
+  if (holds) holds.textContent = on
+    ? tr("Plus holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.")
+    : tr("When Plus arrives, it holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.");
   if (!on) { st.textContent = tr("Not on sale yet. Nothing to pay today."); return; }
   var s = PaceBilling.state();
   if (PaceBilling.plusActive() && s.owned) st.textContent = tr("Plus is yours. Everything is open.");
