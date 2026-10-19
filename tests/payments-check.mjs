@@ -275,6 +275,8 @@ check("native + live: the sheet speaks the free-month truth", (await p5.locator(
 check("native + live: the popup line flips to the bare unlock words", await p5.evaluate(() => document.getElementById("plusHonest").textContent) === "Unlock with a paid plan." || (await p5.evaluate(() => document.getElementById("plusHonest").textContent)).includes("Unlock with a paid plan"));
 await p5.evaluate(() => document.getElementById("buyYearly").click()); await p5.waitForTimeout(900);
 check("after buying: the sheet says Plus is yours", (await p5.locator("#planState").textContent()).includes("Plus is yours"));
+check("G7: the disclosure block stands on the live paywall (renews · cancel · never renews)", (await p5.locator("#planTerms").isVisible()) && (await p5.locator("#planTerms").textContent()).includes("renews automatically") && (await p5.locator("#planTerms").textContent()).includes("Cancel anytime") && (await p5.locator("#planTerms").textContent()).includes("never renews"));
+check("G7: the Privacy + Terms links stand on the surface", (await p5.locator('#planTerms a[href="privacy.html"]').count()) === 1 && (await p5.locator('#planTerms a[href*="stdeula"]').count()) === 1);
 await ctx5.close();
 check("zero page errors in the payments battery", errors.length === 0);
 if (errors.length) console.log(errors.slice(0, 4).join(" | "));
