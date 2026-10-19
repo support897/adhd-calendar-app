@@ -139,8 +139,9 @@ await p4.click("#guideClose");
 check("guide closes in one tap", await p4.locator("#guideSheet").isHidden());
 await ctx4.close();
 
-/* The upgrade moment (v15.11): fires ONLY on a Plus-edge tap,
-   invites to Plans, never locks, never nags on open. */
+/* The upgrade moment (19 Oct law): inside the free month every
+   Plus edge applies silently; the locked behavior (speech +
+   no apply) is proven in payments-check on an aged context. */
 const ctx5 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const p5 = await ctx5.newPage();
 await p5.goto("http://localhost:8918/", { waitUntil: "networkidle" });
@@ -152,19 +153,18 @@ await p5.click('.side-item[data-panel="settings"]');
 await p5.click('.swatch[data-theme-set="white"]'); await p5.waitForTimeout(300);
 check("a Free Forever look (White) never fires the popup", await p5.locator("#plusSheet").isHidden());
 await p5.click('.swatch[data-theme-set="blush"]'); await p5.waitForTimeout(400);
-check("PACE-002: the FIRST Plus look lands clean — no sheet over the first pick", await p5.locator("#plusSheet").isHidden());
+check("inside the free month a Plus look APPLIES — no sheet (the in-app trial)", (await p5.locator("#plusSheet").isHidden()) && (await p5.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "blush");
 await p5.click('.swatch[data-theme-set="sky"]'); await p5.waitForTimeout(400);
-check("PACE-002: the look edge speaks on a REPEAT pick, in the confirmed words", await p5.locator("#plusSheet").isVisible() && (await p5.locator(".plus-title").textContent()) === "That's a Plus thing." && (await p5.locator(".plus-card").textContent()).includes("A$4.99 a month, or A$39.99 a year. Your first month is free.") && (await p5.locator(".plus-card").textContent()).includes("Nothing is locked today, and nothing charges."));
-await p5.click("#plusNotNow"); await p5.waitForTimeout(300);
-check("Not now leaves the look applied and the app fully usable", (await p5.locator("#plusSheet").isHidden()) && (await p5.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "sky");
+check("a second Plus look applies the same way inside the free month", (await p5.locator("#plusSheet").isHidden()) && (await p5.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "sky");
 await p5.click('.swatch[data-theme-set="blush"]'); await p5.waitForTimeout(300);
-check("the same edge stays silent for the rest of the visit", await p5.locator("#plusSheet").isHidden());
+check("the applied look stands and the app stays fully usable", await p5.locator("#plusSheet").isHidden());
 await p5.click('.side-item[data-panel="capture"]'); await p5.waitForTimeout(400);
-check("PACE-002: Talk to it's first entry lands clean", await p5.locator("#plusSheet").isHidden());
+check("Talk to it opens clean inside the free month", await p5.locator("#plusSheet").isHidden());
 await p5.click('.side-item[data-panel="calendar"]'); await p5.waitForTimeout(300);
 await p5.click('.side-item[data-panel="capture"]'); await p5.waitForTimeout(400);
-check("PACE-002: the Talk edge speaks on a repeat visit", await p5.locator("#plusSheet").isVisible());
-await p5.click("#plusPlans"); await p5.waitForTimeout(400);
+check("Talk to it opens clean on a repeat visit inside the free month", await p5.locator("#plusSheet").isHidden());
+await p5.click('.side-item[data-panel="settings"]'); await p5.waitForTimeout(300);
+await p5.click("#plansOpen"); await p5.waitForTimeout(400);
 const plansTxt = await p5.locator("#plansSheet").textContent();
 check("See the plans opens Plans, truthful per state", (await p5.locator("#plansSheet").isVisible()) && plansTxt.includes("Free forever") && plansTxt.includes("A$4.99 a month, or A$39.99 a year. First month free.") && plansTxt.includes("Not on sale yet. Nothing to pay today.") && plansTxt.includes("A$99.99, once"));
 await p5.click("#plansClose");
