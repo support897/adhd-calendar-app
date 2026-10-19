@@ -30,7 +30,8 @@ const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name
 await new Promise((r) => server.listen(8973, r));
 // Byte legs on the packaged files themselves:
 const swBytes = readFileSync(path.join(WWW, "service-worker.js"), "utf8");
-check("packaged worker is pace-v16-12", swBytes.includes('"pace-v16-12"') && /notificationclick/.test(swBytes));
+const wantSw = process.env.DELTA_SW || "pace-v16-12";
+check("packaged worker is " + wantSw, swBytes.includes('"' + wantSw + '"') && /notificationclick/.test(swBytes));
 const supBytes = readFileSync(path.join(WWW, "support.html"), "utf8");
 check("packaged support page tells the truth", supBytes.includes("if you make an account, saved to your account too") && !supBytes.includes("no accounts and no server") && !/Pace has no accounts/.test(supBytes));
 const now = new Date();
