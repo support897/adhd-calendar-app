@@ -876,3 +876,38 @@ pbxproj CURRENT_PROJECT_VERSION 16 (blob 9d886da6).
 Next: delta gates → SU conveyor → custody → SR → QA's
 sandbox sweep (free/paid/restore/cancel) → free-phone legs
 → her TestFlight. Her hold bars submission as ever.
+
+## Build 17 — THE SWEPT CANDIDATE (19 Oct 2026)
+Build 16 + three desk waves, cut on Quality's ruling that
+the sweep certifies the artefact whose words are true:
+(1) THE HOLDS-LINE FLIP — the Plans card's intro now reads
+"Plus holds: ..." in the live context, "When Plus arrives,
+it holds: ..." only pre-launch (the desk's own screenshot
+catch on 16's proof frame; ES twin in).
+(2) THE G7 WAVE (SR item on 16, HQ's pattern) — the
+auto-renew disclosure stands on the paywall in small print:
+its prices composed from the buttons' own price source
+(storePrices, A$ anchors as fallback) so disclosure and
+button can never drift; cancel in Apple ID subscriptions;
+Plus open to the paid period's end; the Lifetime
+non-renewal line; Privacy Policy + Terms of Use links;
+renders in the entitled state too; web branch untouched;
+no dashes in the copy; ES twins in.
+(3) THE V2.3 CLIENT STAMP — createdAt is born a true
+timestamp (rules v2.3's client half; the rules stand
+TWIN-PROVEN tonight, audit 26/26 incl. the echo + masked
+legs; production deploy waits on the timing confirmation:
+live creators on 17+ and QA's series closed).
+Proof on the cut tree: payments 45/45 (incl. three G7 legs)
+· i18n 3/3 · the b16 regression set stands beneath
+(features 48/48 · race 36/36 · accounts 50/50 · delta
+pack 6/6 on the 16 artefact).
+Pins (md5): app.js 602fd47f (blob 0f9824e4) · index.html
+9c6d5cbc (d50f7a5e) · i18n.js 43770252 (9042cfec) ·
+styles.css 0eda3c83 (76844792) · billing.js 2e88ac87
+(87cdd379) · billing-config.js f27f4fcf (4a8283a0) ·
+SW pace-v16-17 9c6a8e88 · pbxproj CURRENT_PROJECT_VERSION 17.
+Next: SU conveyor → custody → SR G7 re-read on the
+artefact → QA's packaged pass + the sandbox sweep
+(free/paid/restore/cancel) → free-phone legs → her
+TestFlight for the payments test. Her hold bars submission.
