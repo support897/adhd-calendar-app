@@ -18,7 +18,7 @@ async function api(url, token, body, method) {
   let j = {}; try { j = await r.json(); } catch (e) {}
   return { status: r.status, j };
 }
-const sv = (v) => typeof v === "number" ? { integerValue: String(v) } : { stringValue: String(v) };
+const sv = (v) => v instanceof Date ? { timestampValue: v.toISOString() } : typeof v === "number" ? { integerValue: String(v) } : { stringValue: String(v) };
 const fields = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, sv(v)]));
 const setDoc = (path, token, o, mask) => api(`${FS}/${path}${mask ? "?updateMask.fieldPaths=" + mask.join("&updateMask.fieldPaths=") : ""}`, token, { fields: fields(o) }, "PATCH");
 const getDoc = (path, token) => api(`${FS}/${path}`, token);
@@ -32,10 +32,13 @@ const now = new Date().toISOString();
 const A = await signUp("a"), B = await signUp("b");
 console.log("testers created: A=" + A.uid + " B=" + B.uid);
 // ALLOW legs — the app's exact write sequence
-check("ALLOW aggSignups create {createdAt}", (await setDoc(`aggSignups/${A.uid}`, A.token, { createdAt: now })).status === 200);
-check("ALLOW spine create {createdAt,lastActiveAt}", (await setDoc(`users/${A.uid}`, A.token, { createdAt: now, lastActiveAt: now })).status === 200);
+check("ALLOW aggSignups create {createdAt}", (await setDoc(`aggSignups/${A.uid}`, A.token, { createdAt: new Date() })).status === 200);
+check("ALLOW spine create {createdAt,lastActiveAt}", (await setDoc(`users/${A.uid}`, A.token, { createdAt: new Date(), lastActiveAt: now })).status === 200);
 check("ALLOW state write {stateJson,updatedAt}", (await setDoc(`users/${A.uid}/data/state`, A.token, { stateJson: "{\"audit\":1}", updatedAt: now })).status === 200);
 check("ALLOW spine lastActiveAt patch", (await setDoc(`users/${A.uid}`, A.token, { lastActiveAt: new Date().toISOString() }, ["lastActiveAt"])).status === 200);
+const spineRb = await getDoc(`users/${A.uid}`, A.token);
+const bornTs = spineRb.j.fields?.createdAt?.timestampValue;
+check("ECHO (v2.3, the client's own save shapes): the full-body save echoing the read-back createdAt passes the fence", bornTs ? (await setDoc(`users/${A.uid}`, A.token, { createdAt: new Date(bornTs), lastActiveAt: new Date().toISOString() })).status === 200 : false, bornTs || "no timestamp read back");
 check("ALLOW activation write {activatedAt,activationKind}", (await setDoc(`users/${A.uid}`, A.token, { activatedAt: now, activationKind: "email" }, ["activatedAt", "activationKind"])).status === 200);
 check("ALLOW aggSignups activation patch", (await setDoc(`aggSignups/${A.uid}`, A.token, { activatedAt: now, activationKind: "email" }, ["activatedAt", "activationKind"])).status === 200);
 check("ALLOW aggImports write {events,imports,at}", (await setDoc(`aggImports/${A.uid}`, A.token, { events: 3, imports: 1, at: now })).status === 200);
@@ -43,6 +46,10 @@ const rb = await getDoc(`users/${A.uid}/data/state`, A.token);
 check("READ-BACK own state doc returns the written payload", rb.status === 200 && rb.j.fields?.stateJson?.stringValue === "{\"audit\":1}");
 // FENCE legs — every one must DENY
 check("DENY activation stamp is write-once (second, different stamp refused)", (await setDoc(`users/${A.uid}`, A.token, { activatedAt: "2030-01-01T00:00:00.000Z" }, ["activatedAt"])).status === 403);
+check("DENY createdAt re-stamp (owner cannot re-roll the anchor, v2.3)", (await setDoc(`users/${A.uid}`, A.token, { createdAt: new Date(Date.now() - 90 * 864e5) }, ["createdAt"])).status === 403);
+check("DENY createdAt as a string at create (v2.3; B's shard)", (await setDoc(`aggSignups/${B.uid}`, B.token, { createdAt: now })).status === 403);
+check("DENY createdAt backdated at create (v2.3; B's shard)", (await setDoc(`aggSignups/${B.uid}`, B.token, { createdAt: new Date(Date.now() - 90 * 864e5) })).status === 403);
+check("ALLOW an honest fresh timestamp create (v2.3; B's shard)", (await setDoc(`aggSignups/${B.uid}`, B.token, { createdAt: new Date() })).status === 200);
 check("DENY spine write with an out-of-fence field (plan)", (await setDoc(`users/${A.uid}`, A.token, { plan: "top" }, ["plan"])).status === 403);
 check("DENY state write with an extra field", (await setDoc(`users/${A.uid}/data/state`, A.token, { stateJson: "{}", updatedAt: now, evil: 1 }, ["stateJson", "updatedAt", "evil"])).status === 403);
 check("DENY cross-user read (B reads A's state)", (await getDoc(`users/${A.uid}/data/state`, B.token)).status === 403);
