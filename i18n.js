@@ -209,6 +209,7 @@
     "Welcome back. Plus is yours again.": "Bienvenido de nuevo. Plus es tuyo otra vez.",
     "No past purchase found for this account.": "No se encontró ninguna compra anterior para esta cuenta.",
     "Plus renews automatically at the price shown, until you cancel. Cancel anytime in your Apple ID subscriptions. Plus stays open until the end of the paid period. Plus for life is one payment. It never renews.": "Plus se renueva automáticamente al precio mostrado, hasta que lo canceles. Cancela cuando quieras en las suscripciones de tu Apple ID. Plus sigue abierto hasta el final del período pagado. Plus de por vida es un solo pago. Nunca se renueva.",
+    "Plus, monthly ({m}) and Plus, yearly ({y}) renew automatically at those prices, until you cancel. Cancel anytime in your Apple ID subscriptions. Plus stays open until the end of the paid period. Plus for life ({l}) is one payment. It never renews.": "Plus mensual ({m}) y Plus anual ({y}) se renuevan automáticamente a esos precios, hasta que los canceles. Cancela cuando quieras en las suscripciones de tu Apple ID. Plus sigue abierto hasta el final del período pagado. Plus de por vida ({l}) es un solo pago. Nunca se renueva.",
     "Privacy Policy": "Política de privacidad",
     "Terms of Use": "Términos de uso",
     "Not today": "Hoy no",
