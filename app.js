@@ -1714,15 +1714,21 @@ function reconcileAccount() {
   FB.fsGet(spinePath()).then(function (sp) {
     if (!sp) {
       spine = { createdAt: new Date().toISOString(), lastActiveAt: new Date().toISOString(), deletedByUser: false };
-      // No plan on the user record — entitlement lives at _comp
-      // alone. The aggregate shard (owner space) is the only
-      // outward fact: this account exists, and when it arrived.
+      // No plan on the user record — the entitlement record
+      // lives at subscriptions/{uid} (system-written; the
+      // billing layer reads it). The aggregate shard (owner
+      // space) is the only outward fact: this account exists,
+      // and when it arrived.
       FB.fsSet("aggSignups/" + ACTIVE_UID, { createdAt: spine.createdAt }).catch(function () {});
       return FB.fsSet(spinePath(), spine).then(function () { return null; });
     }
     spine = sp; return null;
   }).then(function () {
     spineTouchDaily();
+    // The entitlement read rides the reconcile (the spine's
+    // createdAt anchors the free month; the record read is the
+    // billing layer's alone — it never writes).
+    if (window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(FB, ACTIVE_UID, spine && spine.createdAt); } catch (e) {} }
     return FB.fsGet(statePath());
   }).then(function (doc) {
     renderAccount();
@@ -2151,5 +2157,6 @@ renderTodos();
 renderHabits();
 checkNotifications();
 bindAccounts();
+if (!ACTIVE_UID && window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(null, null, null); } catch (e) {} }
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
 })();
