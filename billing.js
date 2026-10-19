@@ -60,7 +60,13 @@
     var chain = Promise.resolve();
     if (!_rcConfigured) { _rcConfigured = true; chain = chain.then(function () { return P.configure({ apiKey: key, appUserID: uid || undefined }); }); }
     if (uid && _rcUid !== uid) { _rcUid = uid; chain = chain.then(function () { return P.logIn({ appUserID: uid }); }); }
-    return chain.then(function () { return P.getCustomerInfo(); }).then(function (res) { return (res && (res.customerInfo || res)) || null; }).catch(function () { return null; });
+    // Bounded (fleet census, 19 Oct): a store plugin promise
+    // that never settles must not wedge the entitlement read
+    // for the session — at the bound the read answers "no
+    // word from the store" and the cached state stands.
+    var read = chain.then(function () { return P.getCustomerInfo(); });
+    var bound = new Promise(function (res) { setTimeout(function () { res(null); }, 12000); });
+    return Promise.race([read, bound]).then(function (res) { return (res && (res.customerInfo || res)) || null; }).catch(function () { return null; });
   }
   // CustomerInfo → the best §3 grant it carries.
   function rcGrant(info, now) {
