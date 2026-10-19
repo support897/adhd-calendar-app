@@ -826,3 +826,53 @@ entitlement sweep when the RC attach lands the enabling build
 (buy buttons first, in-brand — the chapter law of 19 Oct
 18:44). Build 14's lane (QA three-run series → device round)
 is untouched by this build.
+
+## Build 16 — THE ENABLING BUILD (19 Oct 2026, Finance's RC clear-call)
+Build 15's entitlement layer goes live. Finance cleared Pace
+on RevenueCat (project deeac682, read back at their chair):
+products pace_plus_monthly + pace_plus_yearly -> entitlement
+plus · pace_lifetime -> lifetime · Current offering standing
+($rc_monthly/$rc_annual/$rc_lifetime). The public SDK key
+(appl_..., public by design, no secret anywhere client-side)
+is seated in billing-config.js; the layer is live.
+THE BRIDGE (billing.js): on the packaged app the Purchases
+plugin (@revenuecat/purchases-capacitor 12.3.3, Capacitor 8
+line, SPM) is configured once, logged in with the Firebase
+uid (a purchase follows the person), and its customer info
+folds into the SAME §3 evaluation as the subscriptions
+record — one unlock rule, two reads of one truth. restore +
+storePrices ride the same seam; prices on the buttons are the
+store's own localized strings, A$ anchors as fallback. The
+state also tracks OWNED (a paid grant is live) apart from
+which grant's clock runs longest — the Plans copy keys off
+owned, after the battery caught a free-month buyer still
+reading "free month".
+THE BUTTONS (Plans sheet): yearly (primary-btn) · monthly ·
+lifetime · restore (soft-btns) — the sheet's own classes and
+voice, per the chapter law (buttons first, in-brand; a generic
+button is a gate failure). They render only where a store
+lives (native + configured); web keeps the honest not-on-sale
+line, and the popup's line flips to the bare law sentence
+("Unlock with a paid plan.") only in the live context.
+PROOF: payments-check 42/42 (record shapes · locked taps ·
+the bridge against a stubbed plugin: configure/logIn by uid,
+expired shut, lifetime open, buy flips open, restore, store
+prices · the Plans surface native+live: rows in-brand, store
+price on the yearly button, buy -> "Plus is yours").
+Regressions: features 48/48 · race 36/36 (accounts on these
+bytes at the gates). i18n 3/3 (eleven new strings, ES twins).
+NAMED FOLLOW-UP (Security, pre-launch): the free month's
+anchor (spine createdAt) is client-stamped today — rules
+v2.3 (timestamp create + freshness window + createdAt fenced
+out of updates) is sequenced at this desk before payments
+open to real users, twin-first, flagged to Security when
+assembled.
+Pins (md5): billing.js 2e88ac87 (blob 87cdd379) ·
+billing-config.js f27f4fcf (blob 4a8283a0) · app.js 933519cc
+(blob 4a6fbade) · index.html 8217e17f (blob 959fd1ab) ·
+i18n.js 9eb3fff1 (blob 3f953595) · SW pace-v16-16 9df85bab
+(blob a7b1d51a) · store/package.json (blob 5b422b99) ·
+pbxproj CURRENT_PROJECT_VERSION 16 (blob 9d886da6).
+Next: delta gates → SU conveyor → custody → SR → QA's
+sandbox sweep (free/paid/restore/cancel) → free-phone legs
+→ her TestFlight. Her hold bars submission as ever.
