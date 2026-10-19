@@ -174,5 +174,12 @@
   // prices for the user's storefront (never a desk conversion).
   function priceLine() { return "A$4.99 a month, or A$39.99 a year. First month free."; }
 
-  window.PaceBilling = { live: billingLive, plusActive: plusActive, refresh: refresh, state: function () { return _state; }, priceLine: priceLine, products: PRODUCTS, entitlement: ENTITLEMENT, buy: buy, restore: restore, storePrices: storePrices };
+  // The locked A$ anchors, per slot — the fallback every
+  // price surface uses when the store's own strings are not
+  // in hand (a partial offerings response must still compose
+  // an honest price, never a blank).
+  var ANCHORS = { monthly: "A$4.99", yearly: "A$39.99", lifetime: "A$99.99" };
+  function productPrice(slot) { return ANCHORS[slot] || ""; }
+
+  window.PaceBilling = { live: billingLive, plusActive: plusActive, refresh: refresh, state: function () { return _state; }, priceLine: priceLine, products: PRODUCTS, entitlement: ENTITLEMENT, buy: buy, restore: restore, storePrices: storePrices, productPrice: productPrice };
 })();
