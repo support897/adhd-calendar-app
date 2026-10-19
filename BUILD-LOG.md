@@ -771,3 +771,58 @@ Pins (md5): app.js 84d738a0 (blob 9c5d1cc1) · SW pace-v16-14
 6f642f8d) · pbxproj CURRENT_PROJECT_VERSION 14 (blob 1c5eeb21).
 Next: gates → SU conveyor → custody → QA's three-run series
 resumes → device round.
+
+## Build 15 — THE ENTITLEMENT LAYER (19 Oct 2026, the payments chapter, Finance §2/§3 + SR's rules)
+The client learns to READ its plan and the gates learn to hold.
+billing.js (rewritten at its seam): PaceBilling.refresh() reads
+subscriptions/{uid} through the app's own REST layer — the
+record only system writers (the RC/Stripe webhook receivers)
+may write; Firestore rules v2.2 already fence it (client get
+own, all writes refused) and the seat is proven LIVE below.
+The unlock rule is Finance §3 verbatim: entitlement plus or
+lifetime, status trialing or active, period/window not ended;
+everything else shut, re-read every boot, the boot cache
+carrying the record's own expiry only (no "had Plus once").
+The free month rides the same evaluation: spine createdAt +
+30 days for accounts; for guests a device first-run stamp
+(pace-first-run) — the desk's judgment call, named to HQ (SR's
+"full app, no card" month covers the guest weeks too).
+THE GATES: plusGate(edge) now stands at every Plus apply point
+of the feature split — theme swatches beyond White/Dark + the
+background photo (look) · Cute · Talk to it's Make-my-list
+draft (talk; the panel and its inputs stay open) · Break into
+small steps + teaching a smallest version, at creation and in
+the editor (steps; USING a taught version on a low day stays
+free) · the Great-day stretch bring (stretch) · the Progress
+panel entry, holding the board + the round-up (board) · the
+energy-level rename in Settings (names). Entitled applies
+silently; not entitled, the feature does NOT apply and the tap
+speaks the Plus sheet — whose stale line is replaced by the
+§5.3 pre-launch truth: "Unlock with a paid plan when plans
+open at launch. Nothing can be charged today." (ES twin
+added, i18n 3/3.) This retires the PACE-002 timing (first
+entry clean, speak on repeat): that ruling governed a popup
+over features that still worked; the 19 Oct paid/free +
+locked-tap rules govern real locks. Split rows with no
+surface: repeating tasks (no picker exists — repeats arrive
+via Talk, gated, and import, a free completed flow).
+PROOF: payments-check 29/29 (every record shape evaluated;
+aged guest + aged account contexts: each apply point refuses
+AND speaks, free features untouched, a live record opens
+silently; a spied fsSet proves zero client writes to
+subscriptions/ during sign-up) · audit-subscriptions-live
+8/8 ON PRODUCTION (get own allowed; create/patch/delete own
+denied; get/write another's denied; unauthenticated denied;
+testers swept) · regressions on these bytes: accounts 50/50 ·
+features 48/48 · race 36/36 — the accounts battery also shed its flaky
+native-session read (navigation-tolerant retry) and the
+batteries moved to the surviving headless-shell Chromium.
+Pins (md5): billing.js 1b3111b5 (blob 17fe1fe6) · app.js d07a6068 (blob b39822e9) · service-worker pace-v16-15 6bb0aad3 · index.html
+723b7f8b (blob 8cd6091b) · i18n.js 1dc3d552 (blob 9c16765c) ·
+payments-check (blob e7369afb) · pbxproj
+CURRENT_PROJECT_VERSION 15.
+Next: gates → SU conveyor → custody → SR delta → QA's
+entitlement sweep when the RC attach lands the enabling build
+(buy buttons first, in-brand — the chapter law of 19 Oct
+18:44). Build 14's lane (QA three-run series → device round)
+is untouched by this build.
