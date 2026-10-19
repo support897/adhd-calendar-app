@@ -123,8 +123,18 @@
   function evalRecord(rec, now) {
     if (!rec) return { plus: false, until: 0 };
     if (rec.entitlement !== "plus" && rec.entitlement !== "lifetime") return { plus: false, until: 0 };
-    if (rec.status !== "trialing" && rec.status !== "active") return { plus: false, until: 0 };
+    // Finance's cancellation pin (19 Oct, ruling (b)): the
+    // receiver writes status "cancelled" at cancel-time with
+    // period_ends_at standing, and the evaluation opens on
+    // it while that period is still in the future (the
+    // customer words promise the same: Plus stays open
+    // until the end of the period you paid for). A cancelled
+    // record with NO period standing is shut — the pin
+    // names a future end, not an absence. past_due stays
+    // shut under the filed rule.
+    if (rec.status !== "trialing" && rec.status !== "active" && rec.status !== "cancelled") return { plus: false, until: 0 };
     var end = rec.period_ends_at || rec.expires_at || null;
+    if (rec.status === "cancelled" && !end) return { plus: false, until: 0 };
     var endMs = end ? Date.parse(end) : Infinity;
     if (!(now < endMs)) return { plus: false, until: 0 };
     return { plus: true, until: endMs };
