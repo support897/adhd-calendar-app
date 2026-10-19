@@ -1,6 +1,9 @@
 rules_version = '2';
-// Pace Calendar — Security Rules of record, v2.2 (accounts
+// Pace Calendar — Security Rules of record, v2.3 (accounts
 // wave; Security desk send-back of 15 Oct applied in full;
+// v2.3 = createdAt is born a server-checked timestamp and
+// write-once thereafter (Security's pre-launch follow-up,
+// 19 Oct: the free month's anchor must not be owner-editable);
 // v2.2 = the shard-erasure carve-out, Security ruling of
 // 15 Oct: erasure takes the shard — a uid-keyed row is the
 // user's data however light its fields, so the §6 sweep
@@ -24,6 +27,16 @@ service cloud.firestore {
       return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
     function own(uid) { return notAnon() && request.auth.uid == uid; }
+    // v2.3: a create's createdAt must be a real timestamp,
+    // born within FIVE minutes of the server's clock — the
+    // window's width is the whole backdate gain, sized to
+    // honest clock skew and nothing more. Both create arms
+    // (the spine and the signups shard) call this one helper.
+    function freshCreate(ts) {
+      return ts is timestamp
+        && ts <= request.time
+        && ts >= request.time - duration.value(5, 'm');
+    }
     function isOwner() {
       return signedIn()
         && exists(/databases/$(database)/documents/_owner/config)
@@ -35,13 +48,22 @@ service cloud.firestore {
     // activatedAt is write-once (the activation stamp).
     match /users/{uid} {
       allow get: if own(uid);
+      // v2.3: createdAt is born a server-checked timestamp
+      // (freshCreate's five-minute window) and write-once
+      // thereafter, so the
+      // free month's anchor can never be re-stamped by its
+      // owner (Security's pre-launch follow-up, 19 Oct).
       allow create: if own(uid)
-        && request.resource.data.keys().hasOnly(['createdAt', 'lastActiveAt', 'activatedAt', 'activationKind', 'deletedByUser']);
+        && request.resource.data.keys().hasOnly(['createdAt', 'lastActiveAt', 'activatedAt', 'activationKind', 'deletedByUser'])
+        && freshCreate(request.resource.data.createdAt);
       allow update: if own(uid)
         && request.resource.data.keys().hasOnly(['createdAt', 'lastActiveAt', 'activatedAt', 'activationKind', 'deletedByUser'])
         && (!('activatedAt' in resource.data)
             || !('activatedAt' in request.resource.data)
-            || request.resource.data.activatedAt == resource.data.activatedAt);
+            || request.resource.data.activatedAt == resource.data.activatedAt)
+        && (!('createdAt' in resource.data)
+            || !('createdAt' in request.resource.data)
+            || request.resource.data.createdAt == resource.data.createdAt);
       allow delete: if own(uid);
       match /data/{doc} {
         allow get, list: if own(uid);
@@ -58,12 +80,16 @@ service cloud.firestore {
       // Verbs split (Security must-fix): a create has no resource
       // to read — the write-once clause lives on update only.
       allow create: if own(uid)
-        && request.resource.data.keys().hasOnly(['createdAt', 'activatedAt', 'activationKind']);
+        && request.resource.data.keys().hasOnly(['createdAt', 'activatedAt', 'activationKind'])
+        && freshCreate(request.resource.data.createdAt);
       allow update: if own(uid)
         && request.resource.data.keys().hasOnly(['createdAt', 'activatedAt', 'activationKind'])
         && (!('activatedAt' in resource.data)
             || !('activatedAt' in request.resource.data)
-            || request.resource.data.activatedAt == resource.data.activatedAt);
+            || request.resource.data.activatedAt == resource.data.activatedAt)
+        && (!('createdAt' in resource.data)
+            || !('createdAt' in request.resource.data)
+            || request.resource.data.createdAt == resource.data.createdAt);
       // v2.2 carve-out: the owner of the row may DELETE it —
       // the account-deletion sweep takes the shard with
       // everything else. Delete alone; fences otherwise as v2.1.
