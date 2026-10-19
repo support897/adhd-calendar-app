@@ -172,6 +172,110 @@ if (breakSeen) {
   check("locked Break tap SPEAKS and no steps are made", false);
 }
 await ctx3.close();
+
+/* ---- THE RC BRIDGE: a stubbed Purchases plugin at the seam.
+        billing.js is re-read with PACE_BILLING filled (the
+        drop-in), and RC's customer info must fold into the
+        SAME unlock rule the record uses. ---- */
+const ctx4 = await b.newContext({ viewport: { width: 540, height: 960 } });
+const p4 = await ctx4.newPage();
+p4.on("pageerror", (e) => errors.push("rc: " + e.message));
+await p4.goto("http://localhost:9131/", { waitUntil: "networkidle" });
+await p4.waitForFunction(() => window.PaceBilling, null, { timeout: 9000 }).catch(() => {});
+const rcOut = await p4.evaluate(async () => {
+  const out = {};
+  const future = new Date(Date.now() + 10 * 864e5).toISOString();
+  const past = new Date(Date.now() - 864e5).toISOString();
+  let info = { entitlements: { active: {} } };
+  const calls = [];
+  window.Capacitor = { getPlatform: () => "ios", Plugins: { Purchases: {
+    configure: (o) => { calls.push("configure:" + (o.apiKey || "").slice(0, 5)); return Promise.resolve(); },
+    logIn: (o) => { calls.push("logIn:" + o.appUserID); return Promise.resolve({ customerInfo: info }); },
+    getCustomerInfo: () => Promise.resolve({ customerInfo: info }),
+    getOfferings: () => Promise.resolve({ current: { availablePackages: [
+      { identifier: "$rc_monthly", product: { identifier: "pace_plus_monthly", priceString: "$4.99" } },
+      { identifier: "$rc_annual", product: { identifier: "pace_plus_yearly", priceString: "$39.99" } },
+      { identifier: "$rc_lifetime", product: { identifier: "pace_lifetime", priceString: "$99.99" } } ] } }),
+    purchasePackage: (o) => { calls.push("buy:" + o.aPackage.product.identifier); info = { entitlements: { active: { plus: { isActive: true, expirationDate: future, productIdentifier: o.aPackage.product.identifier } } } }; return Promise.resolve({ customerInfo: info }); },
+    restorePurchases: () => { calls.push("restore"); return Promise.resolve({ customerInfo: info }); }
+  } } };
+  window.PACE_BILLING = { revenueCatIosKey: "appl_test_key", revenueCatAndroidKey: null, entitlement: "plus", products: { monthly: "pace_plus_monthly", yearly: "pace_plus_yearly", lifetime: "pace_lifetime" } };
+  const src = await (await fetch("billing.js")).text();
+  (0, eval)(src);
+  const B = window.PaceBilling;
+  const noRec = { fsGet: () => Promise.resolve(null) };
+  const old = new Date(Date.now() - 40 * 864e5).toISOString();
+  let st = await B.refresh(noRec, "u-rc", old);
+  out.emptyInfoLocked = !st.plus;
+  info = { entitlements: { active: { plus: { isActive: true, expirationDate: future } } } };
+  st = await B.refresh(noRec, "u-rc", old);
+  out.rcActiveOpens = st.plus === true && st.source === "record";
+  info = { entitlements: { active: { plus: { isActive: true, expirationDate: past } } } };
+  st = await B.refresh(noRec, "u-rc", old);
+  out.rcExpiredShut = !st.plus;
+  info = { entitlements: { active: { lifetime: { isActive: true, expirationDate: null } } } };
+  st = await B.refresh(noRec, "u-rc", old);
+  out.rcLifetimeOpens = st.plus === true;
+  info = { entitlements: { active: {} } };
+  st = await B.buy("pace_plus_yearly");
+  out.buyFlipsOpen = st.plus === true;
+  await B.restore();
+  const prices = await B.storePrices();
+  out.prices = prices;
+  out.calls = calls.join(" ");
+  return out;
+});
+check("RC: no entitlement in customer info — locked", rcOut.emptyInfoLocked === true);
+check("RC: an active plus entitlement opens (same rule as the record)", rcOut.rcActiveOpens === true);
+check("RC: an expired entitlement stays shut", rcOut.rcExpiredShut === true);
+check("RC: lifetime active opens", rcOut.rcLifetimeOpens === true);
+check("RC: configure + logIn ran with the app identity", rcOut.calls.includes("configure:appl_") && rcOut.calls.includes("logIn:u-rc"));
+check("RC: buy purchases the yearly package and the gate opens", rcOut.calls.includes("buy:pace_plus_yearly") && rcOut.buyFlipsOpen === true);
+check("RC: restore runs through the plugin", rcOut.calls.includes("restore"));
+check("RC: storePrices reads the store's own strings", !!rcOut.prices && rcOut.prices.pace_plus_monthly === "$4.99" && rcOut.prices.pace_lifetime === "$99.99");
+await ctx4.close();
+
+/* ---- THE PLANS SURFACE, native + live: the buy buttons are
+        the app's own classes, priced by the store's strings,
+        and a purchase flips the sheet's truth. ---- */
+const ctx5 = await b.newContext({ viewport: { width: 540, height: 960 } });
+const p5 = await ctx5.newPage();
+p5.on("pageerror", (e) => errors.push("plans: " + e.message));
+await p5.goto("http://localhost:9131/", { waitUntil: "networkidle" });
+await p5.waitForFunction(() => window.PaceBilling, null, { timeout: 9000 }).catch(() => {});
+for (let i = 0; i < 16; i++) {
+  if (await p5.locator("#welcome").isVisible().catch(() => false)) { await p5.evaluate(() => document.getElementById("welcomeSkip").click()); await p5.waitForTimeout(600); }
+  if (await p5.locator("#guideSheet").isVisible().catch(() => false)) { await p5.evaluate(() => document.getElementById("guideSkip").click()); await p5.waitForTimeout(600); }
+  if (!(await p5.locator("#welcome").isVisible().catch(() => false)) && !(await p5.locator("#guideSheet").isVisible().catch(() => false))) break;
+  await p5.waitForTimeout(400);
+}
+await p5.evaluate(async () => {
+  const future = new Date(Date.now() + 10 * 864e5).toISOString();
+  let info = { entitlements: { active: {} } };
+  window.Capacitor = { getPlatform: () => "ios", Plugins: { Purchases: {
+    configure: () => Promise.resolve(), logIn: () => Promise.resolve({ customerInfo: info }),
+    getCustomerInfo: () => Promise.resolve({ customerInfo: info }),
+    getOfferings: () => Promise.resolve({ current: { availablePackages: [
+      { identifier: "$rc_monthly", product: { identifier: "pace_plus_monthly", priceString: "$4.99" } },
+      { identifier: "$rc_annual", product: { identifier: "pace_plus_yearly", priceString: "$39.99" } },
+      { identifier: "$rc_lifetime", product: { identifier: "pace_lifetime", priceString: "$99.99" } } ] } }),
+    purchasePackage: (o) => { info = { entitlements: { active: { plus: { isActive: true, expirationDate: future, productIdentifier: o.aPackage.product.identifier } } } }; return Promise.resolve({ customerInfo: info }); },
+    restorePurchases: () => Promise.resolve({ customerInfo: info })
+  } } };
+  window.PACE_BILLING = { revenueCatIosKey: "appl_test_key", revenueCatAndroidKey: null, entitlement: "plus", products: { monthly: "pace_plus_monthly", yearly: "pace_plus_yearly", lifetime: "pace_lifetime" } };
+  const src = await (await fetch("billing.js")).text();
+  (0, eval)(src);
+});
+await p5.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
+await p5.evaluate(() => document.querySelector('.side-item[data-panel="settings"]').click()); await p5.waitForTimeout(400);
+await p5.evaluate(() => document.getElementById("plansOpen").click()); await p5.waitForTimeout(700);
+check("native + live: the buy rows show, in the sheet's own classes", (await p5.locator("#planBuy").isVisible()) && (await p5.locator("#buyYearly").evaluate((el) => el.className)) === "primary-btn");
+check("native + live: the yearly button carries the STORE's price string", (await p5.locator("#buyYearly").textContent()).includes("$39.99"));
+check("native + live: the sheet speaks the free-month truth", (await p5.locator("#planState").textContent()).includes("first month is free"));
+check("native + live: the popup line flips to the bare unlock words", await p5.evaluate(() => document.getElementById("plusHonest").textContent) === "Unlock with a paid plan." || (await p5.evaluate(() => document.getElementById("plusHonest").textContent)).includes("Unlock with a paid plan"));
+await p5.evaluate(() => document.getElementById("buyYearly").click()); await p5.waitForTimeout(900);
+check("after buying: the sheet says Plus is yours", (await p5.locator("#planState").textContent()).includes("Plus is yours"));
+await ctx5.close();
 check("zero page errors in the payments battery", errors.length === 0);
 if (errors.length) console.log(errors.slice(0, 4).join(" | "));
 console.log("RESULT pass=" + pass + " fail=" + fail);
