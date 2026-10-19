@@ -280,6 +280,14 @@ const termsState = await p5.evaluate(() => ({ hidden: document.getElementById("p
 check("G7: the disclosure block stands on the live paywall (renews · cancel · never renews)", !termsState.hidden && termsState.h > 0 && termsState.txt.includes("renew automatically") && termsState.txt.includes("Cancel anytime") && termsState.txt.includes("never renews"));
 check("G7: the disclosure's prices are the buttons' own prices (same source, no drift)", termsState.txt.includes("$4.99") && termsState.txt.includes("$39.99") && termsState.txt.includes("$99.99"));
 check("G7: the Privacy + Terms links stand on the surface", (await p5.locator('#planTerms a[href="privacy.html"]').count()) === 1 && (await p5.locator('#planTerms a[href*="stdeula"]').count()) === 1);
+await p5.evaluate(async () => {
+  window.Capacitor.Plugins.Purchases.getOfferings = () => Promise.resolve({ current: { availablePackages: [
+    { identifier: "$rc_annual", product: { identifier: "pace_plus_yearly", priceString: "$39.99" } } ] } });
+});
+await p5.evaluate(() => document.getElementById("plansOpen").click()); await p5.waitForTimeout(700);
+await p5.waitForFunction(() => document.getElementById("planTermsText").textContent.includes("A$4.99"), null, { timeout: 8000 }).catch(() => {});
+const partialTxt = await p5.evaluate(() => document.getElementById("planTermsText").textContent);
+check("F2: a partial offerings response composes the disclosure from the store string + the A$ anchors (the exported fallback)", partialTxt.includes("$39.99") && partialTxt.includes("A$4.99") && partialTxt.includes("A$99.99"), partialTxt.slice(0, 90));
 await ctx5.close();
 check("zero page errors in the payments battery", errors.length === 0);
 if (errors.length) console.log(errors.slice(0, 4).join(" | "));
