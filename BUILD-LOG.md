@@ -917,3 +917,6 @@ TestFlight for the payments test. Her hold bars submission.
 - QA F2 closed at the root: PaceBilling.productPrice now EXISTS (the locked A$ anchors per slot) and is exported — renderPlans' disclosure fallback is real; a partial offerings response composes store strings + anchors (payments leg proves it).
 - Finance's cancellation pin (b): evalRecord opens on cancelled with period_ends_at in the future (the receiver's true write); cancelled with no period standing stays shut; past_due untouched.
 - Regressions on the cut bytes: payments 48/48 · accounts 50/50 · features 48/48 · race 36/36 · hang 4/4 · i18n 3/3.
+
+## Build 19 — PACE-016 (Test — Pace, b18 full pass, design)
+- The Up Next card's Start pill rendered inline inside the first-step sentence and split it ("Clean the / kitchen [Start]"). The step now renders as its own block (.un-step) and, when a step stands, the pill takes its own row beneath the whole sentence (.un-start); without a step it keeps its designed spot on the title line. Proof: geometry (pill top below the step block's bottom) + the frame read at the desk + tests/features-check.mjs carries the PACE-016 leg (features 49/49).
