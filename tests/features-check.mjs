@@ -169,5 +169,32 @@ const plansTxt = await p5.locator("#plansSheet").textContent();
 check("See the plans opens Plans, truthful per state", (await p5.locator("#plansSheet").isVisible()) && plansTxt.includes("Free forever") && plansTxt.includes("A$4.99 a month, or A$39.99 a year. First month free.") && plansTxt.includes("Not on sale yet. Nothing to pay today.") && plansTxt.includes("A$99.99, once"));
 await p5.click("#plansClose");
 await ctx5.close();
+/* PACE-016: the Up Next step sentence reads WHOLE — the Start
+   pill never renders inside the sentence's flow. Geometry is
+   the proof: the pill's top sits at or below the step block's
+   bottom. */
+const ctx6 = await browser.newContext();
+const p6 = await ctx6.newPage();
+await p6.goto("http://localhost:8918/", { waitUntil: "networkidle" });
+await p6.waitForTimeout(600);
+await p6.evaluate(() => {
+  const now = new Date(); const pad = (n) => String(n).padStart(2, "0");
+  const key = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+  const later = new Date(now.getTime() + 3 * 3600e3); const hhmm = pad(later.getHours()) + ":" + pad(later.getMinutes());
+  const task = { id: "t1", title: "Clean the kitchen", date: key, time: hhmm, durationMin: 30, essential: false, status: "todo", steps: [{ text: "Get out what you need for: Clean the kitchen", done: false }], createdAt: Date.now() };
+  localStorage.setItem("calmcal-v1:guest", JSON.stringify({ tasks: [task], feelings: {}, habits: [], settings: { guideDone: true }, welcomed: true, updatedAt: Date.now() }));
+  location.reload();
+});
+await p6.waitForTimeout(1100);
+const unGeo = await p6.evaluate(() => {
+  const card = document.getElementById("upNext");
+  const step = card.querySelector(".un-step");
+  const btn = card.querySelector("[data-un]");
+  if (!step || !btn) return null;
+  const s = step.getBoundingClientRect(), b = btn.getBoundingClientRect();
+  return { stepBottom: s.bottom, btnTop: b.top, stepText: step.textContent };
+});
+check("PACE-016: the Up Next step sentence stands whole with Start on its own row beneath it", !!unGeo && unGeo.btnTop >= unGeo.stepBottom - 1 && unGeo.stepText.includes("Clean the kitchen"), unGeo ? JSON.stringify(unGeo) : "no step/button");
+await ctx6.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); server.close(); process.exit(fail ? 1 : 0);
