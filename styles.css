@@ -152,7 +152,7 @@ html[data-photo="dark"] body::after { background: rgba(20,31,27,0.88); }
 .mini-btn { border: 1px solid var(--hair); background: none; color: var(--ink-2); border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 500; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-/* NO-ZOOM LAW (Ilse, 21 Oct — a double tap zoomed her app
+/* NO-ZOOM LAW (21 Oct — a double tap zoomed the app
    huge on device): a double tap must never zoom. manipulation
    touch-action disables the double-tap gesture (and its delay)
    while keeping pan + taps; the viewport meta bars scaling. */
