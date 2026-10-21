@@ -2,7 +2,7 @@
 <html lang="en-AU">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#f3f5fa">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -364,8 +364,8 @@ try {
     <div id="plusArt" class="plus-badge" aria-hidden="true"></div>
     <h3 class="plus-title" data-i18n>That's a Plus thing.</h3>
     <p class="plus-line" data-i18n>Plus holds the full set of Looks, Talk to it, repeating tasks, and a few more kind helpers.</p>
-    <p class="plus-line" data-i18n>Plus is A$4.99 a month, or A$39.99 a year. Your first month is free.</p>
-    <p class="plus-line plus-honest" data-i18n>Nothing is locked today, and nothing charges. This is simply where this will live when Plus arrives.</p>
+    <p class="plus-line" id="plusPriceLine" data-i18n>Plus is A$4.99 a month, or A$39.99 a year. Your first month is free.</p>
+    <p class="plus-line plus-honest" id="plusHonest" data-i18n>Unlock with a paid plan when plans open at launch. Nothing can be charged today.</p>
     <div class="sheet-actions">
       <button id="plusNotNow" class="soft-btn" data-i18n>Not now</button>
       <button id="plusPlans" class="primary-btn" data-i18n>See the plans</button>
@@ -384,10 +384,20 @@ try {
     </div>
     <div class="plan-card plan-plus">
       <h4 data-i18n>Plus</h4>
-      <p data-i18n>When Plus arrives, it holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.</p>
-      <p class="plan-price" data-i18n>A$4.99 a month, or A$39.99 a year. First month free.</p>
-      <p data-i18n>Or Plus for life: A$99.99, once.</p>
-      <p class="plan-state" data-i18n>Not on sale yet. Nothing to pay today.</p>
+      <p id="planHolds" data-i18n>When Plus arrives, it holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.</p>
+      <p class="plan-price" id="planPriceLine" data-i18n>A$4.99 a month, or A$39.99 a year. First month free.</p>
+      <p id="planLifeLine" data-i18n>Or Plus for life: A$99.99, once.</p>
+      <p class="plan-state" id="planState" data-i18n>Not on sale yet. Nothing to pay today.</p>
+      <div id="planBuy" class="plan-buy" hidden>
+        <button id="buyYearly" class="primary-btn" data-i18n>Plus, yearly</button>
+        <button id="buyMonthly" class="soft-btn" data-i18n>Plus, monthly</button>
+        <button id="buyLifetime" class="soft-btn" data-i18n>Plus for life</button>
+        <button id="buyRestore" class="soft-btn" data-i18n>Restore a past purchase</button>
+      </div>
+      <div id="planTerms" class="plan-terms" hidden>
+        <p id="planTermsText">Plus renews automatically at the price shown, until you cancel. Cancel anytime in your Apple ID subscriptions. Plus stays open until the end of the paid period. Plus for life is one payment. It never renews.</p>
+        <p class="plan-links"><a href="privacy.html" data-i18n>Privacy Policy</a> · <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" data-i18n>Terms of Use</a></p>
+      </div>
     </div>
     <div class="sheet-actions">
       <button id="plansClose" class="soft-btn" data-i18n>Close</button>
