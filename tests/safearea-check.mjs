@@ -21,15 +21,17 @@ check("css: the menu button's top adds the inset", /\.expand-btn\s*\{[^}]*top:\s
 check("css: the phone-width override also adds the inset (a bare top:10px stood here and won at phone widths — the battery's first run caught it)", /\.expand-btn\s*\{\s*top:\s*calc\(10px \+ var\(--sat\)\)/.test(css));
 check("css: #main top padding adds the inset", /#main\s*\{[^}]*padding:\s*calc\(26px \+ var\(--sat\)\)/.test(css));
 check("css: the sidebar's top padding adds the inset", /#sidebar\s*\{[^}]*padding:\s*calc\(22px \+ var\(--sat\)\)/.test(css));
-check("css: the phone-width sidebar override adds the inset too (Quality's finding — a bare 18px won the cascade there)", /#sidebar\s*\{\s*width:\s*min\(84vw, 340px\);\s*padding:\s*calc\(18px \+ var\(--sat\)\)/.test(css));
+check("css: the phone-width sidebar (the P8 fixed overlay) still pads its top by the inset", /#sidebar\s*\{[^}]*position:\s*fixed;[^}]*padding:\s*calc\(18px \+ var\(--sat\)\)/.test(css));
 check("css: the phone-width #main override adds the inset too (the same trap, third instance)", /#main\s*\{\s*padding:\s*calc\(16px \+ var\(--sat\)\)\s*16px/.test(css));
 check("css: the sticky ticker pins below the inset, not at the viewport top", /#ticker\s*\{[^}]*position:\s*sticky;\s*top:\s*var\(--sat\)/.test(css));
 check("html: viewport-fit=cover set (so env() is live on device)", /viewport-fit=cover/.test(html));
+check("NO-ZOOM: the viewport bars scaling (maximum-scale + user-scalable=no)", /maximum-scale=1/.test(html) && /user-scalable=no/.test(html));
+check("NO-ZOOM: html carries touch-action: manipulation (the double-tap gesture is off)", /html\s*\{\s*touch-action:\s*manipulation/.test(css));
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ttf": "font/ttf", ".webmanifest": "application/manifest+json" };
 const server = http.createServer((req, res) => { let f = req.url.split("?")[0]; if (f === "/") f = "/index.html"; const fp = path.join(ROOT, f); if (!existsSync(fp)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": types[path.extname(fp)] || "application/octet-stream" }); res.end(readFileSync(fp)); });
 await new Promise(r => server.listen(8949, r));
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
 const p = await b.newPage({ viewport: { width: 390, height: 844 } });
 await p.goto("http://localhost:8949/", { waitUntil: "networkidle" });
 await p.evaluate(() => {
@@ -38,6 +40,8 @@ await p.evaluate(() => {
 });
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(500);
+const ta = await p.evaluate(() => getComputedStyle(document.documentElement).touchAction);
+check("render: NO-ZOOM — the document's computed touch-action is manipulation", ta === "manipulation", ta);
 const top0 = await p.locator("#sbExpand").evaluate((el) => el.getBoundingClientRect().top);
 check("render: at phone width with a 0 inset the button sits at its 10px home (got " + top0 + ")", Math.abs(top0 - 10) < 1.5);
 await p.evaluate(() => document.documentElement.style.setProperty("--sat", "47px"));
@@ -57,6 +61,13 @@ await p2.waitForTimeout(500);
 // The menu is hidden on every load by law — open it the user's way,
 // by tapping the boat button, with the inset already driven.
 await p2.evaluate(() => document.documentElement.style.setProperty("--sat", "47px"));
+/* TOP-SPACE LAW (Ilse, 21 Oct — her own-phone Meal Prep shot:
+   the menu button sat under the status bar, untappable):
+   QA's standing shape — 390x844 with insets driven, the menu
+   button must be CLEAR of the bar and TAPPABLE (the element
+   at its centre is the button itself). */
+const tappable = await p2.evaluate(() => { const el = document.getElementById("sbExpand"); const b = el.getBoundingClientRect(); const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return { isBtn: hit === el || el.contains(hit), top: b.top }; });
+check("TOP-SPACE: at 390x844 with a 47px inset the menu button is clear of the bar AND tappable (elementFromPoint hits the button)", tappable.isBtn && tappable.top >= 47, JSON.stringify(tappable));
 await p2.click("#sbExpand");
 await p2.waitForTimeout(400);
 const headTop = await p2.locator("#sidebar .brand").evaluate((el) => el.getBoundingClientRect().top);
