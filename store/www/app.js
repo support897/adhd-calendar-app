@@ -149,7 +149,7 @@ function seed() {
   ];
   return { tasks: tasks, feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
 }
-if (!state) { state = ACTIVE_UID ? freshAccountState() : seed(); save(); }
+if (!state) { state = ACTIVE_UID ? freshAccountState() : seed(); save(); if (ACTIVE_UID) { state.updatedAt = 0; try { localStorage.setItem(storeKey(), JSON.stringify(state)); } catch (e) {} } }
 
 /* ---------- instances (recurrence expansion) ---------- */
 function repeatMatches(task, key) {
@@ -231,9 +231,9 @@ function applySidebar() {
   if (calendar) calendar.updateSize();
 }
 document.querySelectorAll(".swatch[data-theme-set]").forEach(function (b) {
-  b.addEventListener("click", function () { var t = b.getAttribute("data-theme-set"); state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); if (t !== "white" && t !== "dark") maybePlus("look"); });
+  b.addEventListener("click", function () { var t = b.getAttribute("data-theme-set"); if (t !== "white" && t !== "dark" && !plusGate("look")) return; state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); });
 });
-$("cuteToggle").addEventListener("change", function () { state.settings.appearance.cute = $("cuteToggle").checked; save(); applyAppearance(); if ($("cuteToggle").checked) maybePlus("cute"); });
+$("cuteToggle").addEventListener("change", function () { if ($("cuteToggle").checked && !plusGate("cute")) { $("cuteToggle").checked = false; return; } state.settings.appearance.cute = $("cuteToggle").checked; save(); applyAppearance(); });
 /* Law E — the user's own photo as the background. The photo is user
    data: picking another look never deletes it; only Remove does,
    and Remove carries Undo (Law B2). A soft veil + an ink set chosen
@@ -243,6 +243,7 @@ $("bgPhotoFile").addEventListener("change", function () {
   var f = $("bgPhotoFile").files && $("bgPhotoFile").files[0];
   $("bgPhotoFile").value = "";
   if (!f) return;
+  if (!plusGate("look")) return;
   var url = URL.createObjectURL(f);
   var img = new Image();
   img.onload = function () {
@@ -277,6 +278,7 @@ $("bgPhotoFile").addEventListener("change", function () {
 });
 $("photoApply").addEventListener("click", function () {
   if (!state.settings.appearance.photo) return;
+  if (!plusGate("look")) return;
   state.settings.appearance.bgChoice = "photo"; save(); applyAppearance();
 });
 $("photoRemove").addEventListener("click", function () {
@@ -394,6 +396,7 @@ function bindRows(root) {
   });
   var st = root.querySelector('[data-act="stretch"]');
   if (st) st.addEventListener("click", function () {
+    if (!plusGate("stretch")) return;
     var t = baseTask(st.getAttribute("data-id"));
     if (t) { moveInstance(t, L.addDays(selected, 1), selected); toast(tr("Brought to today. Only because you asked.")); refreshAll(); }
   });
@@ -406,6 +409,11 @@ function toggleDone(id, dateKey) {
     if (i === -1) t.doneDates.push(dateKey); else t.doneDates.splice(i, 1);
   } else {
     t.status = t.status === "done" ? "todo" : "done";
+    // QA NIGHT F2: the payload also carries a done flag (load()
+    // normalises one onto every task). It must agree with the
+    // status on EVERY push — derive it here, at the write, not
+    // only at load, or the synced bytes contradict themselves.
+    t.done = t.status === "done";
     if (t.status === "done") toast(tr("Done. That counts."));
   }
   save(); refreshAll();
@@ -437,8 +445,13 @@ function renderUpNext() {
   if (!next) { el.hidden = true; return; }
   el.hidden = false;
   var firstStep = (next.steps && next.steps.some(function (s) { return !s.done; })) ? L.nextStepText(next) : "";
+  // The step sentence reads WHOLE, on its own line (PACE-016:
+  // the Start pill used to flow inline inside it and split the
+  // sentence around the button). With a step standing, the
+  // pill takes its own row under the sentence; without one it
+  // keeps its designed spot at the end of the title line.
   el.innerHTML = '<span class="un-label">' + tr("Up next") + '</span><strong>' + esc(next.displayTitle || next.title) + "</strong> · " + tr("about {n} min", { n: next.durationMin }) +
-    (next.time ? " · " + next.time : "") + (firstStep ? "<br><span style='color:var(--ink-3)'>" + esc(firstStep) + "</span>" : "") + '<button data-un="' + next.id + '">' + tr("Start") + '</button>';
+    (next.time ? " · " + next.time : "") + (firstStep ? '<span class="un-step">' + esc(firstStep) + "</span>" : "") + '<button data-un="' + next.id + '"' + (firstStep ? ' class="un-start"' : "") + ">" + tr("Start") + '</button>';
   el.querySelector("[data-un]").addEventListener("click", function () {
     var t = baseTask(next.id); if (t) { t.status = "doing"; save(); refreshAll(); toast(tr("Started. One step at a time.")); }
   });
@@ -592,12 +605,15 @@ function renderYear() {
 /* ---------- panels ---------- */
 document.querySelectorAll(".side-item").forEach(function (b) {
   b.addEventListener("click", function () {
+    // The Progress panel holds the To Do board + the round-up
+    // (both Plus rows of the split) — its entry is the gate.
+    if (b.getAttribute("data-panel") === "progress" && !plusGate("board")) return;
     document.querySelectorAll(".side-item").forEach(function (x) { x.classList.remove("is-active"); });
     document.querySelectorAll(".panel").forEach(function (x) { x.classList.remove("is-active"); });
     b.classList.add("is-active");
     $("panel-" + b.getAttribute("data-panel")).classList.add("is-active");
     if (b.getAttribute("data-panel") === "progress") renderProgress();
-    if (b.getAttribute("data-panel") === "capture") maybePlus("talk");
+
     // Phone + the Muse-app shape: choosing an area shows it —
     // the menu gives the screen back (the sliver tap and the
     // close button do the same when no choice is made).
@@ -636,14 +652,18 @@ $("quickText").addEventListener("input", function () {
     (item.repeat ? " · " + esc(item.repeat) : "") + (item.essential ? " · must not slip" : "");
 });
 $("addSave").addEventListener("click", function () {
+  // A smallest version typed at creation is a teach (Plus);
+  // refused, the task still saves — without the taught version.
+  var minV = $("fMin").value.trim();
+  if (minV && !plusGate("steps")) minV = "";
   var task = null;
   var manualTitle = $("fTitle").value.trim();
   if (manualTitle) {
     var cat = L.categoryFor(manualTitle);
-    task = { title: manualTitle, date: $("fDate").value || selected, time: $("fTime").value || null, durationMin: Math.max(5, +$("fDur").value || 25), priority: 0, repeat: null, category: cat.id, color: cat.color, essential: $("fEssential").checked, steps: L.decompose(manualTitle, +$("fDur").value || 25, false), minVersion: $("fMin").value.trim(), fullVersion: $("fFull").value.trim() };
+    task = { title: manualTitle, date: $("fDate").value || selected, time: $("fTime").value || null, durationMin: Math.max(5, +$("fDur").value || 25), priority: 0, repeat: null, category: cat.id, color: cat.color, essential: $("fEssential").checked, steps: L.decompose(manualTitle, +$("fDur").value || 25, false), minVersion: minV, fullVersion: $("fFull").value.trim() };
   } else if ($("quickText").value.trim()) {
     var item = L.parseItem($("quickText").value.trim(), selected);
-    if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: $("fMin").value.trim(), fullVersion: $("fFull").value.trim() };
+    if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: minV, fullVersion: $("fFull").value.trim() };
   }
   if (!task) { toast(tr("Give it a title first, even a messy one.")); return; }
   task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = $("quickText").value.trim(); task.skipDates = []; task.doneDates = [];
@@ -693,6 +713,7 @@ function renderSteps(t) {
 }
 $("dBreak").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  if (!plusGate("steps")) return;
   /* One break per task: a second tap used to append a whole duplicate
      set of steps (PACE-008). The button hides once steps exist; this
      guard covers a fast double-tap before the hide lands. */
@@ -702,7 +723,12 @@ $("dBreak").addEventListener("click", function () {
 });
 function persistSheetFields() {
   var t = baseTask(currentTaskId); if (!t) return;
-  t.minVersion = $("dMin").value.trim();
+  // Teaching (or re-teaching) the smallest version is a Plus
+  // act; USING a taught version on a low day stays free. A
+  // refused teach keeps the version already taught.
+  var taught = $("dMin").value.trim();
+  if (taught !== (t.minVersion || "") && !plusGate("steps")) taught = t.minVersion || "";
+  t.minVersion = taught;
   t.fullVersion = $("dFull").value.trim();
   t.time = $("dTime").value || null;
   t.durationMin = Math.max(5, +$("dDur").value || t.durationMin);
@@ -751,6 +777,7 @@ $("dDelete").addEventListener("click", function () {
 
 /* ---------- capture ---------- */
 $("parseBtn").addEventListener("click", function () {
+  if (!plusGate("talk")) return;
   var text = $("dumpText").value;
   drafts = L.parseDump(text, L.todayKey());
   if (!drafts.length) { $("captureMsg").textContent = tr("Nothing I could sort yet. Try one thing per line, like: call the dentist tomorrow at 3pm."); return; }
@@ -828,6 +855,17 @@ function toggleVoice(hooks) {
   var btn = hooks.btn, span = btn.querySelector("span");
   var done = function () { voiceSession = null; if (span) span.textContent = tr("Speak"); };
   var nat = nativeSpeech();
+  if (!nat) {
+    // POLAR P1 hardening (21 Oct): on the packaged app with the
+    // speech plugin missing from the build (build 20's conveyor
+    // hole — the plugin was named in config but never compiled
+    // in), the flow used to fall through to the WebView's web
+    // speech, which errors not-allowed and accuses the user's
+    // mic settings — wrongly. On native, no plugin means the
+    // BUILD lacks voice: say that, honestly, and stop.
+    var C2 = window.Capacitor;
+    if (C2 && typeof C2.isNativePlatform === "function" && C2.isNativePlatform()) { hooks.msg(tr("Voice is not in this build of the app. Typing works the same — your words land in the same place.")); return; }
+  }
   if (nat) {
     var stopped = false;
     voiceSession = { stop: function () { stopped = true; try { nat.stop(); } catch (e) {} done(); } };
@@ -970,6 +1008,8 @@ function renderTodos() {
 }
 function submitTodoInput() {
   if (addTodo($("todoInput").value)) { $("todoInput").value = ""; save(); renderTodos(); }
+  // POLAR P4: a blank add was a silent no-op — say so.
+  else toast(tr("Type the thing first, then tap +."));
 }
 $("todoAddBtn").addEventListener("click", submitTodoInput);
 $("todoInput").addEventListener("keydown", function (e) { if (e.key === "Enter") submitTodoInput(); });
@@ -1161,9 +1201,15 @@ function bindSettings() {
 function readSettings() {
   var s = state.settings;
   s.checkinTime = $("checkinTime").value || "08:00";
-  s.names.low = $("nameLow").value.trim() || "Low";
-  s.names.steady = $("nameSteady").value.trim() || "Steady";
-  s.names.full = $("nameFull").value.trim() || "Full";
+  // The energy levels in your own words is a Plus row: a
+  // refused rename keeps the names already in place (the
+  // check-in itself, with the factory words, stays free).
+  var wantNames = { low: $("nameLow").value.trim() || "Low", steady: $("nameSteady").value.trim() || "Steady", full: $("nameFull").value.trim() || "Full" };
+  if ((wantNames.low !== s.names.low || wantNames.steady !== s.names.steady || wantNames.full !== s.names.full) && !plusGate("names")) {
+    $("nameLow").value = s.names.low; $("nameSteady").value = s.names.steady; $("nameFull").value = s.names.full;
+  } else {
+    s.names.low = wantNames.low; s.names.steady = wantNames.steady; s.names.full = wantNames.full;
+  }
   s.notif.checkin = $("nCheckin").checked; s.notif.start = $("nStart").checked;
   s.notif.setup = Math.max(0, Math.min(60, +$("nSetup").value || 5));
   s.notif.digest = $("nDigest").checked;
@@ -1438,7 +1484,12 @@ var GUIDE_STEPS = [
    the menu stop (the card docks beside the open menu); then
    the app's areas; last stop Done. The X or "Skip tour"
    closes it any time; it runs on the first visit only. */
-function tourNeedsName() { return !!(ACTIVE_UID && FB.configured && !(state.settings.profileName || "").trim()); }
+// POLAR P7 (21 Oct, fresh install): the name ask belongs to
+// the TOUR, not to the account — a guest's tour never asked
+// (this used to require a signed-in uid), so a fresh install
+// crossed all five cards nameless. The name lives in state
+// and syncs on sign-in like everything else.
+function tourNeedsName() { return !((state.settings.profileName || "").trim()); }
 var TOUR = [];
 function buildTour() {
   TOUR = [];
@@ -1489,6 +1540,13 @@ function showGuide(step) {
    under an earlier stamp is what unlocks the re-offer. */
 var BOOT_T = Date.now();
 function noteNameSkip() {
+  // The skip also stamps THIS SITTING (sessionStorage survives
+  // reloads, dies with the app/tab): the re-offer's own rule is
+  // "never the same session", and a page reload is the same
+  // sitting — build 13's Leg 6 flake was the re-offer firing on
+  // the second boot of one sitting, caught or missed by the
+  // checker purely on reconcile timing.
+  try { sessionStorage.setItem("pace-name-skip-sitting", ACTIVE_UID || ""); } catch (e) {}
   if (!tourNeedsName()) return;
   if (!TOUR.some(function (s) { return s.kind === "name"; })) return;
   try { localStorage.setItem("pace-name-skip", (ACTIVE_UID || "") + ":" + BOOT_T); } catch (e) {}
@@ -1524,31 +1582,110 @@ $("guideNext").addEventListener("click", function () {
 $("guideAgain").addEventListener("click", function () { TOUR = []; buildTour(); showGuide(0); });
 
 /* ---------- the upgrade moment ---------- */
-/* Fires ONLY on a paid-edge tap (a Plus look, Cute mode,
-   Talk to it) — never on open, never twice for the same
-   edge in one visit. It invites to Plans; it never charges
-   and never locks: the tapped thing works exactly as today,
-   popup or no popup. (Pace has no repeat picker — repeats
-   arrive through Talk to it, already an edge, and through
-   import, a completed flow with no wanting-moment.) */
-var plusShown = {}, plusEntries = {};
+/* THE LOCKED TAP (the paid/free rules, 19 Oct: paid features release
+   only on an active entitlement; a locked tap SPEAKS and opens
+   the plans path — never silent, never a partial unlock).
+   plusGate(edge) is the single door every Plus feature's apply
+   point passes: entitled (a live subscriptions record or the
+   free month — PaceBilling.plusActive) applies silently; not
+   entitled speaks through maybePlus and the feature does NOT
+   apply. This supersedes the PACE-002 timing of the
+   nothing-locked era (first entry clean, speak on a repeat
+   visit): that ruling governed a popup over features that
+   still worked; with real locks the first locked tap speaks
+   too. (Pace has no repeat picker — repeats arrive through
+   Talk to it, already an edge, and through import, a completed
+   flow with no wanting-moment.) */
+var plusShown = {};
 function maybePlus(edge) {
-  if (DEMO_SESSION || plusShown[edge]) return;
-  /* PACE-002 (HQ ruling): the FIRST entry to an edge lands clean —
-     the first minute belongs to the feature. The edge speaks on a
-     repeat visit, still at most once per visit. */
-  plusEntries[edge] = (plusEntries[edge] || 0) + 1;
-  if (plusEntries[edge] < 2) return;
+  if (DEMO_SESSION) return;
   plusShown[edge] = 1;
   $("plusArt").innerHTML = skipSvg("welcome");
   $("plusSheet").hidden = false;
+  renderPlans();
+}
+function plusGate(edge) {
+  if (window.PaceBilling && PaceBilling.plusActive()) return true;
+  maybePlus(edge);
+  return false;
 }
 function closePlus() { $("plusSheet").hidden = true; }
 $("plusClose").addEventListener("click", closePlus);
 $("plusNotNow").addEventListener("click", closePlus);
-$("plusPlans").addEventListener("click", function () { closePlus(); $("plansSheet").hidden = false; });
-$("plansOpen").addEventListener("click", function () { $("plansSheet").hidden = false; });
+$("plusPlans").addEventListener("click", function () { closePlus(); renderPlans(); $("plansSheet").hidden = false; });
+$("plansOpen").addEventListener("click", function () { renderPlans(); $("plansSheet").hidden = false; });
 $("plansClose").addEventListener("click", function () { $("plansSheet").hidden = true; });
+
+/* ---------- plans + buying (the enabling build) ----------
+   The buy buttons are Pace's own (the sheet's classes, the
+   app's voice) and they live only where a store lives: the
+   packaged app, once billing is configured. Everywhere else
+   the sheet keeps the honest not-on-sale line. Prices on the
+   buttons are the store's own strings for the reader's
+   storefront, with the A$ anchors as the fallback. */
+function billingOnDevice() {
+  try { return !!(window.PaceBilling && PaceBilling.live() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases); } catch (e) { return false; }
+}
+function renderPlans() {
+  var on = billingOnDevice();
+  $("planBuy").hidden = !on;
+  $("planTerms").hidden = !on;
+  if (on) {
+    // The disclosure's prices come from the same source as
+    // the buttons' prices, so the two can never drift.
+    PaceBilling.storePrices().then(function (sp) {
+      var t = $("planTermsText"); if (!t) return;
+      t.textContent = tr("Plus, monthly ({m}) and Plus, yearly ({y}) renew automatically at those prices, until you cancel. Cancel anytime in your Apple ID subscriptions. Plus stays open until the end of the paid period. Plus for life ({l}) is one payment. It never renews.", {
+        m: sp[PaceBilling.products.monthly] || PaceBilling.productPrice("monthly"),
+        y: sp[PaceBilling.products.yearly] || PaceBilling.productPrice("yearly"),
+        l: sp[PaceBilling.products.lifetime] || PaceBilling.productPrice("lifetime")
+      });
+    }).catch(function () {});
+  }
+  var honest = $("plusHonest");
+  if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Unlock with a paid plan when plans open at launch. Nothing can be charged today.");
+  var st = $("planState"); if (!st) return;
+  var holds = $("planHolds");
+  if (holds) holds.textContent = on
+    ? tr("Plus holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.")
+    : tr("When Plus arrives, it holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.");
+  if (!on) { st.textContent = tr("Not on sale yet. Nothing to pay today."); return; }
+  var s = PaceBilling.state();
+  if (PaceBilling.plusActive() && s.owned) st.textContent = tr("Plus is yours. Everything is open.");
+  else if (PaceBilling.plusActive()) st.textContent = tr("Your first month is free, on us. The buttons are here when you are ready.");
+  else st.textContent = tr("Pick a plan to unlock everything.");
+  PaceBilling.storePrices().then(function (p) {
+    if (!p) return;
+    var pm = p[PaceBilling.products.monthly], py = p[PaceBilling.products.yearly], pl = p[PaceBilling.products.lifetime];
+    $("buyMonthly").textContent = tr("Plus, monthly") + " — " + (pm || "A$4.99");
+    $("buyYearly").textContent = tr("Plus, yearly") + " — " + (py || "A$39.99");
+    $("buyLifetime").textContent = tr("Plus for life") + " — " + (pl || "A$99.99");
+    // POLAR P2: the copy lines speak the SAME store prices as
+    // the buttons (never the A$ anchors beside live store
+    // numbers). Only overwrite when the store answered for
+    // that product; the static anchors stand otherwise.
+    if (pm && py) {
+      var pp = $("planPriceLine"); if (pp) pp.textContent = tr("{m} a month, or {y} a year. First month free.", { m: pm, y: py });
+      var xp = $("plusPriceLine"); if (xp) xp.textContent = tr("Plus is {m} a month, or {y} a year. Your first month is free.", { m: pm, y: py });
+    }
+    if (pl) { var lp = $("planLifeLine"); if (lp) lp.textContent = tr("Or Plus for life: {l}, once.", { l: pl }); }
+  }).catch(function () {});
+}
+function buyFlow(productId) {
+  PaceBilling.buy(productId).then(function () {
+    renderPlans();
+    toast(PaceBilling.plusActive() ? tr("Plus is yours. Everything is open.") : tr("That did not go through. Nothing was charged."));
+  }).catch(function () { toast(tr("That did not go through. Nothing was charged.")); });
+}
+$("buyMonthly").addEventListener("click", function () { buyFlow(PaceBilling.products.monthly); });
+$("buyYearly").addEventListener("click", function () { buyFlow(PaceBilling.products.yearly); });
+$("buyLifetime").addEventListener("click", function () { buyFlow(PaceBilling.products.lifetime); });
+$("buyRestore").addEventListener("click", function () {
+  PaceBilling.restore().then(function () {
+    renderPlans();
+    toast(PaceBilling.plusActive() ? tr("Welcome back. Plus is yours again.") : tr("No past purchase found for this account."));
+  }).catch(function () { toast(tr("That did not go through. Nothing was charged.")); });
+});
 
 /* ---------- bring my calendar in (shared module: IMPORT-DESIGN.md) ---------- */
 var DEMO_SESSION = /[?&]demo=1\b/.test(location.search) || !!(state.settings && state.settings.demo);
@@ -1704,18 +1841,43 @@ function reconcileAccount() {
   // settles, success or failure, and any held push then fires
   // with the post-adopt state.
   reconcilePending = true;
+  // THE WATCHDOG (fleet census, 19 Oct): if the reconcile's
+  // reads never settle (a dead socket under the bounded fetch
+  // still leaves slow chains), the gate must not wedge sync
+  // for the whole session. At the bound the tail's own settle
+  // runs — gate lifts, held pushes fire, the guide decision
+  // reads local truth. A late-settling chain still lands
+  // safely behind it: adoption compares content stamps, and
+  // the tail is idempotent.
+  var watchdog = setTimeout(function () {
+    if (!reconcilePending) return;
+    reconcilePending = false;
+    if (syncDirty) { syncDirty = false; syncNow(); }
+    if (state && state.welcomed && state.settings && !state.settings.guideDone) maybeGuide();
+  }, 15000);
   FB.fsGet(spinePath()).then(function (sp) {
     if (!sp) {
       spine = { createdAt: new Date().toISOString(), lastActiveAt: new Date().toISOString(), deletedByUser: false };
-      // No plan on the user record — entitlement lives at _comp
-      // alone. The aggregate shard (owner space) is the only
-      // outward fact: this account exists, and when it arrived.
-      FB.fsSet("aggSignups/" + ACTIVE_UID, { createdAt: spine.createdAt }).catch(function () {});
-      return FB.fsSet(spinePath(), spine).then(function () { return null; });
+      // No plan on the user record — the entitlement record
+      // lives at subscriptions/{uid} (system-written; the
+      // billing layer reads it). The aggregate shard (owner
+      // space) is the only outward fact: this account exists,
+      // and when it arrived.
+      // createdAt crosses the wire as a true timestamp (rules
+      // v2.3: server-checked at create, write-once after) — it
+      // anchors the free month, so it is born unfakeable; in
+      // memory it stays the ISO string every reader expects.
+      var born = new Date(spine.createdAt);
+      FB.fsSet("aggSignups/" + ACTIVE_UID, { createdAt: born }).catch(function () {});
+      return FB.fsSet(spinePath(), Object.assign({}, spine, { createdAt: born })).then(function () { return null; });
     }
     spine = sp; return null;
   }).then(function () {
     spineTouchDaily();
+    // The entitlement read rides the reconcile (the spine's
+    // createdAt anchors the free month; the record read is the
+    // billing layer's alone — it never writes).
+    if (window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(FB, ACTIVE_UID, spine && spine.createdAt); } catch (e) {} }
     return FB.fsGet(statePath());
   }).then(function (doc) {
     renderAccount();
@@ -1731,7 +1893,21 @@ function reconcileAccount() {
       try { serverObj = JSON.parse(doc.stateJson); } catch (e) {}
       var serverAt = (serverObj && serverObj.updatedAt) || Date.parse(doc.updatedAt || "") || 0;
       var localAt = (state && state.updatedAt) || 0;
-      if (serverObj && serverAt > localAt) {
+      // QA NIGHT F1 (critical): an EMPTY local state can never
+      // outrank server content, whatever the stamps say. A
+      // fresh device's born state was save()-stamped at birth
+      // (Date.now()), which beat the server's older content
+      // stamp — the gate-lift flush then pushed the empty
+      // state over the account's real tasks (proven twice by
+      // QA, fresh-context shape; masked same-context because
+      // the local copy pushes itself back). Born states now
+      // claim no content time (updatedAt 0 — see
+      // freshAccountState), AND this invariant stands at the
+      // decision itself as the second lock: local with no user
+      // content + a server doc with content = ADOPT.
+      var localEmpty = !(state && ((state.tasks || []).length || (state.todos || []).length || (state.habits || []).length || Object.keys(state.feelings || {}).length));
+      var serverHas = !!(serverObj && ((serverObj.tasks || []).length || (serverObj.todos || []).length || (serverObj.habits || []).length || Object.keys(serverObj.feelings || {}).length));
+      if (serverObj && (serverAt > localAt || (localEmpty && serverHas))) {
         adoptStateObject(serverObj);
       } else {
         // Local is the newer truth and the server is behind (a
@@ -1761,6 +1937,7 @@ function reconcileAccount() {
     // fire with the post-adopt state, and the tour decision reads
     // the settled state (a pre-adopt guideDone once re-showed the
     // tour on a second boot — remainder-round Leg 6's wobble).
+    clearTimeout(watchdog);
     reconcilePending = false;
     if (syncDirty) { syncDirty = false; syncNow(); }
     if (state && state.welcomed && state.settings && !state.settings.guideDone) maybeGuide();
@@ -1782,6 +1959,11 @@ function maybeJoinDoor() {
   // the name step) gets this as its first ask.
   try {
     if (localStorage.getItem("pace-name-reoffered") === ACTIVE_UID) { maybePotDoor(); return; }
+    // Same SITTING as the skip: never re-ask (the re-offer's own
+    // rule). A reload is the same sitting — without this, the
+    // second boot of one sitting re-asks, and whether a checker
+    // sees the sheet is a coin flip on reconcile timing.
+    if (sessionStorage.getItem("pace-name-skip-sitting") === ACTIVE_UID) { maybePotDoor(); return; }
     var sk = (localStorage.getItem("pace-name-skip") || "").split(":");
     if (sk[0] === ACTIVE_UID && !(Number(sk[1]) < BOOT_T)) { maybePotDoor(); return; } // skipped this very visit
     localStorage.setItem("pace-name-reoffered", ACTIVE_UID);
@@ -1845,6 +2027,11 @@ function resolvePot(bring) {
 function freshAccountState() {
   var s = seed();
   s.tasks = []; s.todos = []; s.habits = []; s.feelings = {}; s.imports = [];
+  // A born state has NO content, so it claims NO content time:
+  // updatedAt 0 keeps its birth save() from outranking the
+  // account's real server content at the reconcile (QA F1).
+  // The boot path pins it back to 0 after the birth save().
+  s.updatedAt = 0;
   return s;
 }
 function renderAccount() {
@@ -1883,6 +2070,18 @@ function renderAccount() {
    skipNativeAuth is set in capacitor.config.json, so the plugin
    creates no parallel session. On the web this returns null and the
    doors run exactly as before. */
+/* THE DOOR BOUND (fleet census, 19 Oct): a native sign-in
+   promise that never settles — the sheet never appears, the
+   bridge wedges — used to leave the door on "Opening…"
+   forever. The bound is generous (a real person at a real
+   consent sheet is never rushed); what it kills is the
+   infinite wait, and the fallback keeps the email door
+   standing. */
+function doorBound(p, provider) {
+  return Promise.race([p, new Promise(function (_, rej) {
+    setTimeout(function () { var e = new Error("door-timeout"); e.doorTimeout = provider; rej(e); }, 45000);
+  })]);
+}
 function nativeAuthPlugin() {
   try {
     var C = window.Capacitor;
@@ -1980,12 +2179,15 @@ function bindAccounts() {
     var natG = nativeAuthPlugin();
     if (natG) {
       authBusy(tr("Opening Google…"));
-      natG.signInWithGoogle().then(function (res) {
+      doorBound(natG.signInWithGoogle(), "google").then(function (res) {
         var tok = res && res.credential && res.credential.idToken;
         if (!tok) { authBusy(tr("Google sign-in was closed. Nothing changed.")); return; }
         FB.googleSignIn(tok).then(function (s) { ACTIVE_UID = s.uid; afterSignIn(); })
           .catch(function (e) { authBusy(tr(FB.userError(e))); });
-      }).catch(function () { authBusy(tr("Google sign-in was closed. Nothing changed.")); });
+      }).catch(function (e) {
+        if (e && e.doorTimeout) authBusy(tr("Google did not answer. Nothing changed. Try again, or use email + password."));
+        else authBusy(tr("Google sign-in was closed. Nothing changed."));
+      });
       return;
     }
     var cid = window.PACE_FB_CONFIG && window.PACE_FB_CONFIG.googleClientId;
@@ -2018,7 +2220,7 @@ function bindAccounts() {
     var natA = nativeAuthPlugin();
     if (natA) {
       authBusy(tr("Opening Apple…"));
-      natA.signInWithApple().then(function (res) {
+      doorBound(natA.signInWithApple(), "apple").then(function (res) {
         var cred = res && res.credential;
         if (!cred || !cred.idToken) { authBusy(tr("Apple sign-in was closed. Nothing changed.")); return; }
         try { // The plugin offers the name on first authorisation — carry it for the tour, like the web door.
@@ -2027,7 +2229,10 @@ function bindAccounts() {
         } catch (e) {}
         FB.appleSignIn(cred.idToken, null, cred.nonce || null).then(function (sess) { ACTIVE_UID = sess.uid; afterSignIn(); })
           .catch(function (e) { authBusy(tr(FB.userError(e))); });
-      }).catch(function () { authBusy(tr("Apple sign-in was closed. Nothing changed.")); });
+      }).catch(function (e) {
+        if (e && e.doorTimeout) authBusy(tr("Apple did not answer. Nothing changed. Try again, or use email + password."));
+        else authBusy(tr("Apple sign-in was closed. Nothing changed."));
+      });
       return;
     }
     var cfgA = window.PACE_FB_CONFIG || {};
@@ -2139,5 +2344,6 @@ renderTodos();
 renderHabits();
 checkNotifications();
 bindAccounts();
+if (!ACTIVE_UID && window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(null, null, null); } catch (e) {} }
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
 })();
