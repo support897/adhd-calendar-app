@@ -213,7 +213,11 @@ await p.fill("#deletePass", "password-a"); await p.click("#deleteGo");
 // four reads across two desks failed exactly the auth-user +
 // boots-as-guest pair, loaded and quiet boxes alike, while the
 // docs and shards legs always passed; the fourth read 39/39.)
-for (let i = 0; i < 60 && (docOf(uidA) || docOf(uidA, "data/state") || mock.users.has("a@test.dev") || await p.evaluate(() => !!localStorage.getItem("pace-auth-v1"))); i++) await p.waitForTimeout(250);
+// (21 Oct: under fleet load the app's post-delete reload lands
+// INSIDE a poll evaluate and destroys its context — the throw
+// means "still settling", so the poll treats it as session-
+// present and keeps waiting for the fresh page to answer.)
+for (let i = 0; i < 60 && (docOf(uidA) || docOf(uidA, "data/state") || mock.users.has("a@test.dev") || await p.evaluate(() => !!localStorage.getItem("pace-auth-v1")).catch(() => true)); i++) await p.waitForTimeout(250);
 check("account deletion removed A's server docs", !docOf(uidA) && !docOf(uidA, "data/state"));
 check("account deletion removed A's aggregate shards (v2.2)", !mock.docs.get("aggSignups/" + uidA) && !mock.docs.get("aggImports/" + uidA));
 check("account deletion removed the auth user", !mock.users.has("a@test.dev"));
