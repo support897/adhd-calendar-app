@@ -292,7 +292,43 @@ await p5.evaluate(() => document.getElementById("plansOpen").click()); await p5.
 await p5.waitForFunction(() => document.getElementById("planTermsText").textContent.includes("A$4.99"), null, { timeout: 8000 }).catch(() => {});
 const partialTxt = await p5.evaluate(() => document.getElementById("planTermsText").textContent);
 check("F2: a partial offerings response composes the disclosure from the store string + the A$ anchors (the exported fallback)", partialTxt.includes("$39.99") && partialTxt.includes("A$4.99") && partialTxt.includes("A$99.99"), partialTxt.slice(0, 90));
+/* POLAR P2: a foreign-storefront device — the store's strings
+   are bare dollars ($3.99). Every price on the surface must
+   carry its currency label and the copy must speak the SAME
+   numbers as the buttons (never the A$ anchors beside them). */
+await p5.evaluate(async () => {
+  window.Capacitor.Plugins.Purchases.getOfferings = () => Promise.resolve({ current: { availablePackages: [
+    { identifier: "$rc_monthly", product: { identifier: "pace_plus_monthly", priceString: "$3.99", currencyCode: "USD" } },
+    { identifier: "$rc_annual", product: { identifier: "pace_plus_yearly", priceString: "$25.99", currencyCode: "USD" } },
+    { identifier: "$rc_lifetime", product: { identifier: "pace_lifetime", priceString: "$64.99", currencyCode: "USD" } } ] } });
+});
+await p5.evaluate(() => document.getElementById("plansOpen").click()); await p5.waitForTimeout(800);
+await p5.waitForFunction(() => document.getElementById("buyMonthly").textContent.includes("USD"), null, { timeout: 8000 }).catch(() => {});
+const p2out = await p5.evaluate(() => ({ btn: document.getElementById("buyMonthly").textContent, copy: document.getElementById("planPriceLine").textContent, life: document.getElementById("planLifeLine").textContent, plus: document.getElementById("plusPriceLine").textContent }));
+check("POLAR P2: the button labels its currency ($3.99 USD, never a bare number)", p2out.btn.includes("$3.99 USD"), p2out.btn);
+check("POLAR P2: the Plans copy speaks the store's numbers with labels — no A$ anchor beside them", p2out.copy.includes("$3.99 USD") && p2out.copy.includes("$25.99 USD") && !p2out.copy.includes("A$") && p2out.life.includes("$64.99 USD"), p2out.copy + " | " + p2out.life);
 await ctx5.close();
+/* POLAR P3: a LAPSED GUEST (device first-run 40 days ago, no
+   account) — Talk to it's parse must refuse with the popup,
+   exactly like a lapsed account. The free month is the only
+   door, and it has closed. */
+const ctx6 = await b.newContext({ viewport: { width: 540, height: 960 } });
+await ctx6.addInitScript(() => { try { localStorage.setItem("pace-first-run", String(Date.now() - 40 * 864e5)); } catch (e) {} });
+const p6 = await ctx6.newPage();
+p6.on("pageerror", (e) => errors.push("p3: " + e.message));
+await p6.goto("http://localhost:9131/", { waitUntil: "networkidle" });
+await p6.waitForTimeout(1500);
+await p6.evaluate(() => { if (document.getElementById("welcome") && !document.getElementById("welcome").hidden) document.getElementById("welcomeSkip").click(); });
+await p6.waitForTimeout(400);
+await p6.evaluate(() => { const g = document.getElementById("guideSheet"); if (g && !g.hidden) document.getElementById("guideSkip").click(); });
+await p6.waitForTimeout(400);
+await p6.evaluate(() => document.querySelector('.side-item[data-panel="capture"]').click());
+await p6.waitForTimeout(400);
+await p6.fill("#dumpText", "call the dentist tomorrow at 3pm");
+await p6.evaluate(() => document.getElementById("parseBtn").click());
+await p6.waitForTimeout(600);
+check("POLAR P3: a lapsed guest's Talk-to-it parse is refused by the Plus gate (the boundary bites past the free month)", await p6.locator("#plusSheet").isVisible());
+await ctx6.close();
 check("zero page errors in the payments battery", errors.length === 0);
 if (errors.length) console.log(errors.slice(0, 4).join(" | "));
 console.log("RESULT pass=" + pass + " fail=" + fail);
