@@ -115,8 +115,10 @@ const ctx4 = await browser.newContext({ viewport: { width: 1280, height: 900 } }
 const p4 = await ctx4.newPage();
 await p4.goto("http://localhost:8918/", { waitUntil: "networkidle" });
 await p4.click("#welcomeSkip");
-check("the tour opens after welcome, centred", await p4.locator("#guideSheet").isVisible() && /We cross at your pace/.test(await p4.locator("#guideBubble").textContent()));
+check("the tour opens after welcome, centred — the NAME step leads for a nameless visitor (POLAR P7)", await p4.locator("#guideSheet").isVisible() && /What's your name/.test(await p4.locator("#guideBubble").textContent()) && (await p4.locator("#tourName").count()) === 1);
 check("the tour shows Skip the Ferry", (await p4.locator("#guideArt .skip-svg").count()) === 1);
+await p4.click("#guideNext");
+check("then the welcome beat", /We cross at your pace/.test(await p4.locator("#guideBubble").textContent()));
 await p4.click("#guideNext");
 check("the tour's menu stop docks beside the open menu", /This is your menu/.test(await p4.locator("#guideBubble").textContent()) && (await p4.evaluate(() => document.getElementById("guideSheet").getAttribute("data-dock"))) === "menu" && (await p4.evaluate(() => document.documentElement.getAttribute("data-sb"))) === null);
 await p4.click("#guideNext");
@@ -196,5 +198,32 @@ const unGeo = await p6.evaluate(() => {
 });
 check("PACE-016: the Up Next step sentence stands whole with Start on its own row beneath it", !!unGeo && unGeo.btnTop >= unGeo.stepBottom - 1 && unGeo.stepText.includes("Clean the kitchen"), unGeo ? JSON.stringify(unGeo) : "no step/button");
 await ctx6.close();
+/* POLAR P8/P7/P4 on a phone-width frame (390x844). */
+const ctx7 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const p7p = await ctx7.newPage();
+await p7p.goto("http://localhost:8918/", { waitUntil: "networkidle" });
+await p7p.waitForTimeout(700);
+await p7p.evaluate(() => { const w = document.getElementById("welcome"); if (w && !w.hidden) document.getElementById("welcomeSkip").click(); });
+await p7p.waitForTimeout(600);
+const p7name = await p7p.evaluate(() => { const g = document.getElementById("guideSheet"); return { guideOpen: g && !g.hidden, nameInput: !!document.getElementById("tourName") }; });
+check("POLAR P7: a fresh GUEST tour asks the name (the name step leads the tour when no name is on file)", p7name.guideOpen && p7name.nameInput, JSON.stringify(p7name));
+await p7p.evaluate(() => { const g = document.getElementById("guideSheet"); if (g && !g.hidden) document.getElementById("guideSkip").click(); });
+await p7p.waitForTimeout(500);
+await p7p.evaluate(() => document.getElementById("sbExpand").click());
+await p7p.waitForTimeout(500);
+const p8 = await p7p.evaluate(() => {
+  const sb = document.getElementById("sidebar"), main = document.getElementById("main");
+  return { pos: getComputedStyle(sb).position, mainW: main.getBoundingClientRect().width, sbW: sb.getBoundingClientRect().width };
+});
+check("POLAR P8: on phone widths the open menu OVERLAYS (fixed) and the content keeps its full width — no squeezed reflow", p8.pos === "fixed" && p8.mainW >= 380, JSON.stringify(p8));
+await p7p.evaluate(() => document.getElementById("sbSliver").click());
+await p7p.waitForTimeout(400);
+await p7p.evaluate(() => document.querySelector('.side-item[data-panel="todo"]').click());
+await p7p.waitForTimeout(400);
+await p7p.evaluate(() => document.getElementById("todoAddBtn").click());
+await p7p.waitForTimeout(400);
+const p4txt = await p7p.evaluate(() => { const t = document.getElementById("toast"); return t ? t.textContent : ""; });
+check("POLAR P4: a blank To do add speaks (never a silent no-op)", p4txt.includes("Type the thing first"), p4txt);
+await ctx7.close();
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); server.close(); process.exit(fail ? 1 : 0);
