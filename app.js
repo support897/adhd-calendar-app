@@ -2201,7 +2201,17 @@ function bindAccounts() {
             .catch(function (e) { authBusy(tr(FB.userError(e))); });
         },
       });
-      window.google.accounts.id.prompt();
+      // The moment listener (the door chapter, 21 Oct): a GSI
+      // prompt that never displays — blocked popup, suppressed
+      // One Tap, a dismissed sheet — used to leave "Opening
+      // Google…" hanging forever, the filmed fleet failure in
+      // miniature. Every non-display moment now speaks.
+      window.google.accounts.id.prompt(function (n) {
+        try {
+          if (n && (n.isNotDisplayed() || n.isSkippedMoment())) authBusy(tr("Google did not answer. Nothing changed. Try again, or use email + password."));
+          else if (n && n.isDismissedMoment()) authBusy(tr("Google sign-in was closed. Nothing changed."));
+        } catch (e) {}
+      });
     };
     if (window.google && window.google.accounts) go();
     else {
