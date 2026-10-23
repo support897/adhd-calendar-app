@@ -38,8 +38,9 @@ const sess = await FB.emailSignUp(email, pw);
 const uid = sess.uid;
 check("client sign-up adopts a session", !!uid, uid);
 const now = new Date().toISOString();
-const spine = { createdAt: now, lastActiveAt: now, deletedByUser: false };
-await FB.fsSet("aggSignups/" + uid, { createdAt: spine.createdAt });
+const bornAt = new Date(); // v2.3: createdAt crosses the wire as a true timestamp, exactly as the shipped client sends it (app.js ensureSpine)
+const spine = { createdAt: bornAt, lastActiveAt: now, deletedByUser: false };
+await FB.fsSet("aggSignups/" + uid, { createdAt: bornAt });
 await FB.fsSet("users/" + uid, spine);
 await FB.fsSet("users/" + uid + "/data/state", { stateJson: JSON.stringify({ audit: "client-shape", tasks: [] }), updatedAt: new Date().toISOString() });
 await FB.fsSet("users/" + uid, { lastActiveAt: new Date().toISOString() }, ["lastActiveAt"]);
@@ -53,7 +54,7 @@ check("aggImports.imports emitted as integerValue \"1\" (aggregation-summable)",
 check("aggImports.at emitted as stringValue", typeof aggImp?.body?.fields?.at?.stringValue === "string");
 check("the server's stored aggImports document echoes the same wire types", aggImp?.resp?.fields?.events?.integerValue === "3" && aggImp?.resp?.fields?.imports?.integerValue === "1");
 const aggSuCreate = call("aggSignups/" + uid, 0);
-check("the client's aggSignups create emits {createdAt: stringValue} and lands", aggSuCreate?.status === 200 && typeof aggSuCreate.body.fields?.createdAt?.stringValue === "string");
+check("the client's aggSignups create emits {createdAt: timestampValue} and lands (v2.3)", aggSuCreate?.status === 200 && typeof aggSuCreate.body.fields?.createdAt?.timestampValue === "string");
 const aggSuAct = call("aggSignups/" + uid, 1);
 check("the client's aggSignups activation patch lands with both fields as strings", aggSuAct?.status === 200 && typeof aggSuAct.body.fields?.activatedAt?.stringValue === "string" && aggSuAct.body.fields?.activationKind?.stringValue === "email");
 const spineCall = call("users/" + uid, 0);
@@ -73,6 +74,7 @@ await FB.fsDelete("users/" + uid + "/data/state");
 await FB.fsDelete("users/" + uid);
 await FB.fsDelete("aggSignups/" + uid);
 await FB.fsDelete("aggImports/" + uid);
+await FB.fsDelete("subscriptions/" + uid);
 await FB.deleteAccount();
 const relog = await realFetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${cfg.apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pw, returnSecureToken: true }) });
 check("sweep census: the client-deleted account refuses sign-in", relog.status === 400);
