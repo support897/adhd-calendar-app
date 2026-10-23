@@ -1,6 +1,10 @@
 rules_version = '2';
-// Pace Calendar — Security Rules of record, v2.3 (accounts
+// Pace Calendar — Security Rules of record, v2.4 (accounts
 // wave; Security desk send-back of 15 Oct applied in full;
+// v2.4 = subscriptions/{uid} folds INTO the deletion promise
+// (HQ ruling 23 Oct, on Security's gap of record): the record
+// gains a one-line owner-delete arm; create/update stay
+// sealed, server-written only;
 // v2.3 = createdAt is born a server-checked timestamp and
 // write-once thereafter (Security's pre-launch follow-up,
 // 19 Oct: the free month's anchor must not be owner-editable);
@@ -115,9 +119,16 @@ service cloud.firestore {
 
     // A user's own subscription record (their eyes only; the
     // dashboard counts the aggSubs mirror, never this folder).
+    // v2.4: the record is INSIDE the deletion promise — an
+    // access record, not the money ledger (the stores and
+    // RevenueCat keep the money truth) — so at the user's own
+    // deletion it dies with the account (the owner-delete arm;
+    // signedIn + uid match + !isAnon via own()). Create and
+    // update stay sealed: server-written only.
     match /subscriptions/{uid} {
       allow get: if own(uid);
-      allow write: if false;
+      allow create, update: if false;
+      allow delete: if own(uid);
     }
 
     // Reviews inbox + outreach + community (contracts §1/§3):
