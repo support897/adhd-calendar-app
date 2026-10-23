@@ -200,7 +200,9 @@ await ctx3.close();
 // v2.2: the sweep takes the aggregate shards too (erasure
 // takes the shard). Give A an imports shard to prove it dies.
 mock.docs.set("aggImports/" + uidA, { events: 5, imports: 1, at: new Date().toISOString() });
+mock.docs.set("subscriptions/" + uidA, { entitlement: "plus", status: "active" });
 check("pre-delete: A's shards exist", !!mock.docs.get("aggSignups/" + uidA) && !!mock.docs.get("aggImports/" + uidA));
+check("pre-delete: A's subscription record exists (v2.4, staged)", !!mock.docs.get("subscriptions/" + uidA));
 await settings(); await p.click("#accountDelete"); await p.waitForSelector("#deleteSheet:not([hidden])");
 await p.fill("#deletePass", "password-a"); await p.click("#deleteGo");
 // Poll for the condition (the C-leg pattern): a fixed sleep
@@ -217,9 +219,10 @@ await p.fill("#deletePass", "password-a"); await p.click("#deleteGo");
 // INSIDE a poll evaluate and destroys its context — the throw
 // means "still settling", so the poll treats it as session-
 // present and keeps waiting for the fresh page to answer.)
-for (let i = 0; i < 60 && (docOf(uidA) || docOf(uidA, "data/state") || mock.users.has("a@test.dev") || await p.evaluate(() => !!localStorage.getItem("pace-auth-v1")).catch(() => true)); i++) await p.waitForTimeout(250);
+for (let i = 0; i < 60 && (docOf(uidA) || docOf(uidA, "data/state") || mock.docs.get("subscriptions/" + uidA) || mock.users.has("a@test.dev") || await p.evaluate(() => !!localStorage.getItem("pace-auth-v1")).catch(() => true)); i++) await p.waitForTimeout(250);
 check("account deletion removed A's server docs", !docOf(uidA) && !docOf(uidA, "data/state"));
 check("account deletion removed A's aggregate shards (v2.2)", !mock.docs.get("aggSignups/" + uidA) && !mock.docs.get("aggImports/" + uidA));
+check("account deletion removed A's subscription record (v2.4 fold)", !mock.docs.get("subscriptions/" + uidA));
 check("account deletion removed the auth user", !mock.users.has("a@test.dev"));
 check("after deletion the app boots as guest", await p.evaluate(() => !localStorage.getItem("pace-auth-v1")));
 /* ---------- 11. door-first joining (the ruling, 21:26) ---------- */
