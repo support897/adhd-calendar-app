@@ -56,6 +56,14 @@ export function startMock() {
     const seg = path.split("/");
     return (seg[0] === "users" && seg[1] === uid) || (seg[0] === "aggSignups" && seg[1] === uid) || (seg[0] === "aggImports" && seg[1] === uid);
   };
+  // v2.4: subscriptions/{uid} stays write-sealed for clients, but the
+  // owner may DELETE their own record (the deletion-promise fold).
+  const mayDelete = (uid, path) => {
+    if (mayWrite(uid, path)) return true;
+    if (!uid) return false;
+    const seg = path.split("/");
+    return seg[0] === "subscriptions" && seg[1] === uid;
+  };
   const server = http.createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
@@ -140,7 +148,7 @@ export function startMock() {
           return send(200, { name: "projects/x/databases/(default)/documents/" + path, fields });
         }
         if (req.method === "DELETE") {
-          if (!mayWrite(uid, path)) return send(403, { error: { message: "PERMISSION_DENIED" } });
+          if (!mayDelete(uid, path)) return send(403, { error: { message: "PERMISSION_DENIED" } });
           docs.delete(path); return send(200, {});
         }
       }
