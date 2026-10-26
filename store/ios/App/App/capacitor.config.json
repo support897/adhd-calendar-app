@@ -13,10 +13,11 @@
 		}
 	},
 	"packageClassList": [
-		"SpeechRecognition",
 		"FirebaseAuthenticationPlugin",
 		"FilesystemPlugin",
 		"LocalNotificationsPlugin",
-		"SharePlugin"
+		"SharePlugin",
+		"SpeechRecognitionPlugin",
+		"PurchasesPlugin"
 	]
 }
