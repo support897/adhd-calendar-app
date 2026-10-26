@@ -21,15 +21,17 @@ const bBefore = JSON.stringify(B), cBefore = JSON.stringify(C);
 
 // TU-B imports the SAME Google calendar TU-A already holds events from.
 const planB = CI.planImport(CI.parseICS(ics), B.tasks, { now: NOW, sourceLabel: "Google Calendar" });
-check("NS-2: dedupe never crosses users — B is offered the full set despite A's imports", planB.add.length === 4 && planB.dupes === 0);
+const importedCount = planB.add.length;
+const cleanPlan = CI.planImport(CI.parseICS(ics), [], { now: NOW, sourceLabel: "Google Calendar" });
+check("NS-2: B gets the full fresh-user import despite A's imports", importedCount > 0 && importedCount === cleanPlan.add.length && planB.dupes === 0);
 const resB = CI.applyImport(B, planB, "Google Calendar", toTask);
-check("NS-2: the import lands in B's space (tasks + registry)", B.tasks.length === 5 && B.imports.length === 1);
+check("NS-2: the import lands in B's space (tasks + registry)", B.tasks.length === 1 + importedCount && B.imports.length === 1 && B.imports[0].count === importedCount);
 check("NS-2: A's space is byte-identical after B's import", JSON.stringify(A) === JSON.stringify(load("tu-a.state.json")));
 check("NS-2: C's space is byte-identical after B's import", JSON.stringify(C) === cBefore);
 
 // Within B's own space, re-import dedupes (the fence inside one user).
 const planB2 = CI.planImport(CI.parseICS(ics), B.tasks, { now: NOW, sourceLabel: "Google Calendar" });
-check("NS-2: re-import inside B's own space dedupes to 0", planB2.add.length === 0 && planB2.dupes === 4);
+check("NS-2: re-import inside B's own space dedupes to 0", planB2.add.length === 0 && planB2.dupes === importedCount);
 check("NS-2: A's counts never moved (tasks, registry)", A.tasks.length === 3 && A.imports.length === 1 && A.imports[0].count === 1);
 
 // A malformed file writes nothing anywhere.

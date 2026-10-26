@@ -28,6 +28,7 @@ function uid() { return "t" + Date.now().toString(36) + Math.random().toString(3
 function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function icon(name) { return '<svg class="ico" aria-hidden="true"><use href="#' + name + '"/></svg>'; }
 function $(id) { return document.getElementById(id); }
+function durationLabel(task) { return task && task.allDay ? tr("All day") : tr("about {n} min", { n: task && task.durationMin }); }
 
 function defaultSettings() {
   return {
@@ -65,6 +66,7 @@ function load(fromKey) {
       if (!Array.isArray(t.steps)) t.steps = [];
       if (typeof t.durationMin !== "number" || !(t.durationMin > 0)) t.durationMin = 25;
       if (typeof t.status !== "string") t.status = "todo";
+      t.allDay = !!t.allDay;
     });
     if (!isObj(s.feelings)) s.feelings = {};
     if (!isObj(s.sent)) s.sent = {};
@@ -371,7 +373,7 @@ function renderDayList() {
 function rowHtml(t, done) {
   var meta = [];
   if (t.time) meta.push(t.time);
-  meta.push(tr("about {n} min", { n: t.durationMin }));
+  meta.push(durationLabel(t));
   if (t.steps && t.steps.length) meta.push(tr("{a} of {b} steps", { a: t.steps.filter(function (s) { return s.done; }).length, b: t.steps.length }));
   if (t.shrunk) meta.push(tr("small version"));
   if (t.repeat) meta.push(tr(t.repeat));
@@ -450,7 +452,7 @@ function renderUpNext() {
   // sentence around the button). With a step standing, the
   // pill takes its own row under the sentence; without one it
   // keeps its designed spot at the end of the title line.
-  el.innerHTML = '<span class="un-label">' + tr("Up next") + '</span><strong>' + esc(next.displayTitle || next.title) + "</strong> · " + tr("about {n} min", { n: next.durationMin }) +
+  el.innerHTML = '<span class="un-label">' + tr("Up next") + '</span><strong>' + esc(next.displayTitle || next.title) + "</strong> · " + durationLabel(next) +
     (next.time ? " · " + next.time : "") + (firstStep ? '<span class="un-step">' + esc(firstStep) + "</span>" : "") + '<button data-un="' + next.id + '"' + (firstStep ? ' class="un-start"' : "") + ">" + tr("Start") + '</button>';
   el.querySelector("[data-un]").addEventListener("click", function () {
     var t = baseTask(next.id); if (t) { t.status = "doing"; save(); refreshAll(); toast(tr("Started. One step at a time.")); }
@@ -611,8 +613,14 @@ document.querySelectorAll(".side-item").forEach(function (b) {
     document.querySelectorAll(".side-item").forEach(function (x) { x.classList.remove("is-active"); });
     document.querySelectorAll(".panel").forEach(function (x) { x.classList.remove("is-active"); });
     b.classList.add("is-active");
-    $("panel-" + b.getAttribute("data-panel")).classList.add("is-active");
-    if (b.getAttribute("data-panel") === "progress") renderProgress();
+    var panelName = b.getAttribute("data-panel");
+    $("panel-" + panelName).classList.add("is-active");
+    if (panelName === "progress") renderProgress();
+    // FullCalendar sizes itself while visible. Returning from a
+    // hidden panel must re-measure after the calendar has its width.
+    if (panelName === "calendar" && calendar) {
+      requestAnimationFrame(function () { calendar.updateSize(); });
+    }
 
     // Phone + the Muse-app shape: choosing an area shows it —
     // the menu gives the screen back (the sliver tap and the
@@ -648,7 +656,7 @@ $("quickText").addEventListener("input", function () {
   $("quickPreview").hidden = false;
   $("quickPreview").innerHTML = "<strong>" + esc(item.title) + "</strong><br>" +
     esc(L.parseKey(item.date).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" })) +
-    (item.time ? tr(" at {time}", { time: item.time }) : tr(" · no time yet")) + " · " + tr("about {n} min", { n: item.durationMin }) +
+    (item.time ? tr(" at {time}", { time: item.time }) : item.allDay ? "" : tr(" · no time yet")) + " · " + durationLabel(item) +
     (item.repeat ? " · " + esc(item.repeat) : "") + (item.essential ? " · must not slip" : "");
 });
 $("addSave").addEventListener("click", function () {
@@ -682,7 +690,7 @@ function openTask(id, instanceDate) {
   var meta = [];
   meta.push(L.parseKey(currentInstanceDate).toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }));
   if (inst.time) meta.push(inst.time);
-  meta.push(tr("about {n} min", { n: inst.durationMin }));
+  meta.push(durationLabel(inst));
   if (inst.repeat) meta.push(tr("repeats {repeat} · changes to date or done apply to this day only", { repeat: tr(inst.repeat) }));
   if (inst.source === "sample") meta.push(tr("sample task"));
   $("dMeta").textContent = meta.join(" · ");
@@ -731,6 +739,7 @@ function persistSheetFields() {
   t.minVersion = taught;
   t.fullVersion = $("dFull").value.trim();
   t.time = $("dTime").value || null;
+  if (t.time) t.allDay = false;
   t.durationMin = Math.max(5, +$("dDur").value || t.durationMin);
   t.essential = $("dEssential").checked;
   var newDate = $("dDate").value;
@@ -1145,7 +1154,7 @@ function renderProgress() {
       var card = document.createElement("div");
       card.className = "p-card"; card.draggable = true; card.setAttribute("data-pid", t.id);
       card.innerHTML = '<span class="pc-title">' + esc(t.title) + '</span><span class="pc-meta"><span class="tr-dot" style="background:' + t.color + '"></span>' +
-        esc(L.parseKey(t.date).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" })) + (t.time ? " · " + t.time : "") + " · " + tr("{n} min", { n: t.durationMin }) + (t.repeat ? " · " + esc(t(t.repeat)) : "") + "</span>";
+        esc(L.parseKey(t.date).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" })) + (t.time ? " · " + t.time : "") + " · " + (t.allDay ? tr("All day") : tr("{n} min", { n: t.durationMin })) + (t.repeat ? " · " + esc(t(t.repeat)) : "") + "</span>";
       card.addEventListener("click", function () { openTask(t.id, t.date); });
       card.addEventListener("dragstart", function (e) { e.dataTransfer.setData("text/plain", t.id); });
       col.appendChild(card);
@@ -1447,9 +1456,9 @@ $("welcomeSkip").addEventListener("click", function () { state.welcomed = true; 
 $("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; requestNotif(); maybeGuide(); });
 
 /* ---------- Skip the Ferry: the setup guide (Lab spec GUIDE-MASCOTS-001) ----------
-   One SVG master, four poses as prop/transform changes. Bubbles max 6 words.
-   Closing never blocks; the guide reopens from Settings. Skip waits at the
-   empty-state dock only, never on a working day. */
+   One SVG master with changing poses. The visual guide has three content
+   steps; name and menu stops stay outside those progress dots. Closing never
+   blocks, and the guide reopens from Settings. */
 function skipSvg(pose) {
   /* Skip's guide art of record (variant B composition, finished as vector
      14 Oct 2026): full ferry, the calendar smaller inside him as his
@@ -1474,15 +1483,11 @@ function skipSvg(pose) {
 }
 var GUIDE_STEPS = [
   { pose: "welcome", bubble: "We cross at your pace.", next: "Next" },
-  { pose: "welcome", bubble: "This calendar helps people that are overwhelmed, or with ADHD and problems getting things done.", next: "Next" },
   { pose: "point", bubble: "Pick a look you like.", next: "Next", themes: true },
   { pose: "celebrate", bubble: "Add one small thing.", next: "Done ✓", last: true }
 ];
-/* THE TOUR (v4 shape): Skip's pop-up tours the app from the
-   middle of the screen. Step 1 asks the NAME when the
-   account has none (there is no separate name moment); then
-   the menu stop (the card docks beside the open menu); then
-   the app's areas; last stop Done. The X or "Skip tour"
+/* Skip's bottom sheet introduces the app. The name prompt and menu stop
+   remain separate from the three visual-guide progress dots. The X or Skip
    closes it any time; it runs on the first visit only. */
 // POLAR P7 (21 Oct, fresh install): the name ask belongs to
 // the TOUR, not to the account — a guest's tour never asked
@@ -1507,7 +1512,8 @@ function showGuide(step) {
   $("guideBubble").textContent = tr(s.bubble);
   $("guideNext").textContent = tr(s.next);
   $("guideImport").hidden = !s.last || DEMO_SESSION;
-  $("guideDots").innerHTML = TOUR.map(function (_, i) { return '<span class="g-dot' + (i === step ? " is-on" : "") + '"></span>'; }).join("");
+  var contentStep = s.kind === "step" ? TOUR.slice(0, step + 1).filter(function (x) { return x.kind === "step"; }).length - 1 : -1;
+  $("guideDots").innerHTML = s.kind === "step" ? GUIDE_STEPS.map(function (_, i) { return '<span class="g-dot' + (i === contentStep ? " is-on" : "") + '"></span>'; }).join("") : "";
   // The menu stop: open the menu and dock the card beside it.
   var sheet = $("guideSheet");
   if (s.kind === "menu") {
@@ -1521,9 +1527,9 @@ function showGuide(step) {
   if (s.kind === "name") {
     ex.innerHTML = '<input type="text" id="tourName" class="tour-name-input" autocomplete="name" placeholder="' + tr("Your name") + '" aria-label="' + tr("Your name") + '">';
   } else if (s.themes) {
-    /* The guide offers a curated set of looks (the photo modes are
-       not picks; Brand joined the set with Law E). */
-    var GUIDE_THEMES = ["white", "dark", "blush", "sky", "mint", "lavender", "brand"];
+    /* These six simple looks match the visual guide; photo backgrounds
+       remain available from the full appearance settings. */
+    var GUIDE_THEMES = ["white", "dark", "blush", "sky", "mint", "lavender"];
     ex.innerHTML = '<div class="guide-swatches">' + GUIDE_THEMES.map(function (t) {
       return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + t + ' theme"></button>';
     }).join("") + "</div>";
@@ -1701,11 +1707,16 @@ function openImport() { if (DEMO_SESSION) return; $("importResult").textContent 
 function shapeToTask(s) {
   var cat = L.categoryFor(s.title);
   var words = [s.location, s.notes].filter(Boolean).join(" \u2014 ");
-  return { id: uid(), title: s.title, date: s.date, time: s.time, durationMin: s.durationMin, priority: 0, repeat: s.repeat, category: cat.id, color: cat.color, essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "", source: "import", originalText: words, skipDates: [], doneDates: [], importUid: s.importUid, importKey: s.importKey };
+  return { id: uid(), title: s.title, date: s.date, time: s.time, durationMin: s.durationMin, allDay: !!s.allDay, priority: 0, repeat: s.repeat, category: cat.id, color: cat.color, essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "", source: "import", originalText: words, skipDates: [], doneDates: [], importUid: s.importUid, importKey: s.importKey };
 }
 function runImport(text, label) {
   var parsed = window.CI.parseICS(text);
-  if (parsed.error || !parsed.events.length) { $("importResult").textContent = tr("That didn\u2019t read as a calendar. Nothing was brought in."); return; }
+  if (parsed.error) {
+    var failed = [tr("That didn\u2019t read as a calendar. Nothing was brought in.")];
+    if (parsed.malformedLines) failed.push(parsed.malformedLines + " " + tr(parsed.malformedLines === 1 ? "malformed line ignored" : "malformed lines ignored"));
+    $("importResult").textContent = failed.join(" · ");
+    return;
+  }
   var plan = window.CI.planImport(parsed, state.tasks, { sourceLabel: label });
   var res = window.CI.applyImport(state, plan, label, shapeToTask);
   save(); refreshAll();
@@ -1716,10 +1727,15 @@ function runImport(text, label) {
       FB.fsSet("aggImports/" + ACTIVE_UID, { events: totalEv, imports: (state.imports || []).length, at: new Date().toISOString() }).catch(function () {});
     }
   }
-  var bits = [res.added + (res.added === 1 ? " event" : " events") + " brought in"];
-  if (res.liveRepeats) bits.push(res.liveRepeats + " repeating");
-  if (res.dupes) bits.push(res.dupes + " already here");
-  if (res.skipped) bits.push(res.skipped + " couldn\u2019t be read");
+  function countLabel(n, one, many) { return n + " " + tr(n === 1 ? one : many); }
+  var bits = [countLabel(res.added, "event brought in", "events brought in")];
+  if (res.expanded) bits.push(countLabel(res.expanded, "repeat date expanded", "repeat dates expanded"));
+  if (res.liveRepeats) bits.push(countLabel(res.liveRepeats, "repeat kept live", "repeats kept live"));
+  if (res.dupes) bits.push(countLabel(res.dupes, "already in Pace", "already in Pace"));
+  if (res.skipped) bits.push(countLabel(res.skipped, "event skipped", "events skipped"));
+  if (res.outsideWindow) bits.push(countLabel(res.outsideWindow, "outside the import range", "outside the import range"));
+  if (res.cancelled) bits.push(countLabel(res.cancelled, "cancelled event ignored", "cancelled events ignored"));
+  if (res.malformedLines) bits.push(countLabel(res.malformedLines, "malformed line ignored", "malformed lines ignored"));
   $("importResult").textContent = bits.join(" \u00B7 ") + ".";
   toast(res.added ? tr("Calendar brought in.") : tr("Nothing new to bring in."));
 }

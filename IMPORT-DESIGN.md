@@ -46,14 +46,13 @@ v1 transports, all ending in the same normaliser:
    in your old calendar changes."
 2. **Law B data**: imported events are ordinary user data — the app
    never deletes them; only the user can.
-3. **Dedupe, never double.** Every import records a registry in state:
-   `imports: [{ key, sourceLabel, at, count }]` where
-   key = hash(source kind + calendar name + the source's event UIDs
-   fingerprint). Each imported task carries `importUid` (the source
-   UID) + `importKey`. A re-import of the same source SKIPS any event
-   whose (importKey, importUid, start) is already present. Source-side
-   edits arrive as new-only on re-import — stated plainly in the
-   sheet's one line: imports are a copy, not a sync.
+3. **Dedupe, never double.** Each calendar records a stable registry key
+   (calendar name, with a stable UID/source fallback), and each task keeps
+   its source `importUid` + `importKey`. Re-import checks UID + start
+   (date/time) inside the current user's own state, even if the same file is
+   picked through a different source button or the export gains new events.
+   It adds only new starts and never overwrites a task already in Pace.
+   Source-side changes remain new-only — imports are a copy, not a sync.
 4. **Untouched-snapshot rule**: an event the user has EDITED in our app
    since importing is never overwritten by a re-import (its snapshot
    hash differs from what import wrote; re-import leaves it alone).
@@ -62,20 +61,22 @@ v1 transports, all ending in the same normaliser:
    strings (every day / weekday / weekend / week / <weekday>).
    Mapping: an RRULE becomes a LIVE repeat only when it matches that
    model exactly AND is open-ended (no UNTIL/COUNT) AND has no EXDATEs
-   AND no per-instance overrides. Everything else EXPANDS into
-   individual events inside the window. Truth first, always — never
-   import a repeat that will fire on wrong days.
-6. **Window**: expansions cover −30 days → +12 months from import day.
+   or RDATEs AND no per-instance overrides. Timed repeats also need a
+   floating time or the device's own timezone; a different zone expands
+   so daylight-saving changes and date crossings stay correct. Everything
+   else expands into individual events inside the window.
+6. **Window**: expansions cover −30 days through the whole final day at
+   +12 months from import day.
    Live repeats run on Pace's own engine beyond the window.
 7. **Demo sessions: import OFF.** The connections fence — in a demo
    session the button does not appear at all.
-8. **All-day + timezones**: all-day events stay all-day (no fake
-   times); timed events convert through the calendar's own VTIMEZONE
-   definitions (the parser carries them) into local date + time.
-9. **Counts shown**: events brought in, repeats kept live, expanded
-   instances, duplicates skipped, unparseable skipped — each a number
-   on the result line. Nothing silently dropped (Law B spirit applied
-   to the import itself: a skip is a counted skip, named).
+8. **All-day + timezones**: all-day events keep an explicit all-day flag
+   and no clock time; timed events convert through the calendar's own
+   VTIMEZONE definitions into the device-local date + time.
+9. **Counts shown**: events brought in, repeat dates expanded, live
+   repeats, duplicates, unreadable events, events outside the date range,
+   cancelled events, and malformed lines — counted on the result line.
+   Nothing silently dropped.
 
 ## The module
 
@@ -83,15 +84,17 @@ v1 transports, all ending in the same normaliser:
 `vendor/ical/`) + a thin house layer. Version note (build time): 2.1.0
 ships ESM-only, which cannot load as a classic script in the app or
 under Node require; the vendored build is **1.5.0 UMD (81,064 B)** —
-the long-proven release with the identical API surface used here
-(parse / Component / Event / TimezoneService / recurrence iterator),
-verified by the fixture battery (23 checks) + browser battery (11).
+the vendored release with the API used here (parse / Component / Event /
+TimezoneService / recurrence iterator), covered by the fixture, isolation,
+and generated large-export test batteries.
 
 - `CI.parseICS(text)` → raw events (uid, title, notes, location,
-  start/end, allDay, rrule, exdates, overrides).
-- `CI.planImport(events, existingTasks, opts)` → a PLAN, pure and
+  start/end, allDay, timezone, RRULE/RDATE, EXDATE, overrides and
+  cancelled slots) plus malformed/skipped counts.
+- `CI.planImport(parsed, existingTasks, opts)` → a PLAN, pure and
   testable without a DOM: { add: [taskShapes], liveRepeats: n,
-  expanded: n, dupes: n, skipped: [{title, why}] }.
+  expanded: n, dupes: n, skipped: [{title, why}], outsideWindow: n,
+  malformedLines: n, cancelled: n }.
   Opts: `now`, `sourceLabel`, `importKey`, and `repeatModel` — a host
   whose repeat model cannot say Pace's five strings truthfully (or
   which has NO repeat model) passes `repeatModel: "none"` and every

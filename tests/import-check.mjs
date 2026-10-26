@@ -8,6 +8,9 @@ let pass = 0, fail = 0;
 const check = (name, ok) => { if (ok) { pass++; console.log("PASS", name); } else { fail++; console.log("FAIL", name); } };
 const NOW = new Date("2026-10-14T10:00:00"); // Wednesday 14 Oct 2026
 const fx = n => fs.readFileSync(new URL("./fixtures/" + n, import.meta.url), "utf8");
+const localKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const localClock = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+const utcIsLocal = new Intl.DateTimeFormat("en-US", { timeZone: "UTC" }).resolvedOptions().timeZone === Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 // --- Google: live repeats map, singles land, all-day stays all-day ---
 const g = CI.parseICS(fx("google.ics"));
@@ -15,11 +18,15 @@ check("google: 4 events parsed", g.events.length === 4);
 check("google: calendar name read", g.calendarName === "Work");
 const gp = CI.planImport(g, [], { now: NOW, sourceLabel: "google" });
 const byUid = {}; gp.add.forEach(s => { byUid[s.importUid] = s; });
-check("google: weekly BYDAY=MO -> live 'every week'", byUid["g1@google.com"] && byUid["g1@google.com"].repeat === "every week");
-check("google: daily open -> live 'every day'", byUid["g2@google.com"] && byUid["g2@google.com"].repeat === "every day");
-check("google: all-day has no time", byUid["g3@google.com"] && byUid["g3@google.com"].time === null && byUid["g3@google.com"].date === "2026-10-20");
+const weekly = gp.add.filter(s => s.importUid === "g1@google.com");
+const daily = gp.add.filter(s => s.importUid === "g2@google.com");
+check("google: UTC weekly repeats expand outside the device timezone", utcIsLocal ? weekly.length === 1 && weekly[0].repeat === "every week" : weekly.length > 20 && weekly.every(s => !s.repeat));
+check("google: UTC daily repeats expand with local clock times", utcIsLocal ? daily.length === 1 && daily[0].repeat === "every day" : daily.length > 300 && daily.every(s => !s.repeat));
+const expectedGoogleDaily = g.events.find(e => e.uid === "g2@google.com").start.toJSDate();
+check("google: UTC event lands on the device's local day and time", utcIsLocal ? daily[0].date === localKey(expectedGoogleDaily) && daily[0].time === localClock(expectedGoogleDaily) : daily.some(s => s.date === localKey(expectedGoogleDaily) && s.time === localClock(expectedGoogleDaily)));
+check("google: all-day has no time and keeps its all-day flag", byUid["g3@google.com"] && byUid["g3@google.com"].time === null && byUid["g3@google.com"].allDay === true && byUid["g3@google.com"].date === "2026-10-20");
 check("google: single keeps notes+location", byUid["g4@google.com"] && /referral/.test(byUid["g4@google.com"].notes) && /Smile/.test(byUid["g4@google.com"].location));
-check("google: 2 live repeats counted", gp.liveRepeats === 2);
+check("google: UTC repeats stay live only when UTC is the device timezone", gp.liveRepeats === (utcIsLocal ? 2 : 0));
 
 // --- Outlook: fortnightly + monthly must EXPAND, never map live ---
 const o = CI.parseICS(fx("outlook.ics"));
@@ -36,14 +43,21 @@ const a = CI.parseICS(fx("apple.ics"));
 const ap = CI.planImport(a, [], { now: NOW, sourceLabel: "apple" });
 const school = ap.add.filter(s => s.importUid === "a1@icloud.com");
 check("apple: UNTIL daily expanded, not live", school.length >= 10 && school.every(s => !s.repeat));
-check("apple: Sydney morning stays 08:30 local", school.length > 0 && school.every(s => s.time === "08:30"));
+const schoolMaster = a.events.find(e => e.uid === "a1@icloud.com");
+const schoolLocal = schoolMaster.start.toJSDate();
+check("apple: Sydney time converts to this device's local day and clock", school.length > 0 && school[0].date === localKey(schoolLocal) && school[0].time === localClock(schoolLocal) && school.every(s => s.time === localClock(schoolLocal)));
 const yoga = ap.add.filter(s => s.importUid === "a2@icloud.com");
-check("apple: EXDATE instance (21 Oct) absent", !yoga.some(s => s.date === "2026-10-21"));
-check("apple: other yoga Wednesdays present", yoga.some(s => s.date === "2026-10-14"));
+const yogaMaster = a.events.find(e => e.uid === "a2@icloud.com");
+const yogaSkipDate = yogaMaster.exdates[0].split("|")[0];
+check("apple: EXDATE instance is absent on the device-local date", !yoga.some(s => s.date === yogaSkipDate));
+check("apple: other yoga Wednesdays land on the device-local date", yoga.some(s => s.date === localKey(yogaMaster.start.toJSDate())));
 const club = ap.add.filter(s => s.importUid === "a3@icloud.com");
 check("apple: overridden series expands (not live)", club.length > 1 && club.every(s => !s.repeat));
-check("apple: the override instance lands at its new time", club.some(s => s.date === "2026-10-20" && s.time === "19:30"));
-check("apple: the original 20 Oct 19:00 slot is not doubled", club.filter(s => s.date === "2026-10-20").length === 1);
+const override = a.events.find(e => e.recurrenceId);
+const overrideLocal = override.start.toJSDate();
+const originalSlotDate = override.recurrenceSlot.split("|")[0];
+check("apple: the override lands on its new device-local date and time", club.some(s => s.date === localKey(overrideLocal) && s.time === localClock(overrideLocal)));
+check("apple: the original overridden slot is not doubled", club.filter(s => s.date === originalSlotDate).length === 1);
 
 // --- dedupe: re-import adds nothing ---
 const existing = gp.add.map(s => ({ title: s.title, date: s.date, time: s.time, importUid: s.importUid, importKey: s.importKey }));
@@ -72,8 +86,12 @@ check("apply: registry entry recorded with count", state.imports.length === 1 &&
   check("repeatModel none: nothing maps live", planNone.liveRepeats === 0 && planNone.add.every(s => !s._live && !s.repeat));
   check("repeatModel none: the weekly + daily series expand into many dated instances", planNone.add.length > 40 && planNone.expanded > 40);
   const planDef = CI.planImport(g, [], { now: NOW, sourceLabel: "Google Calendar" });
-  check("default unchanged: the same file still live-maps", planDef.liveRepeats === 2 && planDef.add.length === 4);
+  check("default maps UTC series live only in UTC, and otherwise expands", planDef.liveRepeats === (utcIsLocal ? 2 : 0) && (utcIsLocal ? planDef.add.length === 4 : planDef.add.length > 300));
 }
+
+const floating = CI.parseICS(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:floating-daily@example.test", "DTSTART:20261014T090000", "DTEND:20261014T093000", "RRULE:FREQ=DAILY", "SUMMARY:Local floating series", "END:VEVENT", "END:VCALENDAR"].join("\r\n"));
+const floatingPlan = CI.planImport(floating, [], { now: NOW, sourceLabel: "floating" });
+check("floating local-time series stays a truthful live daily repeat", floatingPlan.liveRepeats === 1 && floatingPlan.add[0].repeat === "every day");
 
 console.log("RESULT pass=" + pass + " fail=" + fail);
 process.exit(fail ? 1 : 0);

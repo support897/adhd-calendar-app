@@ -13,8 +13,8 @@ it. Design of record: `IMPORT-DESIGN.md` (in the Pace repo).
 - The step's shape: ONE button on the calendar → ONE sheet → counts.
 - The fences (non-negotiable): read-only against the source, declared
   in plain words at the button · imported data is the user's own under
-  Law B · re-import dedupes by the registry, never doubles, never
-  overwrites · repeats map live ONLY when your repeat model can say
+  Law B · re-import dedupes by event UID + start in the importing
+  user's own state, never doubles, never overwrites · repeats map live ONLY when your repeat model can say
   them truthfully, everything else expands · window −30d → +12mo ·
   demo sessions: the entry points do not exist · the guide offers it
   once at setup, never forced · Empty Start untouched.
