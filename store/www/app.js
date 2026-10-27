@@ -1,6 +1,5 @@
-/* Calm Calendar app. Self contained: data lives on this device only.
-   The calendar grid shows the whole truth. The list under it is the day,
-   adapted to how you feel. Parked means parked, never dropped. */
+/* Pace Calendar. Guest data stays on this device; signed-in data syncs
+   inside that person's own Firestore profile. The day adapts to energy. */
 (function () {
 "use strict";
 var L = window.CalmLogic;
@@ -18,11 +17,90 @@ function storeKey() { return ACTIVE_UID ? STORE + ":" + ACTIVE_UID : STORE + ":g
 try { if (!localStorage.getItem(STORE + ":guest") && localStorage.getItem(STORE)) localStorage.setItem(STORE + ":guest", localStorage.getItem(STORE)); } catch (e) {}
 var state = load();
 var selected = L.todayKey();
-var currentView = "dayGridMonth";
+var currentView = "timeGridDay";
 var calendar = null;
 var currentTaskId = null;
 var currentInstanceDate = null;
 var drafts = [];
+var TASK_ICONS = [
+  { icon: "", name: "No icon / Sin icono", keywords: "none no icon sin icono ninguno" },
+  { icon: "📌", name: "Pin / Marcar", keywords: "pin priority important note marcar prioridad" },
+  { icon: "🏠", name: "Home / Hogar", keywords: "home house casa hogar" },
+  { icon: "🛏️", name: "Bed / Cama", keywords: "bed bedroom sleep cama dormitorio dormir" },
+  { icon: "🧹", name: "Cleaning / Limpieza", keywords: "clean cleaning chore limpiar limpieza casa" },
+  { icon: "🧺", name: "Laundry / Lavandería", keywords: "laundry wash clothes ropa lavar lavanderia" },
+  { icon: "🚿", name: "Shower / Ducha", keywords: "shower bath bathroom baño ducha" },
+  { icon: "🍽️", name: "Dishes / Platos", keywords: "dishes kitchen plates platos cocina" },
+  { icon: "🗑️", name: "Bins / Basura", keywords: "bins trash rubbish basura reciclaje" },
+  { icon: "🛒", name: "Groceries / Compras", keywords: "groceries shopping market supermercado compras" },
+  { icon: "🥕", name: "Food / Comida", keywords: "food cook meal comida cocinar almuerzo cena" },
+  { icon: "☕", name: "Coffee / Café", keywords: "coffee cafe break café descanso" },
+  { icon: "💧", name: "Water / Agua", keywords: "water drink hydrate agua beber" },
+  { icon: "💊", name: "Medicine / Medicina", keywords: "medicine medication pills farmacia medicina pastillas" },
+  { icon: "🩺", name: "Doctor / Médico", keywords: "doctor appointment health médico doctora cita salud" },
+  { icon: "🦷", name: "Dentist / Dentista", keywords: "dentist teeth dental dentista dientes" },
+  { icon: "❤️", name: "Health / Salud", keywords: "health heart care salud corazón cuidado" },
+  { icon: "🏃", name: "Exercise / Ejercicio", keywords: "exercise run gym workout ejercicio correr gimnasio" },
+  { icon: "🚶", name: "Walk / Caminar", keywords: "walk walking steps paseo caminar andar" },
+  { icon: "🧘", name: "Stretch / Estirar", keywords: "stretch yoga breathe estirar yoga respirar" },
+  { icon: "🌙", name: "Sleep / Dormir", keywords: "sleep rest bedtime sueño dormir descanso" },
+  { icon: "📚", name: "Study / Estudiar", keywords: "study read books school estudiar leer libros" },
+  { icon: "🎓", name: "School / Escuela", keywords: "school class homework school escuela clase deberes" },
+  { icon: "💻", name: "Computer / Computadora", keywords: "computer laptop tech computadora ordenador tecnologia" },
+  { icon: "💼", name: "Work / Trabajo", keywords: "work office job work oficina empleo" },
+  { icon: "📧", name: "Email / Correo", keywords: "email mail inbox correo bandeja" },
+  { icon: "📞", name: "Call / Llamar", keywords: "call phone telephone llamar teléfono telefono" },
+  { icon: "📅", name: "Meeting / Reunión", keywords: "meeting calendar appointment reunion reunión calendario cita" },
+  { icon: "✍️", name: "Write / Escribir", keywords: "write writing notes redactar escribir notas" },
+  { icon: "💰", name: "Money / Dinero", keywords: "money finance cash budget dinero finanzas efectivo presupuesto" },
+  { icon: "🧾", name: "Bills / Facturas", keywords: "bill invoice taxes rent factura recibo impuestos alquiler" },
+  { icon: "🛍️", name: "Shopping / Comprar", keywords: "shopping buy shop compras comprar tienda" },
+  { icon: "🎁", name: "Gift / Regalo", keywords: "gift present birthday regalo cumpleaños" },
+  { icon: "👨‍👩‍👧", name: "Family / Familia", keywords: "family people parents kids familia padres hijos" },
+  { icon: "👶", name: "Baby / Bebé", keywords: "baby infant childcare bebe bebé cuidado" },
+  { icon: "🐕", name: "Dog / Perro", keywords: "dog pet puppy perro mascota" },
+  { icon: "🐈", name: "Cat / Gato", keywords: "cat pet kitten gato mascota" },
+  { icon: "🚗", name: "Car / Coche", keywords: "car drive vehicle coche conducir vehículo" },
+  { icon: "🚌", name: "Bus / Autobús", keywords: "bus transit train transport autobus autobús transporte" },
+  { icon: "✈️", name: "Travel / Viaje", keywords: "travel trip flight vacation viaje vacaciones vuelo" },
+  { icon: "🗺️", name: "Map / Mapa", keywords: "map location directions mapa ubicación direcciones" },
+  { icon: "🌱", name: "Plant / Planta", keywords: "plant seed grow planta semilla crecer" },
+  { icon: "🌻", name: "Garden / Jardín", keywords: "garden yard outdoor jardin jardín patio" },
+  { icon: "☀️", name: "Sun / Sol", keywords: "sun bright sunny sol luz" },
+  { icon: "☔", name: "Rain / Lluvia", keywords: "rain weather umbrella lluvia clima paraguas" },
+  { icon: "📦", name: "Package / Paquete", keywords: "package parcel delivery box paquete entrega caja" },
+  { icon: "🔧", name: "Tools / Herramientas", keywords: "tools repair fix herramientas reparar arreglar" },
+  { icon: "🧰", name: "Fix / Reparar", keywords: "fix repair maintenance arreglar reparar mantenimiento" },
+  { icon: "🏦", name: "Bank / Banco", keywords: "bank banking money banco banca dinero" },
+  { icon: "📑", name: "Paperwork / Papeleo", keywords: "paperwork forms documents documentos formularios papeleo" },
+  { icon: "🔑", name: "Keys / Llaves", keywords: "keys lock access llaves cerradura acceso" },
+  { icon: "🧠", name: "Focus / Enfoque", keywords: "focus think brain plan enfoque pensar cerebro plan" },
+  { icon: "💡", name: "Idea / Idea", keywords: "idea think remember idea pensar recordar" },
+  { icon: "🎵", name: "Music / Música", keywords: "music song listen musica música canción escuchar" },
+  { icon: "🎨", name: "Art / Arte", keywords: "art paint craft creative arte pintar manualidades creativo" },
+  { icon: "📷", name: "Photo / Foto", keywords: "photo camera picture foto camara cámara imagen" },
+  { icon: "🧴", name: "Self-care / Cuidado personal", keywords: "self care skincare personal cuidado piel" },
+  { icon: "🤝", name: "People / Personas", keywords: "people friend visit help personas amistad visitar ayudar" },
+  { icon: "💌", name: "Message / Mensaje", keywords: "message text letter mensaje texto carta" },
+  { icon: "🧭", name: "Plan / Planificar", keywords: "plan organize organise schedule planificar organizar horario" },
+  { icon: "🌊", name: "Rest / Descanso", keywords: "rest calm break relax descanso calma pausa relajar" },
+  { icon: "✅", name: "Done / Hecho", keywords: "done check complete finish hecho marcar completar terminar" },
+  { icon: "🔥", name: "Urgent / Urgente", keywords: "urgent priority important urgente prioridad importante" },
+  { icon: "📖", name: "Read / Leer", keywords: "read reading book leer lectura libro" },
+  { icon: "🧼", name: "Wash / Lavar", keywords: "wash clean soap lavar limpiar jabón jabon" },
+  { icon: "🚪", name: "Door / Puerta", keywords: "door leave entry puerta salir entrada" },
+  { icon: "🪴", name: "Plant care / Cuidar plantas", keywords: "plant water gardening regar plantas jardinería jardineria" }
+];
+var TASK_COLORS = [
+  { hex: "#7A8699", name: "Slate / Pizarra" }, { hex: "#C9920E", name: "Amber / Ámbar" },
+  { hex: "#E85D75", name: "Rose / Rosa" }, { hex: "#35704E", name: "Green / Verde" },
+  { hex: "#5B6BD5", name: "Blue / Azul" }, { hex: "#F2994A", name: "Orange / Naranja" },
+  { hex: "#20A39E", name: "Teal / Verde azulado" }, { hex: "#8E7CC3", name: "Lavender / Lavanda" },
+  { hex: "#EE6F5B", name: "Coral / Coral" }, { hex: "#9747A5", name: "Plum / Ciruela" },
+  { hex: "#4FA3D1", name: "Sky / Cielo" }, { hex: "#7C8A2D", name: "Olive / Oliva" },
+  { hex: "#D65792", name: "Pink / Rosa fuerte" }, { hex: "#3F536E", name: "Navy / Azul marino" },
+  { hex: "#5AAE8C", name: "Mint / Menta" }, { hex: "#A66B43", name: "Brown / Marrón" }
+];
 
 function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -67,6 +145,13 @@ function load(fromKey) {
       if (typeof t.durationMin !== "number" || !(t.durationMin > 0)) t.durationMin = 25;
       if (typeof t.status !== "string") t.status = "todo";
       t.allDay = !!t.allDay;
+      if (typeof t.icon !== "string" || t.icon.length > 8) t.icon = "";
+      if (!/^#[0-9a-f]{6}$/i.test(String(t.color || ""))) t.color = L.categoryFor(t.title).color;
+    });
+    if (!isObj(s.dayOrder)) s.dayOrder = {};
+    Object.keys(s.dayOrder).forEach(function (day) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Array.isArray(s.dayOrder[day])) delete s.dayOrder[day];
+      else s.dayOrder[day] = s.dayOrder[day].filter(function (id) { return typeof id === "string"; }).slice(0, 5000);
     });
     if (!isObj(s.feelings)) s.feelings = {};
     if (!isObj(s.sent)) s.sent = {};
@@ -130,26 +215,9 @@ function save() {
 }
 
 function seed() {
-  var today = L.todayKey(), tomorrow = L.addDays(today, 1);
-  function mk(title, date, time, dur, extra) {
-    var cat = L.categoryFor(title);
-    return Object.assign({ id: uid(), title: title, date: date, time: time, durationMin: dur, priority: 0, repeat: null, category: cat.id, color: cat.color, essential: false, status: "todo", steps: L.decompose(title, dur, false), minVersion: "", fullVersion: "", source: "sample", originalText: "", skipDates: [], doneDates: [] }, extra || {});
-  }
-  // Empty-Start Law (14 Oct): the store build starts EMPTY for every user.
-  // The store wrapper (Capacitor) is detectable at runtime; the web app
-  // keeps its samples. Existing saved data is never touched either way.
-  var storeBuild = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-  var tasks = storeBuild ? [] : [
-    mk("Doctor appointment", today, "10:00", 45, { essential: true, minVersion: "Ring the doctor to rebook" }),
-    mk("Pay the electricity bill", today, null, 15, { essential: true, priority: 3 }),
-    mk("Clean the kitchen", today, "16:00", 30, {}),
-    mk("Reply to one email", today, null, 10, {}),
-    mk("Walk around the block", today, "17:30", 15, {}),
-    mk("Plan the weekend", today, null, 45, {}),
-    mk("Buy groceries for the week", tomorrow, null, 45, {}),
-    mk("Call mum", tomorrow, "17:00", 15, {})
-  ];
-  return { tasks: tasks, feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
+  // Empty Start: every fresh visitor begins with a blank calendar.
+  // Examples are never inserted unless the person chooses them.
+  return { tasks: [], feelings: {}, dayOrder: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
 }
 if (!state) { state = ACTIVE_UID ? freshAccountState() : seed(); save(); if (ACTIVE_UID) { state.updatedAt = 0; try { localStorage.setItem(storeKey(), JSON.stringify(state)); } catch (e) {} } }
 
@@ -189,8 +257,24 @@ function instancesInRange(a, b) {
 }
 function baseTask(id) { return state.tasks.filter(function (t) { return t.id === id; })[0]; }
 function levelFor(key) { return state.feelings[key] || "steady"; }
+function sortForDayOrder(items, key) {
+  var saved = state.dayOrder && Array.isArray(state.dayOrder[key]) ? state.dayOrder[key] : [];
+  if (!saved.length) return items;
+  var rank = Object.create(null), fallback = Object.create(null);
+  saved.forEach(function (id, i) { rank[id] = i; });
+  items.forEach(function (task, i) { fallback[task.id] = i; });
+  return items.slice().sort(function (a, b) {
+    var ar = Object.prototype.hasOwnProperty.call(rank, a.id) ? rank[a.id] : saved.length + fallback[a.id];
+    var br = Object.prototype.hasOwnProperty.call(rank, b.id) ? rank[b.id] : saved.length + fallback[b.id];
+    return ar - br;
+  });
+}
 function adaptedFor(key) {
-  return L.adaptDay(tasksOn(key), levelFor(key), tasksOn(L.addDays(key, 1)));
+  var ad = L.adaptDay(tasksOn(key), levelFor(key), tasksOn(L.addDays(key, 1)));
+  ad.visible = sortForDayOrder(ad.visible, key);
+  ad.done = sortForDayOrder(ad.done, key);
+  ad.parked = sortForDayOrder(ad.parked, key);
+  return ad;
 }
 
 /* ---------- appearance + sidebar ---------- */
@@ -358,35 +442,68 @@ function renderDayList() {
   var score = L.dayScore(ad);
   var d = L.parseKey(key);
   var level = levelFor(key);
-  var names = state.settings.names;
+  var carry = key === L.todayKey() ? carryoverTasks(key) : [];
   var html = "<h3>" + d.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }) +
     '<span class="dl-score">' + tr("{done} of {total} done at your {name} pace", { done: score.done, total: score.total, name: displayLevelName(level) }) + "</span></h3>";
   html += '<div class="dl-progress"><i style="width:' + score.pct + '%"></i></div>';
-  if (!ad.visible.length && !ad.done.length) html += '<div class="empty-note dock-note"><span class="dock-skip">' + skipSvg("goodbye") + '</span><span>' + tr("Nothing today. Empty is allowed.") + '</span></div>';
-  ad.visible.forEach(function (t) { html += rowHtml(t, false); });
-  ad.done.forEach(function (t) { html += rowHtml(t, true); });
+  if (carry.length) html += '<div class="carryover-card"><p>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</p><button class="soft-btn" data-act="carry-over">' + tr("Bring them to today") + '</button></div>';
+  if (!ad.visible.length && !ad.done.length && !carry.length) html += '<div class="empty-note dock-note"><span class="dock-skip">' + skipSvg("goodbye") + '</span><span>' + tr("Nothing today. Empty is allowed.") + '</span><button class="soft-btn" data-act="add-first">' + tr("Add one task") + '</button></div>';
+  ad.visible.forEach(function (t, i) { html += rowHtml(t, false, i === 0, i === ad.visible.length - 1); });
+  ad.done.forEach(function (t, i) { html += rowHtml(t, true, i === 0, i === ad.done.length - 1); });
   if (ad.stretch) html += '<div class="stretch-note">' + tr("One more from tomorrow:") + ' <strong>' + esc(ad.stretch.title) + '</strong><button data-act="stretch" data-id="' + ad.stretch.id + '">' + tr("Bring it to today") + '</button></div>';
   if (ad.parked.length) html += '<p class="parked-note">' + tr(ad.parked.length === 1 ? "{n} thing parked. Parked, not dropped. Raise the level to bring them back." : "{n} things parked. Parked, not dropped. Raise the level to bring them back.", { n: ad.parked.length }) + "</p>";
   $("dayList").innerHTML = html;
   bindRows($("dayList"));
 }
-function rowHtml(t, done) {
+function carryoverTasks(key) {
+  return state.tasks.filter(function (t) {
+    return !t.repeat && t.date < key && t.status !== "done" && t.source !== "import" && t.source !== "sample";
+  });
+}
+function carryOverTasks(key) {
+  var pending = carryoverTasks(key);
+  if (!pending.length) return;
+  pending.forEach(function (t) { t.date = key; });
+  state.dayOrder[key] = (state.dayOrder[key] || []).concat(pending.map(function (t) { return t.id; }));
+  save(); refreshAll(); toast(tr("Brought them to today. One step at a time."));
+}
+function reorderDayTask(id, key, direction) {
+  var ad = adaptedFor(key);
+  var group = ad.visible.some(function (t) { return t.id === id; }) ? ad.visible : ad.done;
+  var ids = group.map(function (t) { return t.id; });
+  var from = ids.indexOf(id), to = Math.max(0, Math.min(ids.length - 1, from + direction));
+  if (from < 0 || from === to) return;
+  ids.splice(to, 0, ids.splice(from, 1)[0]);
+  var other = group === ad.visible ? ad.done : ad.visible;
+  state.dayOrder[key] = ids.concat(other.map(function (t) { return t.id; }));
+  save(); refreshAll();
+}
+function rowHtml(t, done, first, last) {
   var meta = [];
   if (t.time) meta.push(t.time);
   meta.push(durationLabel(t));
   if (t.steps && t.steps.length) meta.push(tr("{a} of {b} steps", { a: t.steps.filter(function (s) { return s.done; }).length, b: t.steps.length }));
   if (t.shrunk) meta.push(tr("small version"));
   if (t.repeat) meta.push(tr(t.repeat));
-  return '<div draggable="true" class="task-row' + (done ? " is-done" : "") + '" data-id="' + t.id + '" data-date="' + t.instanceDate + '">' +
-    '<span class="tr-dot" style="background:' + t.color + '"></span>' +
+  var id = esc(t.id), date = esc(t.instanceDate);
+  return '<div class="task-row' + (done ? " is-done" : "") + (t.icon ? " has-task-icon" : "") + '" data-id="' + id + '" data-date="' + date + '">' +
+    '<span class="tr-dot' + (t.icon ? " has-icon" : "") + '" style="background:' + t.color + '">' + (t.icon ? esc(t.icon) : "") + '</span>' +
     '<span class="tr-main"><span class="tr-title">' + esc(t.displayTitle || t.title) + '</span><span class="tr-meta">' + esc(meta.join(" · ")) + "</span></span>" +
-    '<button class="tr-check" data-check="' + t.id + '" aria-label="' + tr("Mark done") + '">' + (done ? icon("i-check") : "") + "</button></div>";
+    '<span class="tr-actions"><button class="task-move" data-order="-1" data-id="' + id + '" data-date="' + date + '" aria-label="' + tr("Move task up") + '" title="' + tr("Move task up") + '"' + (first ? ' disabled' : '') + '>↑</button>' +
+    '<button class="task-move" data-order="1" data-id="' + id + '" data-date="' + date + '" aria-label="' + tr("Move task down") + '" title="' + tr("Move task down") + '"' + (last ? ' disabled' : '') + '>↓</button>' +
+    '<button class="tr-check" data-check="' + id + '" aria-label="' + tr("Mark done") + '">' + (done ? icon("i-check") : "") + "</button></span></div>";
 }
 function bindRows(root) {
   root.querySelectorAll(".task-row").forEach(function (row) {
     row.addEventListener("click", function (e) {
-      if (e.target.hasAttribute("data-check")) return;
+      if (e.target.closest("[data-check], [data-order]")) return;
       openTask(row.getAttribute("data-id"), row.getAttribute("data-date"));
+    });
+  });
+  root.querySelectorAll("[data-order]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      reorderDayTask(btn.getAttribute("data-id"), btn.getAttribute("data-date"), +btn.getAttribute("data-order"));
     });
   });
   root.querySelectorAll("[data-check]").forEach(function (btn) {
@@ -396,6 +513,10 @@ function bindRows(root) {
       toggleDone(row.getAttribute("data-id"), row.getAttribute("data-date"));
     });
   });
+  var addFirst = root.querySelector('[data-act="add-first"]');
+  if (addFirst) addFirst.addEventListener("click", function () { $("addBtn").click(); });
+  var carryButton = root.querySelector('[data-act="carry-over"]');
+  if (carryButton) carryButton.addEventListener("click", function () { carryOverTasks(selected); });
   var st = root.querySelector('[data-act="stretch"]');
   if (st) st.addEventListener("click", function () {
     if (!plusGate("stretch")) return;
@@ -487,7 +608,7 @@ document.querySelectorAll(".level-btn").forEach(function (b) {
 function fcEvents() {
   var a = L.addDays(selected, -45), b = L.addDays(selected, 80);
   return instancesInRange(a, b).map(function (t) {
-    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
+    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
     if (t.time) {
       var startMin = L.toMin(t.time);
       ev.start = t.instanceDate + "T" + t.time + ":00";
@@ -500,7 +621,7 @@ function fcEvents() {
 }
 function initCalendar() {
   calendar = new FullCalendar.Calendar($("calendar"), {
-    initialView: "dayGridMonth",
+    initialView: "timeGridDay",
     locale: PACE_LANG === "es" ? "es" : "en",
     height: "auto",
     firstDay: 1,
@@ -572,6 +693,7 @@ document.querySelectorAll(".segmented button").forEach(function (b) {
     b.classList.add("is-active");
     var v = b.getAttribute("data-view");
     currentView = v;
+    setBottomTab(v === "timeGridDay" && selected === L.todayKey() ? "today" : "calendar");
     if (v === "year") { $("calendar").hidden = true; $("yearView").hidden = false; renderYear(); }
     else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, selected); }
   });
@@ -615,6 +737,7 @@ document.querySelectorAll(".side-item").forEach(function (b) {
     b.classList.add("is-active");
     var panelName = b.getAttribute("data-panel");
     $("panel-" + panelName).classList.add("is-active");
+    setBottomTab(panelName === "calendar" ? (selected === L.todayKey() && currentView === "timeGridDay" ? "today" : "calendar") : (panelName === "todo" || panelName === "capture" ? panelName : "more"));
     if (panelName === "progress") renderProgress();
     // FullCalendar sizes itself while visible. Returning from a
     // hidden panel must re-measure after the calendar has its width.
@@ -636,7 +759,33 @@ document.querySelectorAll(".side-item").forEach(function (b) {
 $("sbSliver").addEventListener("click", function () {
   state.settings.sidebarCollapsed = true; save(); applySidebar();
 });
+function setBottomTab(name) {
+  document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
+    var active = b.getAttribute("data-tab") === name;
+    b.classList.toggle("is-active", active);
+    if (active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+}
 function showPanel(name) { document.querySelector('.side-item[data-panel="' + name + '"]').click(); }
+document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var tab = b.getAttribute("data-tab");
+    if (tab === "today") {
+      var day = document.querySelector('.segmented button[data-view="timeGridDay"]');
+      if (day && currentView !== "timeGridDay") day.click();
+      selectDate(L.todayKey(), true);
+      showPanel("calendar");
+      setBottomTab("today");
+    } else if (tab === "more") {
+      var collapsed = document.documentElement.getAttribute("data-sb") === "collapsed";
+      (collapsed ? $("sbExpand") : $("sbCollapse")).click();
+      setBottomTab("more");
+    } else {
+      showPanel(tab);
+      setBottomTab(tab);
+    }
+  });
+});
 
 /* ---------- quick add ---------- */
 $("addBtn").addEventListener("click", function () {
@@ -647,7 +796,10 @@ $("addBtn").addEventListener("click", function () {
   $("addSheet").hidden = false;
   setTimeout(function () { $("quickText").focus(); }, 50);
 });
-$("addCancel").addEventListener("click", function () { $("addSheet").hidden = true; });
+$("addCancel").addEventListener("click", function () {
+  $("addSheet").hidden = true;
+  if (guideResumeAfterTask !== null) { guideResumeAfterTask = null; showGuide(guideStep); }
+});
 $("quickText").addEventListener("input", function () {
   var v = $("quickText").value.trim();
   if (!v) { $("quickPreview").hidden = true; return; }
@@ -679,6 +831,10 @@ $("addSave").addEventListener("click", function () {
   $("addSheet").hidden = true;
   selectDate(task.date, true); refreshAll();
   toast(tr("Added. Small and clear."));
+  if (guideResumeAfterTask !== null) {
+    var nextGuideStep = guideResumeAfterTask; guideResumeAfterTask = null;
+    setTimeout(function () { showGuide(nextGuideStep); }, 80);
+  }
 });
 
 /* ---------- task sheet ---------- */
@@ -687,6 +843,12 @@ function openTask(id, instanceDate) {
   currentTaskId = id; currentInstanceDate = instanceDate || t.date;
   var inst = instanceOf(t, currentInstanceDate);
   $("dTitle").textContent = inst.title;
+  $("dLook").open = false;
+  $("dIconSearch").value = "";
+  $("dCustomColor").value = /^#[0-9a-f]{6}$/i.test(String(t.color || "")) ? t.color : L.categoryFor(t.title).color;
+  $("dCustomHex").value = $("dCustomColor").value.toUpperCase();
+  renderTaskIconPicker(t);
+  renderTaskColorPicker(t);
   var meta = [];
   meta.push(L.parseKey(currentInstanceDate).toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }));
   if (inst.time) meta.push(inst.time);
@@ -695,6 +857,8 @@ function openTask(id, instanceDate) {
   if (inst.source === "sample") meta.push(tr("sample task"));
   $("dMeta").textContent = meta.join(" · ");
   renderSteps(t);
+  $("dNotes").value = typeof t.notes === "string" ? t.notes : "";
+  renderTaskAudio(t);
   $("dMin").value = t.minVersion || "";
   $("dFull").value = t.fullVersion || "";
   $("dDate").value = currentInstanceDate;
@@ -705,6 +869,68 @@ function openTask(id, instanceDate) {
   else $("dOriginalWrap").hidden = true;
   $("taskSheet").hidden = false;
 }
+function renderTaskIconPicker(task) {
+  var wrap = $("dIconPicker"); if (!wrap) return;
+  var query = String($("dIconSearch").value || "").trim().toLowerCase();
+  var list = TASK_ICONS.filter(function (item) {
+    return !query || (item.name + " " + item.keywords + " " + item.icon).toLowerCase().indexOf(query) !== -1;
+  });
+  wrap.innerHTML = "";
+  wrap.setAttribute("aria-label", tr("Task icons"));
+  if (!list.length) { wrap.innerHTML = '<p class="hint task-icon-empty">' + tr("No icons match that search.") + "</p>"; return; }
+  list.forEach(function (item) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "task-icon-option" + (String(task.icon || "") === item.icon ? " is-on" : "");
+    button.setAttribute("aria-label", tr("Use task icon") + " " + item.name);
+    button.setAttribute("aria-pressed", String(String(task.icon || "") === item.icon));
+    button.title = item.name;
+    button.textContent = item.icon || "×";
+    button.addEventListener("click", function () {
+      task.icon = item.icon;
+      save(); renderTaskIconPicker(task); refreshAll();
+    });
+    wrap.appendChild(button);
+  });
+}
+function renderTaskColorPicker(task) {
+  var wrap = $("dColorPicker"); if (!wrap) return;
+  wrap.innerHTML = "";
+  wrap.setAttribute("aria-label", tr("Task colors"));
+  TASK_COLORS.forEach(function (item) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "task-color-option" + (String(task.color || "").toUpperCase() === item.hex ? " is-on" : "");
+    button.style.backgroundColor = item.hex;
+    button.setAttribute("aria-label", tr("Use color {name}", { name: item.name }));
+    button.setAttribute("aria-pressed", String(String(task.color || "").toUpperCase() === item.hex));
+    button.title = item.name;
+    button.addEventListener("click", function () {
+      task.color = item.hex;
+      $("dCustomColor").value = item.hex;
+      $("dCustomHex").value = item.hex;
+      save(); renderTaskColorPicker(task); refreshAll();
+    });
+    wrap.appendChild(button);
+  });
+}
+$("dIconSearch").addEventListener("input", function () {
+  var task = baseTask(currentTaskId); if (task) renderTaskIconPicker(task);
+});
+$("dCustomColor").addEventListener("input", function () {
+  var task = baseTask(currentTaskId);
+  if (!task || !/^#[0-9a-f]{6}$/i.test(this.value)) return;
+  task.color = this.value.toUpperCase();
+  $("dCustomHex").value = task.color;
+  save(); renderTaskColorPicker(task); refreshAll();
+});
+$("dCustomHex").addEventListener("input", function () {
+  var task = baseTask(currentTaskId), value = String(this.value || "").trim();
+  if (!task || !/^#[0-9a-f]{6}$/i.test(value)) return;
+  task.color = value.toUpperCase();
+  $("dCustomColor").value = task.color;
+  save(); renderTaskColorPicker(task); refreshAll();
+});
 function renderSteps(t) {
   var box = $("dSteps");
   $("dBreak").hidden = !!(t.steps && t.steps.length);
@@ -738,6 +964,7 @@ function persistSheetFields() {
   if (taught !== (t.minVersion || "") && !plusGate("steps")) taught = t.minVersion || "";
   t.minVersion = taught;
   t.fullVersion = $("dFull").value.trim();
+  t.notes = $("dNotes").value.trim();
   t.time = $("dTime").value || null;
   if (t.time) t.allDay = false;
   t.durationMin = Math.max(5, +$("dDur").value || t.durationMin);
@@ -752,16 +979,18 @@ function persistSheetFields() {
 ["dMin", "dFull", "dTime", "dDur", "dEssential", "dDate"].forEach(function (id) {
   $(id).addEventListener("change", function () { persistSheetFields(); refreshAll(); });
 });
-$("dClose").addEventListener("click", function () { persistSheetFields(); $("taskSheet").hidden = true; refreshAll(); });
-$("dDone").addEventListener("click", function () { persistSheetFields(); toggleDone(currentTaskId, currentInstanceDate); $("taskSheet").hidden = true; });
+$("dClose").addEventListener("click", function () { stopTaskAudio(); persistSheetFields(); $("taskSheet").hidden = true; refreshAll(); });
+$("dDone").addEventListener("click", function () { stopTaskAudio(); persistSheetFields(); toggleDone(currentTaskId, currentInstanceDate); $("taskSheet").hidden = true; });
 $("dDoing").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  stopTaskAudio();
   persistSheetFields();
   if (t.repeat) { t.doneDates = (t.doneDates || []).filter(function (d) { return d !== currentInstanceDate; }); }
   t.status = "doing"; save(); $("taskSheet").hidden = true; refreshAll(); toast(tr("Doing. One step at a time."));
 });
 $("dNotToday").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  stopTaskAudio();
   persistSheetFields();
   moveInstance(t, currentInstanceDate, L.addDays(currentInstanceDate, 1));
   save(); $("taskSheet").hidden = true; refreshAll();
@@ -769,6 +998,7 @@ $("dNotToday").addEventListener("click", function () {
 });
 $("dDelete").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  stopTaskAudio();
   if (t.repeat) {
     t.skipDates = t.skipDates || [];
     if (t.skipDates.indexOf(currentInstanceDate) === -1) t.skipDates.push(currentInstanceDate);
@@ -842,6 +1072,118 @@ $("journalFile").addEventListener("change", function (e) {
    "did not work at all" there). In a browser it uses Web Speech with
    live words while you talk. Errors say what actually went wrong.
    Typing always works exactly the same. */
+var taskAudioSession = null;
+var taskAudioTaskId = null;
+var taskAudioTimer = null;
+function renderTaskAudio(task) {
+  var player = $("dAudioPlayer"), note = task && task.audioNote;
+  var hasNote = !!(note && typeof note.dataUrl === "string");
+  var valid = !!(hasNote && note.dataUrl.length <= window.PaceAudioNotes.MAX_AUDIO_NOTE_CHARS && /^data:audio\/[^;,]+(?:;[^,]*)*;base64,/i.test(note.dataUrl));
+  if (player) {
+    try { player.pause(); } catch (e) {}
+    player.removeAttribute("src");
+    player.hidden = !valid;
+    if (valid) { player.src = note.dataUrl; player.load(); }
+  }
+  $("dAudioDelete").hidden = !hasNote;
+  $("dAudioStart").hidden = !!(taskAudioSession && taskAudioTaskId === task.id);
+  $("dAudioStop").hidden = !(taskAudioSession && taskAudioTaskId === task.id);
+  $("dAudioStop").disabled = false;
+  $("dAudioStatus").textContent = valid
+    ? tr("Audio note saved ({seconds} seconds).", { seconds: Math.max(1, Math.round((+note.durationMs || 0) / 1000)) })
+    : hasNote ? tr("This audio note cannot be played.") : tr("No audio note saved yet.");
+}
+function stopTaskAudio(message) {
+  if (!taskAudioSession) return;
+  clearTimeout(taskAudioTimer); taskAudioTimer = null;
+  $("dAudioStop").disabled = true;
+  $("dAudioStatus").textContent = message || tr("Saving recording.");
+  taskAudioSession.stop();
+}
+function finishTaskAudio(session) {
+  if (taskAudioSession !== session) return;
+  clearTimeout(taskAudioTimer); taskAudioTimer = null;
+  var taskId = taskAudioTaskId;
+  taskAudioSession = null; taskAudioTaskId = null;
+  if (currentTaskId === taskId) {
+    var task = baseTask(taskId);
+    if (task) renderTaskAudio(task);
+  }
+}
+function failTaskAudio(session, error) {
+  if (taskAudioSession !== session) return;
+  var taskId = taskAudioTaskId;
+  var denied = error && (error.name === "NotAllowedError" || error.name === "PermissionDeniedError" || /denied|permission/i.test(error.message || ""));
+  finishTaskAudio(session);
+  if (currentTaskId === taskId) $("dAudioStatus").textContent = denied
+    ? tr("Microphone access is blocked. Allow it, then try recording again.")
+    : tr("Audio recording did not work. Try again, or type a note instead.");
+}
+async function saveTaskAudio(session, result) {
+  if (taskAudioSession !== session) return;
+  var taskId = taskAudioTaskId, task = baseTask(taskId);
+  if (!task) { finishTaskAudio(session); return; }
+  try {
+    var dataUrl = await window.PaceAudioNotes.toDataUrl(result.blob);
+    if (dataUrl.length > window.PaceAudioNotes.MAX_AUDIO_NOTE_CHARS) {
+      finishTaskAudio(session);
+      if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("This recording is too large. Try a shorter note.");
+      return;
+    }
+    var note = { dataUrl: dataUrl, mimeType: result.mimeType, durationMs: result.durationMs, savedAt: new Date().toISOString() };
+    if (!window.PaceAudioNotes.fitsInState(state, taskId, note)) {
+      finishTaskAudio(session);
+      if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("This audio note would make your saved calendar too large to sync. Remove an older audio note or record a shorter one.");
+      return;
+    }
+    task.audioNote = note;
+    save();
+    finishTaskAudio(session);
+    if (currentTaskId === taskId) renderTaskAudio(task);
+    toast(tr("Audio note saved ({seconds} seconds).", { seconds: Math.max(1, Math.round((+result.durationMs || 0) / 1000)) }));
+  } catch (error) {
+    finishTaskAudio(session);
+    if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("Audio note could not be saved. Nothing changed.");
+  }
+}
+function startTaskAudio() {
+  if (taskAudioSession) return;
+  var task = baseTask(currentTaskId);
+  if (!task) return;
+  if (!window.PaceAudioNotes || !window.MediaRecorder) {
+    $("dAudioStatus").textContent = tr("Audio recording is not available in this browser. Typing works the same.");
+    return;
+  }
+  var session;
+  try { session = window.PaceAudioNotes.start(); }
+  catch (error) {
+    $("dAudioStatus").textContent = error && error.message === "microphone-unavailable"
+      ? tr("Audio recording is not available in this browser. Typing works the same.")
+      : tr("Audio recording did not work. Try again, or type a note instead.");
+    return;
+  }
+  taskAudioSession = session; taskAudioTaskId = task.id;
+  $("dAudioStart").hidden = true; $("dAudioStop").hidden = false; $("dAudioStop").disabled = false;
+  $("dAudioStatus").textContent = tr("Allow microphone access if asked.");
+  session.ready.then(function () {
+    if (taskAudioSession !== session) return;
+    $("dAudioStatus").textContent = tr("Recording. {seconds} seconds left.", { seconds: Math.ceil(window.PaceAudioNotes.MAX_RECORDING_MS / 1000) });
+    taskAudioTimer = setTimeout(function () {
+      if (taskAudioSession === session) stopTaskAudio(tr("Recording limit reached. Saving now."));
+    }, window.PaceAudioNotes.MAX_RECORDING_MS);
+  }, function () {});
+  session.done.then(function (result) { return saveTaskAudio(session, result); }, function (error) { failTaskAudio(session, error); });
+}
+$("dAudioStart").addEventListener("click", startTaskAudio);
+$("dAudioStop").addEventListener("click", function () { stopTaskAudio(); });
+$("dAudioDelete").addEventListener("click", function () {
+  var task = baseTask(currentTaskId); if (!task || !task.audioNote) return;
+  var saved = task.audioNote;
+  delete task.audioNote; save(); renderTaskAudio(task);
+  toast(tr("Audio note removed."), function () { task.audioNote = saved; save(); renderTaskAudio(task); });
+});
+window.addEventListener("beforeunload", function () { if (taskAudioSession) taskAudioSession.cancel(); });
+
 var voiceSession = null;
 function voiceErrorText(code) {
   if (code === "not-allowed" || code === "service-not-allowed") return tr("The microphone is blocked. Allow the mic for Pace, then tap Speak again. Typing works the same.");
@@ -862,7 +1204,7 @@ function nativeSpeech() {
 function toggleVoice(hooks) {
   if (voiceSession) { voiceSession.stop(); return; }
   var btn = hooks.btn, span = btn.querySelector("span");
-  var done = function () { voiceSession = null; if (span) span.textContent = tr("Speak"); };
+  var done = function () { voiceSession = null; if (span) span.textContent = tr(hooks.label || "Speak"); };
   var nat = nativeSpeech();
   if (!nat) {
     // POLAR P1 hardening (21 Oct): on the packaged app with the
@@ -929,6 +1271,19 @@ $("voiceBtn").addEventListener("click", function () {
     }
   });
 });
+$("dNotesSpeak").addEventListener("click", function () {
+  toggleVoice({
+    btn: $("dNotesSpeak"),
+    label: "Speak note",
+    msg: function (text) { $("dNotesStatus").textContent = text; },
+    final: function (said) {
+      $("dNotes").value = ($("dNotes").value.trim() ? $("dNotes").value.trim() + "\n" : "") + said;
+      persistSheetFields();
+      $("dNotesStatus").textContent = tr("Got it. Check your note.");
+    }
+  });
+});
+$("dNotes").addEventListener("change", function () { persistSheetFields(); });
 /* Handwriting photo: OCR runs on-device with the Tesseract.js copy bundled
    in vendor/tesseract (worker, LSTM core and English data are local too).
    Shared by Talk to it and To do; onText receives the words found. */
@@ -1452,8 +1807,8 @@ if (!state.welcomed) {
   if (wn) $("welcomeTitle").textContent = tr("Welcome to Pace Calendar, {name}", { name: wn });
   $("welcome").hidden = false;
 }
-$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; maybeGuide(); });
-$("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; requestNotif(); maybeGuide(); });
+$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; });
+$("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; maybeGuide(); });
 
 /* ---------- Skip the Ferry: the setup guide (Lab spec GUIDE-MASCOTS-001) ----------
    One SVG master with changing poses. The visual guide has three content
@@ -1482,60 +1837,111 @@ function skipSvg(pose) {
     '<path d="M16 182 q16 -12 32 0 t32 0 t32 0 t32 0 t32 0 t32 0" fill="none" stroke="' + wave + '" stroke-width="8" stroke-linecap="round"/></svg>';
 }
 var GUIDE_STEPS = [
-  { pose: "welcome", bubble: "We cross at your pace.", next: "Next" },
-  { pose: "point", bubble: "Pick a look you like.", next: "Next", themes: true },
-  { pose: "celebrate", bubble: "Add one small thing.", next: "Done ✓", last: true }
+  { kind: "step", pose: "welcome", bubble: "Your calendar starts empty. Add only what you choose.", next: "Next" },
+  { kind: "step", pose: "point", bubble: "How are you feeling today?", next: "Next", action: "energy" },
+  { kind: "step", pose: "point", bubble: "Pick a look you like.", next: "Next", themes: true },
+  { kind: "step", pose: "celebrate", bubble: "Add your first task when you're ready.", next: "Next", action: "task" }
 ];
-/* Skip's bottom sheet introduces the app. The name prompt and menu stop
-   remain separate from the three visual-guide progress dots. The X or Skip
-   closes it any time; it runs on the first visit only. */
-// POLAR P7 (21 Oct, fresh install): the name ask belongs to
-// the TOUR, not to the account — a guest's tour never asked
-// (this used to require a signed-in uid), so a fresh install
-// crossed all five cards nameless. The name lives in state
-// and syncs on sign-in like everything else.
+/* Skip's guide is short enough to skip, but covers the real setup
+   choices first, then offers calendar import and reminders, and finally
+   tours every bottom tab and the More menu. */
 function tourNeedsName() { return !((state.settings.profileName || "").trim()); }
 var TOUR = [];
 function buildTour() {
   TOUR = [];
   if (tourNeedsName()) TOUR.push({ kind: "name", pose: "welcome", bubble: "Ahoy! I'm Skip. Welcome aboard! What's your name?", next: "Next" });
-  TOUR.push({ kind: "step", pose: GUIDE_STEPS[0].pose, bubble: GUIDE_STEPS[0].bubble, next: "Next" });
-  TOUR.push({ kind: "menu", pose: "point", bubble: "This is your menu — everything lives here.", next: "Next" });
-  for (var i = 1; i < GUIDE_STEPS.length; i++) TOUR.push(Object.assign({ kind: "step" }, GUIDE_STEPS[i]));
+  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); });
+  TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar if you want. The file is copied; it is never changed.", next: "Next" });
+  TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders are optional. Choose if you want a gentle prompt.", next: "Next", panel: "settings" });
+  TOUR.push({ kind: "tour", panel: "today", pose: "welcome", bubble: "Today is for the day in front of you.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar lets you switch Day, Week, Month, Year, and Agenda.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Talk to it turns a sentence into tasks. Speaking is optional.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "todo", pose: "point", bubble: "To do keeps loose tasks beside the calendar.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress, Habits, and Settings.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Progress groups tasks by status. If it is locked, Pace will say so.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "habits", pose: "point", bubble: "Habits helps you notice routines, one day at a time.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", pose: "point", bubble: "Settings is where reminders and this guide live.", next: "Done ✓", last: true });
 }
 var guideStep = 0;
+var guideResumeAfterTask = null;
 function showGuide(step) {
   if (!TOUR.length) buildTour();
   guideStep = step;
   var s = TOUR[step];
+  if (!s) return;
+  if (s.kind === "tour") {
+    if (s.panel === "today") {
+      var dayBtn = document.querySelector('.segmented button[data-view="timeGridDay"]');
+      if (dayBtn && currentView !== "timeGridDay") dayBtn.click();
+      showPanel("calendar"); selectDate(L.todayKey(), true); setBottomTab("today");
+    } else if (s.panel === "calendar") { showPanel("calendar"); setBottomTab("calendar"); }
+    else if (s.panel === "capture") { showPanel("capture"); setBottomTab("capture"); }
+    else if (s.panel === "todo") { showPanel("todo"); setBottomTab("todo"); }
+    else if (s.panel === "habits") { showPanel("habits"); setBottomTab("more"); }
+    else if (s.panel === "settings") { showPanel("settings"); setBottomTab("more"); }
+    else if (s.panel === "more" || s.panel === "progress") { setBottomTab("more"); }
+  } else if (s.kind === "reminders") { showPanel("settings"); setBottomTab("more"); }
   $("guideArt").innerHTML = skipSvg(s.pose);
   $("guideBubble").textContent = tr(s.bubble);
   $("guideNext").textContent = tr(s.next);
-  $("guideImport").hidden = !s.last || DEMO_SESSION;
+  $("guideImport").hidden = s.kind !== "import" || DEMO_SESSION;
   var contentStep = s.kind === "step" ? TOUR.slice(0, step + 1).filter(function (x) { return x.kind === "step"; }).length - 1 : -1;
   $("guideDots").innerHTML = s.kind === "step" ? GUIDE_STEPS.map(function (_, i) { return '<span class="g-dot' + (i === contentStep ? " is-on" : "") + '"></span>'; }).join("") : "";
-  // The menu stop: open the menu and dock the card beside it.
   var sheet = $("guideSheet");
-  if (s.kind === "menu") {
+  var menuStop = s.kind === "tour" && (s.panel === "more" || s.panel === "progress");
+  if (menuStop) {
     document.documentElement.removeAttribute("data-sb");
     sheet.setAttribute("data-dock", "menu");
   } else {
     sheet.removeAttribute("data-dock");
     applySidebar();
   }
+  document.querySelectorAll(".guide-target").forEach(function (el) { el.classList.remove("guide-target"); });
+  var target = null;
+  if (s.kind === "tour") {
+    if (s.panel === "more") target = $("sbExpand");
+    else if (s.panel === "progress") target = document.querySelector('.side-item[data-panel="progress"]');
+    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" ? "more" : s.panel) + '"]');
+  }
+  if (target) target.classList.add("guide-target");
   var ex = $("guideExtra");
   if (s.kind === "name") {
     ex.innerHTML = '<input type="text" id="tourName" class="tour-name-input" autocomplete="name" placeholder="' + tr("Your name") + '" aria-label="' + tr("Your name") + '">';
+  } else if (s.action === "energy") {
+    var currentFeeling = state.feelings[L.todayKey()] || "";
+    ex.innerHTML = '<div class="guide-energy">' + [["low", state.settings.names.low], ["steady", state.settings.names.steady], ["full", state.settings.names.full]].map(function (pair) {
+      return '<button type="button" class="soft-btn guide-energy-btn" data-energy="' + pair[0] + '" aria-pressed="' + String(currentFeeling === pair[0]) + '">' + esc(pair[1]) + '</button>';
+    }).join("") + '</div>';
+    ex.querySelectorAll("[data-energy]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        state.feelings[L.todayKey()] = button.getAttribute("data-energy");
+        save(); refreshAll();
+        ex.querySelectorAll("[data-energy]").forEach(function (choice) { choice.setAttribute("aria-pressed", String(choice === button)); });
+      });
+    });
+  } else if (s.action === "task") {
+    var hasOwnTask = (state.tasks || []).some(function (task) { return task && task.source !== "sample"; });
+    ex.innerHTML = hasOwnTask ? '' : '<button type="button" id="guideTaskOpen" class="primary-btn guide-action">' + tr("Add a task now") + '</button>';
+    if (!hasOwnTask) $("guideTaskOpen").addEventListener("click", function () {
+      if (guideResumeAfterTask !== null) return;
+      guideResumeAfterTask = guideStep + 1;
+      $("guideSheet").hidden = true;
+      $("addBtn").click();
+    });
   } else if (s.themes) {
-    /* These six simple looks match the visual guide; photo backgrounds
-       remain available from the full appearance settings. */
-    var GUIDE_THEMES = ["white", "dark", "blush", "sky", "mint", "lavender"];
+    var GUIDE_THEMES = ["white", "dark"];
     ex.innerHTML = '<div class="guide-swatches">' + GUIDE_THEMES.map(function (t) {
-      return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + t + ' theme"></button>';
+      return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + tr(t === "white" ? "White theme" : "Dark theme") + '"></button>';
     }).join("") + "</div>";
     ex.querySelectorAll("[data-g-theme]").forEach(function (b) {
-      b.addEventListener("click", function () { var t = b.getAttribute("data-g-theme"); state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); if (t !== "white" && t !== "dark") maybePlus("look"); });
+      b.addEventListener("click", function () { var t = b.getAttribute("data-g-theme"); state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); });
     });
+  } else if (s.kind === "reminders") {
+    var reminderButton = document.createElement("button"); reminderButton.type = "button"; reminderButton.className = "soft-btn guide-action";
+    reminderButton.textContent = tr(state.settings.notif.perm === "granted" ? "Notifications are on. You choose what they say and when." : "Turn on notifications");
+    reminderButton.disabled = state.settings.notif.perm === "granted";
+    reminderButton.addEventListener("click", function () { $("notifEnable").click(); });
+    ex.appendChild(reminderButton);
   } else ex.innerHTML = "";
   $("guideSheet").hidden = false;
 }
@@ -1739,10 +2145,34 @@ function runImport(text, label) {
   $("importResult").textContent = bits.join(" \u00B7 ") + ".";
   toast(res.added ? tr("Calendar brought in.") : tr("Nothing new to bring in."));
 }
-if (DEMO_SESSION) { $("importBtn").hidden = true; $("importOpen2").hidden = true; }
+if (DEMO_SESSION) { $("importBtn").hidden = true; $("importOpen2").hidden = true; $("exportCalendarBtn").hidden = true; }
 $("importBtn").addEventListener("click", openImport);
 $("importOpen2").addEventListener("click", openImport);
 $("guideImport").addEventListener("click", function () { closeGuide(); openImport(); });
+function exportCalendarICS() {
+  var text;
+  try { text = window.PaceCalendarExport.toICS(state); }
+  catch (e) { toast(tr("Calendar export did not work. Nothing was changed.")); return; }
+  var FS = null, SH = null;
+  try { FS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem; SH = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share; } catch (e) {}
+  if (FS && SH) {
+    FS.writeFile({ path: "pace-calendar.ics", data: text, directory: "CACHE", encoding: "utf8" })
+      .then(function () { return FS.getUri({ path: "pace-calendar.ics", directory: "CACHE" }); })
+      .then(function (r) { return SH.share({ title: "Pace Calendar", text: tr("Calendar file is ready to share."), url: r.uri }); })
+      .then(function () { toast(tr("Calendar file is ready to share.")); })
+      .catch(function () { toast(tr("Calendar export did not work. Nothing was changed.")); });
+    return;
+  }
+  try {
+    var blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+    var a = document.createElement("a"), url = URL.createObjectURL(blob);
+    a.href = url; a.download = "pace-calendar.ics"; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+    toast(tr("Calendar file downloaded."));
+  } catch (e) { toast(tr("Calendar export did not work. Nothing was changed.")); }
+}
+$("exportCalendarBtn").addEventListener("click", exportCalendarICS);
 $("importClose").addEventListener("click", function () { $("importSheet").hidden = true; });
 document.querySelectorAll(".import-src").forEach(function (b) {
   b.addEventListener("click", function () {

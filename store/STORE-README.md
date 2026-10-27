@@ -19,7 +19,7 @@ The live web app is unchanged; this package only wraps it.
   present (see SIGNING.md — the keystore is Ilse's Secure Vault step; the AAB
   here is built unsigned but signing-ready, the declared deviation).
 - iOS: Xcode project + SPM, deployment target 15.0, bundle id set in the
-  project, version 1.0.0 / 26 before the pending QA build bump, and a PrivacyInfo.xcprivacy
+  project, version 1.0.0 / 27 for this QA build, and a PrivacyInfo.xcprivacy
   wired into the app target (no tracking; it declares email, name, user ID, and
   other user content for app functionality, plus UserDefaults reason CA92.1).
   Compiling needs a Mac or cloud (the lead builds; no xcodebuild here).

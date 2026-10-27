@@ -110,9 +110,9 @@ try {
         <button id="monthTitle" class="month-title" title="Back to today">October 2026</button>
         <div class="top-actions">
           <div class="segmented" role="group" aria-label="Calendar view" data-i18n-aria>
-            <button data-view="timeGridDay" data-i18n>Day</button>
+            <button data-view="timeGridDay" class="is-active" data-i18n>Day</button>
             <button data-view="timeGridWeek" data-i18n>Week</button>
-            <button data-view="dayGridMonth" class="is-active" data-i18n>Month</button>
+            <button data-view="dayGridMonth" data-i18n>Month</button>
             <button data-view="year" data-i18n>Year</button>
             <button data-view="listWeek" data-i18n>Agenda</button>
           </div>
@@ -149,7 +149,7 @@ try {
     <section class="panel" id="panel-capture">
       <header class="topbar"><h2 data-i18n>Talk to it</h2></header>
       <div class="capture-box">
-        <textarea id="dumpText" data-i18n-ph rows="7" placeholder="Try: call the dentist tomorrow at 3pm, and then clean the kitchen. Pay the rent on friday!!! Water the plants every weekday."></textarea>
+        <textarea id="dumpText" data-i18n-ph rows="7" placeholder="Try: call the dentist tomorrow at 3pm, then pick up a prescription. Pay the rent on Friday. Water the plants every weekday."></textarea>
         <div class="capture-actions">
           <button id="voiceBtn" class="soft-btn" data-i18n><svg class="ico"><use href="#i-mic"/></svg><span>Speak</span></button>
           <label class="soft-btn file-btn"><svg class="ico"><use href="#i-file"/></svg data-i18n><span>Journal file</span><input type="file" id="journalFile" accept=".txt,.md,.csv" hidden></label>
@@ -267,9 +267,12 @@ try {
           <button id="clearSamples" class="soft-btn" data-i18n>Remove the sample tasks</button>
           <button id="guideAgain" class="soft-btn" data-i18n>Setup guide</button>
           <button id="importOpen2" class="soft-btn" data-i18n>Bring my calendar in</button>
+          <button id="exportCalendarBtn" class="soft-btn" data-i18n>Save calendar as .ics</button>
           <button id="plansOpen" class="soft-btn" data-i18n>Plans</button>
         </div>
         <p class="hint" data-i18n>On this device only.</p>
+        <p id="exportCalendarHint" class="hint" data-i18n>Calendar export contains calendar tasks. Times use this device's local clock.</p>
+        <p id="exportCalendarStatus" class="hint" role="status"></p>
       </div>
       <div class="settings-group" id="accountGroup" hidden>
         <h3 data-i18n>Account</h3>
@@ -300,6 +303,13 @@ try {
       </div>
     </section>
   </main>
+  <nav id="bottomTabs" aria-label="Main navigation" data-i18n-aria>
+    <button type="button" data-tab="today" class="is-active" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg><span data-i18n>Today</span></button>
+    <button type="button" data-tab="calendar"><svg class="ico" aria-hidden="true"><use href="#i-calplus"/></svg><span data-i18n>Calendar</span></button>
+    <button type="button" data-tab="capture"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg><span data-i18n>Talk to it</span></button>
+    <button type="button" data-tab="todo"><svg class="ico" aria-hidden="true"><use href="#i-todo"/></svg><span data-i18n>To do</span></button>
+    <button type="button" data-tab="more"><svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg><span data-i18n>More</span></button>
+  </nav>
 </div>
 
 <!-- QUICK ADD -->
@@ -334,7 +344,29 @@ try {
     <h3 id="dTitle" data-i18n>Task</h3>
     <p class="hint" id="dMeta"></p>
     <div id="dSteps"></div>
+    <section class="task-note-section" aria-labelledby="dNotesHeading">
+      <h4 id="dNotesHeading" data-i18n>Notes</h4>
+      <label class="field"><span data-i18n>Written note</span><textarea id="dNotes" rows="3" maxlength="4000" placeholder="Add a note" data-i18n-ph aria-label="Task note" data-i18n-aria></textarea></label>
+      <div class="task-note-actions"><button id="dNotesSpeak" class="soft-btn" type="button"><svg class="ico"><use href="#i-mic"/></svg><span data-i18n>Speak note</span></button><p id="dNotesStatus" role="status" class="hint"></p></div>
+    </section>
+    <section class="task-audio-section" aria-labelledby="dAudioHeading">
+      <h4 id="dAudioHeading" data-i18n>Audio note</h4>
+      <p class="hint" data-i18n>Record up to 45 seconds. Signed-in calendars sync the note with your account.</p>
+      <div class="task-note-actions"><button id="dAudioStart" class="soft-btn" type="button" data-i18n>Start recording</button><button id="dAudioStop" class="soft-btn" type="button" hidden data-i18n>Stop recording</button><button id="dAudioDelete" class="soft-btn danger" type="button" hidden data-i18n>Remove audio note</button></div>
+      <audio id="dAudioPlayer" controls preload="none" hidden></audio>
+      <p id="dAudioStatus" role="status" class="hint" aria-live="polite"></p>
+    </section>
     <button id="dBreak" class="soft-btn" data-i18n>Break this into small steps</button>
+    <details id="dLook" class="task-look-details">
+      <summary data-i18n>Change icon or color</summary>
+      <div class="task-look-body">
+        <label class="field task-icon-search" data-i18n>Search icons by task or word <input id="dIconSearch" type="search" placeholder="Search icons by task or word" data-i18n-ph autocomplete="off"></label>
+        <div id="dIconPicker" class="task-icon-picker" role="group" aria-label="Task icons"></div>
+        <p class="task-look-label" data-i18n>Task color</p>
+        <div id="dColorPicker" class="task-color-picker" role="group" aria-label="Task colors"></div>
+        <label class="task-custom-color" data-i18n>Custom color <input id="dCustomColor" type="color" aria-label="Custom color" data-i18n-aria value="#7A8699"><input id="dCustomHex" type="text" maxlength="7" placeholder="#7A8699" aria-label="Hex color" data-i18n-aria autocomplete="off"></label>
+      </div>
+    </details>
     <label class="field" data-i18n>Smallest version (low days) <input type="text" id="dMin"></label>
     <label class="field" data-i18n>Biggest version (full days) <input type="text" id="dFull"></label>
     <div class="field-row">
@@ -451,8 +483,8 @@ try {
     <p><strong data-i18n>Your day, at your pace.</strong></p>
     <p data-i18n>The day shapes itself around you.</p>
     <div class="sheet-actions">
-      <button id="welcomeNotif" class="primary-btn" data-i18n>Turn on notifications</button>
-      <button id="welcomeSkip" class="soft-btn" data-i18n>Not now</button>
+      <button id="welcomeNotif" class="primary-btn" data-i18n>Meet Skip</button>
+      <button id="welcomeSkip" class="soft-btn" data-i18n>Skip for now</button>
     </div>
   </div>
 </div>
@@ -539,6 +571,8 @@ try {
 <script src="vendor/tesseract/tesseract.min.js"></script>
 <script src="vendor/ical/ical.min.js"></script>
 <script src="calendar-import.js"></script>
+<script src="calendar-export.js"></script>
+<script src="audio-notes.js"></script>
 <script src="firebase-config.js"></script>
 <script src="billing-config.js"></script>
 <script src="billing.js"></script>
