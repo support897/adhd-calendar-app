@@ -1,6 +1,5 @@
-/* Calm Calendar app. Self contained: data lives on this device only.
-   The calendar grid shows the whole truth. The list under it is the day,
-   adapted to how you feel. Parked means parked, never dropped. */
+/* Pace Calendar. Guest data stays on this device; signed-in data syncs
+   inside that person's own Firestore profile. The day adapts to energy. */
 (function () {
 "use strict";
 var L = window.CalmLogic;
@@ -18,7 +17,7 @@ function storeKey() { return ACTIVE_UID ? STORE + ":" + ACTIVE_UID : STORE + ":g
 try { if (!localStorage.getItem(STORE + ":guest") && localStorage.getItem(STORE)) localStorage.setItem(STORE + ":guest", localStorage.getItem(STORE)); } catch (e) {}
 var state = load();
 var selected = L.todayKey();
-var currentView = "dayGridMonth";
+var currentView = "timeGridDay";
 var calendar = null;
 var currentTaskId = null;
 var currentInstanceDate = null;
@@ -130,26 +129,9 @@ function save() {
 }
 
 function seed() {
-  var today = L.todayKey(), tomorrow = L.addDays(today, 1);
-  function mk(title, date, time, dur, extra) {
-    var cat = L.categoryFor(title);
-    return Object.assign({ id: uid(), title: title, date: date, time: time, durationMin: dur, priority: 0, repeat: null, category: cat.id, color: cat.color, essential: false, status: "todo", steps: L.decompose(title, dur, false), minVersion: "", fullVersion: "", source: "sample", originalText: "", skipDates: [], doneDates: [] }, extra || {});
-  }
-  // Empty-Start Law (14 Oct): the store build starts EMPTY for every user.
-  // The store wrapper (Capacitor) is detectable at runtime; the web app
-  // keeps its samples. Existing saved data is never touched either way.
-  var storeBuild = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-  var tasks = storeBuild ? [] : [
-    mk("Doctor appointment", today, "10:00", 45, { essential: true, minVersion: "Ring the doctor to rebook" }),
-    mk("Pay the electricity bill", today, null, 15, { essential: true, priority: 3 }),
-    mk("Clean the kitchen", today, "16:00", 30, {}),
-    mk("Reply to one email", today, null, 10, {}),
-    mk("Walk around the block", today, "17:30", 15, {}),
-    mk("Plan the weekend", today, null, 45, {}),
-    mk("Buy groceries for the week", tomorrow, null, 45, {}),
-    mk("Call mum", tomorrow, "17:00", 15, {})
-  ];
-  return { tasks: tasks, feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
+  // Empty Start: every fresh visitor begins with a blank calendar.
+  // Examples are never inserted unless the person chooses them.
+  return { tasks: [], feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
 }
 if (!state) { state = ACTIVE_UID ? freshAccountState() : seed(); save(); if (ACTIVE_UID) { state.updatedAt = 0; try { localStorage.setItem(storeKey(), JSON.stringify(state)); } catch (e) {} } }
 
@@ -500,7 +482,7 @@ function fcEvents() {
 }
 function initCalendar() {
   calendar = new FullCalendar.Calendar($("calendar"), {
-    initialView: "dayGridMonth",
+    initialView: "timeGridDay",
     locale: PACE_LANG === "es" ? "es" : "en",
     height: "auto",
     firstDay: 1,
@@ -572,6 +554,7 @@ document.querySelectorAll(".segmented button").forEach(function (b) {
     b.classList.add("is-active");
     var v = b.getAttribute("data-view");
     currentView = v;
+    setBottomTab(v === "timeGridDay" && selected === L.todayKey() ? "today" : "calendar");
     if (v === "year") { $("calendar").hidden = true; $("yearView").hidden = false; renderYear(); }
     else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, selected); }
   });
@@ -615,6 +598,7 @@ document.querySelectorAll(".side-item").forEach(function (b) {
     b.classList.add("is-active");
     var panelName = b.getAttribute("data-panel");
     $("panel-" + panelName).classList.add("is-active");
+    setBottomTab(panelName === "calendar" ? (selected === L.todayKey() && currentView === "timeGridDay" ? "today" : "calendar") : (panelName === "todo" || panelName === "capture" ? panelName : "more"));
     if (panelName === "progress") renderProgress();
     // FullCalendar sizes itself while visible. Returning from a
     // hidden panel must re-measure after the calendar has its width.
@@ -636,7 +620,33 @@ document.querySelectorAll(".side-item").forEach(function (b) {
 $("sbSliver").addEventListener("click", function () {
   state.settings.sidebarCollapsed = true; save(); applySidebar();
 });
+function setBottomTab(name) {
+  document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
+    var active = b.getAttribute("data-tab") === name;
+    b.classList.toggle("is-active", active);
+    if (active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+}
 function showPanel(name) { document.querySelector('.side-item[data-panel="' + name + '"]').click(); }
+document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var tab = b.getAttribute("data-tab");
+    if (tab === "today") {
+      var day = document.querySelector('.segmented button[data-view="timeGridDay"]');
+      if (day && currentView !== "timeGridDay") day.click();
+      selectDate(L.todayKey(), true);
+      showPanel("calendar");
+      setBottomTab("today");
+    } else if (tab === "more") {
+      var collapsed = document.documentElement.getAttribute("data-sb") === "collapsed";
+      (collapsed ? $("sbExpand") : $("sbCollapse")).click();
+      setBottomTab("more");
+    } else {
+      showPanel(tab);
+      setBottomTab(tab);
+    }
+  });
+});
 
 /* ---------- quick add ---------- */
 $("addBtn").addEventListener("click", function () {
@@ -1452,8 +1462,8 @@ if (!state.welcomed) {
   if (wn) $("welcomeTitle").textContent = tr("Welcome to Pace Calendar, {name}", { name: wn });
   $("welcome").hidden = false;
 }
-$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; maybeGuide(); });
-$("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; requestNotif(); maybeGuide(); });
+$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; });
+$("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; maybeGuide(); });
 
 /* ---------- Skip the Ferry: the setup guide (Lab spec GUIDE-MASCOTS-001) ----------
    One SVG master with changing poses. The visual guide has three content
