@@ -390,7 +390,11 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .g-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--hair); }
 .g-dot.is-on { background: var(--ink); }
 .guide-swatches { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-.g-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--hair); cursor: pointer; padding: 0; }
+.g-swatch { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 2px solid var(--hair); cursor: pointer; padding: 0; }
+.guide-energy { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0; }
+.guide-energy-btn, .guide-action, .guide-card .sheet-actions button { min-height: 44px; }
+.guide-energy-btn[aria-pressed="true"] { border: 2px solid var(--accent); background: var(--seg); }
+.guide-target { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 14px; }
 .guide-card .sheet-actions { justify-content: center; }
 
 /* Capture */

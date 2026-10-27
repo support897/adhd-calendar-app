@@ -796,7 +796,10 @@ $("addBtn").addEventListener("click", function () {
   $("addSheet").hidden = false;
   setTimeout(function () { $("quickText").focus(); }, 50);
 });
-$("addCancel").addEventListener("click", function () { $("addSheet").hidden = true; });
+$("addCancel").addEventListener("click", function () {
+  $("addSheet").hidden = true;
+  if (guideResumeAfterTask !== null) { guideResumeAfterTask = null; showGuide(guideStep); }
+});
 $("quickText").addEventListener("input", function () {
   var v = $("quickText").value.trim();
   if (!v) { $("quickPreview").hidden = true; return; }
@@ -828,6 +831,10 @@ $("addSave").addEventListener("click", function () {
   $("addSheet").hidden = true;
   selectDate(task.date, true); refreshAll();
   toast(tr("Added. Small and clear."));
+  if (guideResumeAfterTask !== null) {
+    var nextGuideStep = guideResumeAfterTask; guideResumeAfterTask = null;
+    setTimeout(function () { showGuide(nextGuideStep); }, 80);
+  }
 });
 
 /* ---------- task sheet ---------- */
@@ -1830,60 +1837,111 @@ function skipSvg(pose) {
     '<path d="M16 182 q16 -12 32 0 t32 0 t32 0 t32 0 t32 0 t32 0" fill="none" stroke="' + wave + '" stroke-width="8" stroke-linecap="round"/></svg>';
 }
 var GUIDE_STEPS = [
-  { pose: "welcome", bubble: "We cross at your pace.", next: "Next" },
-  { pose: "point", bubble: "Pick a look you like.", next: "Next", themes: true },
-  { pose: "celebrate", bubble: "Add one small thing.", next: "Done ✓", last: true }
+  { kind: "step", pose: "welcome", bubble: "Your calendar starts empty. Add only what you choose.", next: "Next" },
+  { kind: "step", pose: "point", bubble: "How are you feeling today?", next: "Next", action: "energy" },
+  { kind: "step", pose: "point", bubble: "Pick a look you like.", next: "Next", themes: true },
+  { kind: "step", pose: "celebrate", bubble: "Add your first task when you're ready.", next: "Next", action: "task" }
 ];
-/* Skip's bottom sheet introduces the app. The name prompt and menu stop
-   remain separate from the three visual-guide progress dots. The X or Skip
-   closes it any time; it runs on the first visit only. */
-// POLAR P7 (21 Oct, fresh install): the name ask belongs to
-// the TOUR, not to the account — a guest's tour never asked
-// (this used to require a signed-in uid), so a fresh install
-// crossed all five cards nameless. The name lives in state
-// and syncs on sign-in like everything else.
+/* Skip's guide is short enough to skip, but covers the real setup
+   choices first, then offers calendar import and reminders, and finally
+   tours every bottom tab and the More menu. */
 function tourNeedsName() { return !((state.settings.profileName || "").trim()); }
 var TOUR = [];
 function buildTour() {
   TOUR = [];
   if (tourNeedsName()) TOUR.push({ kind: "name", pose: "welcome", bubble: "Ahoy! I'm Skip. Welcome aboard! What's your name?", next: "Next" });
-  TOUR.push({ kind: "step", pose: GUIDE_STEPS[0].pose, bubble: GUIDE_STEPS[0].bubble, next: "Next" });
-  TOUR.push({ kind: "menu", pose: "point", bubble: "This is your menu — everything lives here.", next: "Next" });
-  for (var i = 1; i < GUIDE_STEPS.length; i++) TOUR.push(Object.assign({ kind: "step" }, GUIDE_STEPS[i]));
+  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); });
+  TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar if you want. The file is copied; it is never changed.", next: "Next" });
+  TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders are optional. Choose if you want a gentle prompt.", next: "Next", panel: "settings" });
+  TOUR.push({ kind: "tour", panel: "today", pose: "welcome", bubble: "Today is for the day in front of you.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar lets you switch Day, Week, Month, Year, and Agenda.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Talk to it turns a sentence into tasks. Speaking is optional.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "todo", pose: "point", bubble: "To do keeps loose tasks beside the calendar.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress, Habits, and Settings.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Progress groups tasks by status. If it is locked, Pace will say so.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "habits", pose: "point", bubble: "Habits helps you notice routines, one day at a time.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", pose: "point", bubble: "Settings is where reminders and this guide live.", next: "Done ✓", last: true });
 }
 var guideStep = 0;
+var guideResumeAfterTask = null;
 function showGuide(step) {
   if (!TOUR.length) buildTour();
   guideStep = step;
   var s = TOUR[step];
+  if (!s) return;
+  if (s.kind === "tour") {
+    if (s.panel === "today") {
+      var dayBtn = document.querySelector('.segmented button[data-view="timeGridDay"]');
+      if (dayBtn && currentView !== "timeGridDay") dayBtn.click();
+      showPanel("calendar"); selectDate(L.todayKey(), true); setBottomTab("today");
+    } else if (s.panel === "calendar") { showPanel("calendar"); setBottomTab("calendar"); }
+    else if (s.panel === "capture") { showPanel("capture"); setBottomTab("capture"); }
+    else if (s.panel === "todo") { showPanel("todo"); setBottomTab("todo"); }
+    else if (s.panel === "habits") { showPanel("habits"); setBottomTab("more"); }
+    else if (s.panel === "settings") { showPanel("settings"); setBottomTab("more"); }
+    else if (s.panel === "more" || s.panel === "progress") { setBottomTab("more"); }
+  } else if (s.kind === "reminders") { showPanel("settings"); setBottomTab("more"); }
   $("guideArt").innerHTML = skipSvg(s.pose);
   $("guideBubble").textContent = tr(s.bubble);
   $("guideNext").textContent = tr(s.next);
-  $("guideImport").hidden = !s.last || DEMO_SESSION;
+  $("guideImport").hidden = s.kind !== "import" || DEMO_SESSION;
   var contentStep = s.kind === "step" ? TOUR.slice(0, step + 1).filter(function (x) { return x.kind === "step"; }).length - 1 : -1;
   $("guideDots").innerHTML = s.kind === "step" ? GUIDE_STEPS.map(function (_, i) { return '<span class="g-dot' + (i === contentStep ? " is-on" : "") + '"></span>'; }).join("") : "";
-  // The menu stop: open the menu and dock the card beside it.
   var sheet = $("guideSheet");
-  if (s.kind === "menu") {
+  var menuStop = s.kind === "tour" && (s.panel === "more" || s.panel === "progress");
+  if (menuStop) {
     document.documentElement.removeAttribute("data-sb");
     sheet.setAttribute("data-dock", "menu");
   } else {
     sheet.removeAttribute("data-dock");
     applySidebar();
   }
+  document.querySelectorAll(".guide-target").forEach(function (el) { el.classList.remove("guide-target"); });
+  var target = null;
+  if (s.kind === "tour") {
+    if (s.panel === "more") target = $("sbExpand");
+    else if (s.panel === "progress") target = document.querySelector('.side-item[data-panel="progress"]');
+    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" ? "more" : s.panel) + '"]');
+  }
+  if (target) target.classList.add("guide-target");
   var ex = $("guideExtra");
   if (s.kind === "name") {
     ex.innerHTML = '<input type="text" id="tourName" class="tour-name-input" autocomplete="name" placeholder="' + tr("Your name") + '" aria-label="' + tr("Your name") + '">';
+  } else if (s.action === "energy") {
+    var currentFeeling = state.feelings[L.todayKey()] || "";
+    ex.innerHTML = '<div class="guide-energy">' + [["low", state.settings.names.low], ["steady", state.settings.names.steady], ["full", state.settings.names.full]].map(function (pair) {
+      return '<button type="button" class="soft-btn guide-energy-btn" data-energy="' + pair[0] + '" aria-pressed="' + String(currentFeeling === pair[0]) + '">' + esc(pair[1]) + '</button>';
+    }).join("") + '</div>';
+    ex.querySelectorAll("[data-energy]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        state.feelings[L.todayKey()] = button.getAttribute("data-energy");
+        save(); refreshAll();
+        ex.querySelectorAll("[data-energy]").forEach(function (choice) { choice.setAttribute("aria-pressed", String(choice === button)); });
+      });
+    });
+  } else if (s.action === "task") {
+    var hasOwnTask = (state.tasks || []).some(function (task) { return task && task.source !== "sample"; });
+    ex.innerHTML = hasOwnTask ? '' : '<button type="button" id="guideTaskOpen" class="primary-btn guide-action">' + tr("Add a task now") + '</button>';
+    if (!hasOwnTask) $("guideTaskOpen").addEventListener("click", function () {
+      if (guideResumeAfterTask !== null) return;
+      guideResumeAfterTask = guideStep + 1;
+      $("guideSheet").hidden = true;
+      $("addBtn").click();
+    });
   } else if (s.themes) {
-    /* These six simple looks match the visual guide; photo backgrounds
-       remain available from the full appearance settings. */
-    var GUIDE_THEMES = ["white", "dark", "blush", "sky", "mint", "lavender"];
+    var GUIDE_THEMES = ["white", "dark"];
     ex.innerHTML = '<div class="guide-swatches">' + GUIDE_THEMES.map(function (t) {
-      return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + t + ' theme"></button>';
+      return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + tr(t === "white" ? "White theme" : "Dark theme") + '"></button>';
     }).join("") + "</div>";
     ex.querySelectorAll("[data-g-theme]").forEach(function (b) {
-      b.addEventListener("click", function () { var t = b.getAttribute("data-g-theme"); state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); if (t !== "white" && t !== "dark") maybePlus("look"); });
+      b.addEventListener("click", function () { var t = b.getAttribute("data-g-theme"); state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); });
     });
+  } else if (s.kind === "reminders") {
+    var reminderButton = document.createElement("button"); reminderButton.type = "button"; reminderButton.className = "soft-btn guide-action";
+    reminderButton.textContent = tr(state.settings.notif.perm === "granted" ? "Notifications are on. You choose what they say and when." : "Turn on notifications");
+    reminderButton.disabled = state.settings.notif.perm === "granted";
+    reminderButton.addEventListener("click", function () { $("notifEnable").click(); });
+    ex.appendChild(reminderButton);
   } else ex.innerHTML = "";
   $("guideSheet").hidden = false;
 }
