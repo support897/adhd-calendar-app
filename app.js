@@ -850,6 +850,8 @@ function openTask(id, instanceDate) {
   if (inst.source === "sample") meta.push(tr("sample task"));
   $("dMeta").textContent = meta.join(" · ");
   renderSteps(t);
+  $("dNotes").value = typeof t.notes === "string" ? t.notes : "";
+  renderTaskAudio(t);
   $("dMin").value = t.minVersion || "";
   $("dFull").value = t.fullVersion || "";
   $("dDate").value = currentInstanceDate;
@@ -955,6 +957,7 @@ function persistSheetFields() {
   if (taught !== (t.minVersion || "") && !plusGate("steps")) taught = t.minVersion || "";
   t.minVersion = taught;
   t.fullVersion = $("dFull").value.trim();
+  t.notes = $("dNotes").value.trim();
   t.time = $("dTime").value || null;
   if (t.time) t.allDay = false;
   t.durationMin = Math.max(5, +$("dDur").value || t.durationMin);
@@ -969,16 +972,18 @@ function persistSheetFields() {
 ["dMin", "dFull", "dTime", "dDur", "dEssential", "dDate"].forEach(function (id) {
   $(id).addEventListener("change", function () { persistSheetFields(); refreshAll(); });
 });
-$("dClose").addEventListener("click", function () { persistSheetFields(); $("taskSheet").hidden = true; refreshAll(); });
-$("dDone").addEventListener("click", function () { persistSheetFields(); toggleDone(currentTaskId, currentInstanceDate); $("taskSheet").hidden = true; });
+$("dClose").addEventListener("click", function () { stopTaskAudio(); persistSheetFields(); $("taskSheet").hidden = true; refreshAll(); });
+$("dDone").addEventListener("click", function () { stopTaskAudio(); persistSheetFields(); toggleDone(currentTaskId, currentInstanceDate); $("taskSheet").hidden = true; });
 $("dDoing").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  stopTaskAudio();
   persistSheetFields();
   if (t.repeat) { t.doneDates = (t.doneDates || []).filter(function (d) { return d !== currentInstanceDate; }); }
   t.status = "doing"; save(); $("taskSheet").hidden = true; refreshAll(); toast(tr("Doing. One step at a time."));
 });
 $("dNotToday").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  stopTaskAudio();
   persistSheetFields();
   moveInstance(t, currentInstanceDate, L.addDays(currentInstanceDate, 1));
   save(); $("taskSheet").hidden = true; refreshAll();
@@ -986,6 +991,7 @@ $("dNotToday").addEventListener("click", function () {
 });
 $("dDelete").addEventListener("click", function () {
   var t = baseTask(currentTaskId); if (!t) return;
+  stopTaskAudio();
   if (t.repeat) {
     t.skipDates = t.skipDates || [];
     if (t.skipDates.indexOf(currentInstanceDate) === -1) t.skipDates.push(currentInstanceDate);
@@ -1059,6 +1065,118 @@ $("journalFile").addEventListener("change", function (e) {
    "did not work at all" there). In a browser it uses Web Speech with
    live words while you talk. Errors say what actually went wrong.
    Typing always works exactly the same. */
+var taskAudioSession = null;
+var taskAudioTaskId = null;
+var taskAudioTimer = null;
+function renderTaskAudio(task) {
+  var player = $("dAudioPlayer"), note = task && task.audioNote;
+  var hasNote = !!(note && typeof note.dataUrl === "string");
+  var valid = !!(hasNote && note.dataUrl.length <= window.PaceAudioNotes.MAX_AUDIO_NOTE_CHARS && /^data:audio\/[^;,]+(?:;[^,]*)*;base64,/i.test(note.dataUrl));
+  if (player) {
+    try { player.pause(); } catch (e) {}
+    player.removeAttribute("src");
+    player.hidden = !valid;
+    if (valid) { player.src = note.dataUrl; player.load(); }
+  }
+  $("dAudioDelete").hidden = !hasNote;
+  $("dAudioStart").hidden = !!(taskAudioSession && taskAudioTaskId === task.id);
+  $("dAudioStop").hidden = !(taskAudioSession && taskAudioTaskId === task.id);
+  $("dAudioStop").disabled = false;
+  $("dAudioStatus").textContent = valid
+    ? tr("Audio note saved ({seconds} seconds).", { seconds: Math.max(1, Math.round((+note.durationMs || 0) / 1000)) })
+    : hasNote ? tr("This audio note cannot be played.") : tr("No audio note saved yet.");
+}
+function stopTaskAudio(message) {
+  if (!taskAudioSession) return;
+  clearTimeout(taskAudioTimer); taskAudioTimer = null;
+  $("dAudioStop").disabled = true;
+  $("dAudioStatus").textContent = message || tr("Saving recording.");
+  taskAudioSession.stop();
+}
+function finishTaskAudio(session) {
+  if (taskAudioSession !== session) return;
+  clearTimeout(taskAudioTimer); taskAudioTimer = null;
+  var taskId = taskAudioTaskId;
+  taskAudioSession = null; taskAudioTaskId = null;
+  if (currentTaskId === taskId) {
+    var task = baseTask(taskId);
+    if (task) renderTaskAudio(task);
+  }
+}
+function failTaskAudio(session, error) {
+  if (taskAudioSession !== session) return;
+  var taskId = taskAudioTaskId;
+  var denied = error && (error.name === "NotAllowedError" || error.name === "PermissionDeniedError" || /denied|permission/i.test(error.message || ""));
+  finishTaskAudio(session);
+  if (currentTaskId === taskId) $("dAudioStatus").textContent = denied
+    ? tr("Microphone access is blocked. Allow it, then try recording again.")
+    : tr("Audio recording did not work. Try again, or type a note instead.");
+}
+async function saveTaskAudio(session, result) {
+  if (taskAudioSession !== session) return;
+  var taskId = taskAudioTaskId, task = baseTask(taskId);
+  if (!task) { finishTaskAudio(session); return; }
+  try {
+    var dataUrl = await window.PaceAudioNotes.toDataUrl(result.blob);
+    if (dataUrl.length > window.PaceAudioNotes.MAX_AUDIO_NOTE_CHARS) {
+      finishTaskAudio(session);
+      if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("This recording is too large. Try a shorter note.");
+      return;
+    }
+    var note = { dataUrl: dataUrl, mimeType: result.mimeType, durationMs: result.durationMs, savedAt: new Date().toISOString() };
+    if (!window.PaceAudioNotes.fitsInState(state, taskId, note)) {
+      finishTaskAudio(session);
+      if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("This audio note would make your saved calendar too large to sync. Remove an older audio note or record a shorter one.");
+      return;
+    }
+    task.audioNote = note;
+    save();
+    finishTaskAudio(session);
+    if (currentTaskId === taskId) renderTaskAudio(task);
+    toast(tr("Audio note saved ({seconds} seconds).", { seconds: Math.max(1, Math.round((+result.durationMs || 0) / 1000)) }));
+  } catch (error) {
+    finishTaskAudio(session);
+    if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("Audio note could not be saved. Nothing changed.");
+  }
+}
+function startTaskAudio() {
+  if (taskAudioSession) return;
+  var task = baseTask(currentTaskId);
+  if (!task) return;
+  if (!window.PaceAudioNotes || !window.MediaRecorder) {
+    $("dAudioStatus").textContent = tr("Audio recording is not available in this browser. Typing works the same.");
+    return;
+  }
+  var session;
+  try { session = window.PaceAudioNotes.start(); }
+  catch (error) {
+    $("dAudioStatus").textContent = error && error.message === "microphone-unavailable"
+      ? tr("Audio recording is not available in this browser. Typing works the same.")
+      : tr("Audio recording did not work. Try again, or type a note instead.");
+    return;
+  }
+  taskAudioSession = session; taskAudioTaskId = task.id;
+  $("dAudioStart").hidden = true; $("dAudioStop").hidden = false; $("dAudioStop").disabled = false;
+  $("dAudioStatus").textContent = tr("Allow microphone access if asked.");
+  session.ready.then(function () {
+    if (taskAudioSession !== session) return;
+    $("dAudioStatus").textContent = tr("Recording. {seconds} seconds left.", { seconds: Math.ceil(window.PaceAudioNotes.MAX_RECORDING_MS / 1000) });
+    taskAudioTimer = setTimeout(function () {
+      if (taskAudioSession === session) stopTaskAudio(tr("Recording limit reached. Saving now."));
+    }, window.PaceAudioNotes.MAX_RECORDING_MS);
+  }, function () {});
+  session.done.then(function (result) { return saveTaskAudio(session, result); }, function (error) { failTaskAudio(session, error); });
+}
+$("dAudioStart").addEventListener("click", startTaskAudio);
+$("dAudioStop").addEventListener("click", function () { stopTaskAudio(); });
+$("dAudioDelete").addEventListener("click", function () {
+  var task = baseTask(currentTaskId); if (!task || !task.audioNote) return;
+  var saved = task.audioNote;
+  delete task.audioNote; save(); renderTaskAudio(task);
+  toast(tr("Audio note removed."), function () { task.audioNote = saved; save(); renderTaskAudio(task); });
+});
+window.addEventListener("beforeunload", function () { if (taskAudioSession) taskAudioSession.cancel(); });
+
 var voiceSession = null;
 function voiceErrorText(code) {
   if (code === "not-allowed" || code === "service-not-allowed") return tr("The microphone is blocked. Allow the mic for Pace, then tap Speak again. Typing works the same.");
@@ -1079,7 +1197,7 @@ function nativeSpeech() {
 function toggleVoice(hooks) {
   if (voiceSession) { voiceSession.stop(); return; }
   var btn = hooks.btn, span = btn.querySelector("span");
-  var done = function () { voiceSession = null; if (span) span.textContent = tr("Speak"); };
+  var done = function () { voiceSession = null; if (span) span.textContent = tr(hooks.label || "Speak"); };
   var nat = nativeSpeech();
   if (!nat) {
     // POLAR P1 hardening (21 Oct): on the packaged app with the
@@ -1146,6 +1264,19 @@ $("voiceBtn").addEventListener("click", function () {
     }
   });
 });
+$("dNotesSpeak").addEventListener("click", function () {
+  toggleVoice({
+    btn: $("dNotesSpeak"),
+    label: "Speak note",
+    msg: function (text) { $("dNotesStatus").textContent = text; },
+    final: function (said) {
+      $("dNotes").value = ($("dNotes").value.trim() ? $("dNotes").value.trim() + "\n" : "") + said;
+      persistSheetFields();
+      $("dNotesStatus").textContent = tr("Got it. Check your note.");
+    }
+  });
+});
+$("dNotes").addEventListener("change", function () { persistSheetFields(); });
 /* Handwriting photo: OCR runs on-device with the Tesseract.js copy bundled
    in vendor/tesseract (worker, LSTM core and English data are local too).
    Shared by Talk to it and To do; onText receives the words found. */

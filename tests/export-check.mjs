@@ -27,7 +27,7 @@ const state = { tasks: [
   { id: "zone-import", title: "Imported Sydney event", date: localZoneSpec.date, time: localZoneSpec.time, durationMin: localZoneSpec.durationMin, status: "todo" },
   { id: "all-day-import", title: allDaySpec.title, date: allDaySpec.date, time: null, allDay: true, durationMin: 30, status: "todo" },
   { id: "skip-repeat", title: "Skipped weekly task", date: "2026-10-12", time: "11:00", durationMin: 20, repeat: "every monday", skipDates: ["2026-10-19"], status: "todo" },
-  { id: "comma-title", title: "Pay rent, then plan", date: "2026-10-29", time: "13:00", durationMin: 25, status: "todo" }
+  { id: "comma-title", title: "Pay rent, then plan", date: "2026-10-29", time: "13:00", durationMin: 25, notes: "Breathe, then leave.", status: "todo" }
 ] };
 const exported = CE.toICS(state, { timeZone: "Australia/Brisbane", now });
 const reparsed = CI.parseICS(exported);
@@ -37,6 +37,7 @@ check("weekly and weekday recurrences are serialized as RRULEs", exported.includ
 check("all-day events use DATE values and exclusive next-day DTEND", /DTSTART;VALUE=DATE:20261020\r\nDTEND;VALUE=DATE:20261021/.test(exported));
 check("skipped repeat dates become EXDATE", exported.includes("EXDATE:20261019T110000"));
 check("comma in title is escaped and apostrophe text survives", exported.includes("SUMMARY:Pay rent\\, then plan") && reparsed.events.some(e => e.title === "Mum's birthday"));
+check("written task notes round-trip in the event description", exported.includes("DESCRIPTION:Breathe\\, then leave.") && reparsed.events.some(e => e.title === "Pay rent, then plan" && e.notes === "Breathe, then leave."));
 
 const roundPlan = CI.planImport(reparsed, [], { now, sourceLabel: "Pace export" });
 const returnedWeekday = roundPlan.add.find(e => e.title === "Weekday check-in");

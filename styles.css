@@ -342,6 +342,15 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .task-row .tr-meta { font-size: 13px; color: var(--ink-3); display: block; margin-top: 1px; }
 .task-row .tr-check { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--hair); background: var(--card); color: var(--steady); font-size: 15px; flex: 0 0 44px; line-height: 1; }
 .task-row .tr-dot.has-icon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-top: 0; border-radius: 50%; font-size: 16px; }
+.task-note-section, .task-audio-section { margin: 14px 0; padding: 14px; border: 1px solid var(--hair); border-radius: 14px; background: var(--ground); }
+.task-note-section h4, .task-audio-section h4 { margin: 0 0 8px; font-size: 15px; }
+.task-note-section .field { margin: 8px 0; }
+.task-note-section textarea { width: 100%; min-height: 88px; border: 1px solid var(--hair); border-radius: 10px; background: var(--card); padding: 10px 12px; resize: vertical; line-height: 1.45; }
+.task-note-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.task-note-actions .hint { margin: 0; }
+.task-audio-section audio { display: block; width: 100%; margin-top: 10px; }
+.task-audio-section audio[hidden] { display: none; }
+.task-note-section [hidden], .task-audio-section [hidden] { display: none !important; }
 .task-look-details { margin: 14px 0; border: 1px solid var(--hair); border-radius: 14px; background: var(--ground); }
 .task-look-details > summary { min-height: 44px; padding: 12px 14px; cursor: pointer; color: var(--ink); font-weight: 600; }
 .task-look-body { padding: 0 14px 14px; }

@@ -344,6 +344,18 @@ try {
     <h3 id="dTitle" data-i18n>Task</h3>
     <p class="hint" id="dMeta"></p>
     <div id="dSteps"></div>
+    <section class="task-note-section" aria-labelledby="dNotesHeading">
+      <h4 id="dNotesHeading" data-i18n>Notes</h4>
+      <label class="field"><span data-i18n>Written note</span><textarea id="dNotes" rows="3" maxlength="4000" placeholder="Add a note" data-i18n-ph aria-label="Task note" data-i18n-aria></textarea></label>
+      <div class="task-note-actions"><button id="dNotesSpeak" class="soft-btn" type="button"><svg class="ico"><use href="#i-mic"/></svg><span data-i18n>Speak note</span></button><p id="dNotesStatus" role="status" class="hint"></p></div>
+    </section>
+    <section class="task-audio-section" aria-labelledby="dAudioHeading">
+      <h4 id="dAudioHeading" data-i18n>Audio note</h4>
+      <p class="hint" data-i18n>Record up to 45 seconds. Signed-in calendars sync the note with your account.</p>
+      <div class="task-note-actions"><button id="dAudioStart" class="soft-btn" type="button" data-i18n>Start recording</button><button id="dAudioStop" class="soft-btn" type="button" hidden data-i18n>Stop recording</button><button id="dAudioDelete" class="soft-btn danger" type="button" hidden data-i18n>Remove audio note</button></div>
+      <audio id="dAudioPlayer" controls preload="none" hidden></audio>
+      <p id="dAudioStatus" role="status" class="hint" aria-live="polite"></p>
+    </section>
     <button id="dBreak" class="soft-btn" data-i18n>Break this into small steps</button>
     <details id="dLook" class="task-look-details">
       <summary data-i18n>Change icon or color</summary>
@@ -560,6 +572,7 @@ try {
 <script src="vendor/ical/ical.min.js"></script>
 <script src="calendar-import.js"></script>
 <script src="calendar-export.js"></script>
+<script src="audio-notes.js"></script>
 <script src="firebase-config.js"></script>
 <script src="billing-config.js"></script>
 <script src="billing.js"></script>
