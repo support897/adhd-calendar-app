@@ -1,11 +1,22 @@
-# Pace (ADHD Calendar App)
+# Pace Calendar
 
-**Pace — your day, at your pace.** Renamed from Calm Calendar in v2 (13 Oct 2026), with a full brand, a fully collapsible menu, user-chosen colour themes (white, dark, blush, sky, mint, lavender) plus a cute mode, an SVG icon set and a sidebar progress ring. The on-device data key is unchanged, so v1 users keep their tasks.
+Pace is a calm day planner for people who want a clear next step. It combines a calendar, a separate to-do list, habits, energy check-ins, searchable task icons and colours, calendar import/export, task notes, optional audio notes, speech-to-text, and reminder settings.
 
-Ilse's project: a calendar app in the Fantastical aesthetic, built for people with ADHD and overwhelm. A morning "how are you feeling today" check in three levels and colours adapts the day (bare minimum on a low day); a talk-to-it side menu turns journals, voice recordings, handwriting and notes into an organised to-do list with colours and times; a progress menu shows what is done and what is left. Apple iPhone intuitive, interactive, drag and drop. Installable to the Home Screen. Data lives on the device only.
+## Your data
 
-Her full prompt: PROMPT.md. The research: PHASE1-RESEARCH.md. The build record, with test proof and honest limits: BUILD-LOG.md.
+When you use Pace without signing in, your calendar and settings stay in local app storage on this device. When you sign in, Pace saves your data under your account in Google Firebase so it can sync to another device. This includes task notes and optional audio notes. Sign-in and sync need an internet connection.
 
-Files: index.html, styles.css, app.js, logic.js (pure logic, unit tested), fullcalendar.js (FullCalendar v6.1.15 standard bundle, MIT), manifest.webmanifest, service-worker.js, icon.svg. Tests in tests/, screenshots in proofs/.
+Pace does not use advertising or analytics. Speech-to-text uses the browser or device speech service. Audio notes are optional and limited to 45 seconds; the app blocks a recording if saving it would make the calendar too large to sync.
 
-Status: built, proven and LIVE. v1 (12 Oct 2026): Quality PASS + Efficiency PASS. v2 "Pace" (13 Oct 2026): Quality PASS + Efficiency PASS + QA Tester PASS (after a 2-bug QA fix loop, retest 24 of 24) — fully done under the three-gate law. v3 (13 Oct 2026): To do + Habits sidebar panels (her order 22:12) + the App Checker's Visual Law text/icon cuts in the same build; maker checks 142, zero errors; the v3 gates are recorded in BUILD-LOG.md as they land. Live: https://adhd-calendar-app-beta.vercel.app
+## Limits to know
+
+- Timed iCalendar exports use floating local wall-clock times. Pace does not retain an event's original time zone, so an imported event may shift when opened in a different time zone.
+- The repository includes a Capacitor Local Notifications bridge, but real iPhone scheduling and closed-app delivery still need device testing.
+- Web Apple sign-in is not enabled in the current Firebase config. Native Apple sign-in is configured in the iOS wrapper, but has not been verified on a physical iPhone.
+- Real microphone recording/playback and speech recognition on iPhone are not verified here.
+
+## Project files
+
+`index.html`, `styles.css`, `app.js`, `logic.js`, `calendar-import.js`, `calendar-export.js`, and `audio-notes.js` contain the app. `store/` holds the Capacitor iOS wrapper. Tests and sample calendar files are in `tests/`.
+
+The customer-journey plan and current QA results are in `CUSTOMER-JOURNEY.md` and `~/Apps/_qa/pace-ux-notes.md`.

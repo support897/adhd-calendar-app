@@ -1,137 +1,28 @@
-# Pace Calendar — the customer journey (of record)
+# Pace Calendar — customer journey plan and QA status
 
-Written from the customer's chair: a person with ADHD who has
-just found Pace Calendar in the App Store, knows nothing about
-us, and gives the app one honest minute. Every step names what
-they do, what they must see, and what must never happen. This is
-the journey the device pass proves, step by step, on the exact
-build that seats.
+## What Pace is for
 
-## 1. First open
+Pace helps people turn a busy day into a manageable plan. Customers want to start without signing in, choose a pace for the day, add or import tasks, keep loose to-dos nearby, and carry their own data between devices if they choose to sign in. They also need clear limits for reminders, speech, and stored audio.
 
-- They tap the icon. The splash is the boat on the water (light
-  or dark with their phone), then the calendar itself. No
-  loading screen, no spinner that can sit forever, no sign-in
-  wall: the app is usable from the first second, signed out.
-- First ever open: a welcome card (what Pace is, in two lines)
-  with a clear way past it. Then Skip the Ferry (the guide)
-  offers a short tour: the dock, the check-in, adding a task,
-  the menu. The tour asks their name once, gently ("What should
-  we call you?") — skipping it is fine and is never punished.
-- RIGHT looks like: calendar on screen in under two seconds,
-  today's date centred, nothing demanding an account.
-- NEVER: a blank screen, a stuck sheet, a door they cannot
-  leave, the tour twice in one sitting.
+## Planned customer journeys
 
-## 2. A day in the app (no account)
+1. **Fresh start:** open Pace, see an empty calendar, skip or take the welcome guide, and reach Today without an account.
+2. **Plan a day:** choose Low/Steady/Full energy, add a task in one sentence, view it in the calendar, mark it done, reorder it, and carry it over.
+3. **Bring a calendar:** import an `.ics` file without changing the original, review imported events, then export an `.ics` file. Test recurring and all-day items; disclose that timed exports use floating local times because Pace does not retain source time zones.
+4. **Capture a thought:** write or dictate a note, optionally record and play an audio note, close/reopen the task, and check that the note remains.
+5. **Use reminders:** choose reminder settings, grant permission only when asked, schedule, edit, cancel, and check how the app behaves while closed.
+6. **Use an account:** create an account, sync data, sign out, sign back in, and confirm a second account on the same device cannot see the first account's tasks.
+7. **Fresh-device check:** open the app with clean local storage, sign in, and confirm the account's data returns without another first-run guide.
+8. **Recover from failure:** try empty and malformed inputs, offline mode, rejected permissions, interrupted sign-in, and sync errors; each must explain what happened and what to do next.
+9. **Small-screen access:** check a 320 CSS-pixel width, keyboard focus, labels, and touch targets of at least 44 CSS pixels.
 
-- The morning check-in asks "How are you feeling today?" —
-  Bad · Ok · Great. One tap and the day reshapes: Bad shows
-  only the essentials (the rest is parked, safe, nothing lost);
-  Ok shows a small capped list; Great shows everything plus a
-  stretch task borrowed from tomorrow.
-- They add a task by typing one sentence ("Ring the plumber
-  tomorrow at 9am for 30 minutes") — Pace reads the day and
-  time out of the words. Or they tap the day and fill the form.
-- They drag a task to another day. They tick it done. The To Do
-  list, habits, reminders (which fire on the device at the
-  chosen times), week/month/year views, search — all work with
-  no account at all. Everything saves on the phone instantly.
-- RIGHT looks like: every tap answers at once; nothing waits
-  on a network that may not exist.
-- NEVER: a lost task, a silent failure, a control that does
-  nothing when tapped.
+## QA status (28 October 2026)
 
-## 3. The doors (when they choose to sign in)
+- **Passed in browser:** fresh guest start was empty; guide setup and every tab/menu stop were visited; first-task action opened the task form and resumed at calendar import after saving; skip, close, and Settings replay worked; the energy choice changed Today; the guide had no horizontal overflow at 320 CSS pixels and action targets measured at least 44 CSS pixels.
+- **Passed with two new QA accounts:** email account creation, sign-out, sign-in, and same-device isolation were exercised. Account A's test task returned after signing in from a fresh localhost origin with no stored session, and account B's data was empty rather than showing A's task. The account records were left in place; no accounts were deleted. This is a browser/origin simulation, not a physical second device.
+- **Calendar:** `.ics` import/export round-trip tests cover recurrence, all-day dates, exclusions, and notes; an export download was inspected in the browser. Timed exports remain floating local wall-clock time.
+- **Notes/audio:** written-note persistence and the 45-second audio helper tests passed. Real iPhone microphone capture, transcription, and playback remain unverified.
+- **Not verified yet:** real notification permission and schedule/cancel/edit on an iPhone; live Google OAuth; Apple sign-in in the web build (disabled in Firebase config); native Google/Apple sign-in on a physical iPhone; password-reset delivery (not sent because QA must not send email); actual offline recovery; complete customer-error journeys.
+- **Automated coverage:** `tests/guide-check.mjs` (15 pass), `tests/i18n-check.mjs` (3 pass), and `tests/run-tests.mjs` (58 pass) passed. Calendar import/export and audio test counts are recorded in the QA notes. Browser scripts that import `/home/hatch/.../playwright-core` cannot run in this Mac checkout; do not count them as executed.
 
-- From Settings → "Sign in or create account". The door page:
-  the Pace mark, Google and Apple at the top, then "or with
-  email" — one email field, a big next arrow; the password on
-  the second step with ONE Continue button.
-- EMAIL: Continue signs a returning person IN; if the email
-  has no account yet, the SAME tap creates it — they never
-  choose between "sign in" and "sign up". A wrong password says
-  so in plain words ("That email has an account, but the
-  password does not match it"). Forgot password sends a reset
-  email. Every failure is one honest line on the step they are
-  looking at; the buttons never die.
-- GOOGLE: one tap, the Google sheet appears, they pick their
-  account, they are inside. APPLE: one tap, Face ID, inside.
-  Closing either sheet says "was closed. Nothing changed."
-- If a door cannot answer (no signal, a stuck sheet), the door
-  says so within seconds — "Google did not answer. Nothing
-  changed. Try again, or use email + password." — never an
-  endless "Opening…".
-- RIGHT looks like: inside the app within half a minute, the
-  name they gave Google/Apple already greeting them (or the
-  tour asks it once).
-- NEVER: a sheet that never appears with no word spoken; being
-  asked for a name the door already knew; a second, parallel
-  account made by accident.
-
-## 4. Save-forever (the promise)
-
-- Everything they made signed-out is still there after sign-in
-  (the guest work joins the account; nothing is wiped to make
-  room for it).
-- What they add now saves to their account the same moment it
-  saves on the phone. They can close the app mid-sentence,
-  reopen it tomorrow, sign out and back in, even delete the
-  app and reinstall: sign in and it is ALL there, exactly as
-  they left it — tasks, feelings, habits, their name, their
-  look, their words for the energy levels.
-- Their data is theirs alone: no other account can see a byte
-  of it (proved at the server, not just the screen), and the
-  app never deletes anything on its own.
-- Undoing their own delete: one tap brings it back within a
-  few seconds (the toast offers it), so a mistaken tap is
-  never a loss.
-
-## 5. The free month and Plus
-
-- A new account's first month has EVERYTHING open (all the
-  looks, Cute mode, Talk to it, repeating tasks, breaking a
-  task into steps, the board, the round-up) — no card asked,
-  no trial to start, nothing to cancel.
-- Plans lives in Settings and reads in the app's own voice:
-  what Free forever holds, what Plus holds, the prices in
-  THEIR currency from the store (A$4.99 a month · A$39.99 a
-  year · A$99.99 for life here), and the honest fine print
-  under the buttons: monthly and yearly renew automatically
-  at those prices until cancelled, cancel anytime in Apple ID
-  subscriptions, Plus stays open to the end of the paid
-  period, lifetime is one payment and never renews. Privacy
-  Policy and Terms of Use are one tap away.
-- Buying is one tap on a button that looks like the app's own
-  buttons (the yearly one filled, the rest soft), the store's
-  own payment sheet, done. "Restore a past purchase" brings a
-  past purchase back on a new phone.
-- After the free month, a locked thing says so when tapped —
-  "Unlock with a paid plan" — and opens Plans. It never just
-  sits there, and nothing paid ever half-opens without payment.
-- A cancelled plan keeps Plus until the end of the period
-  they paid for, then closes kindly. Nothing is ever charged
-  without the store sheet saying so first.
-
-## 6. Leaving (delete)
-
-- Settings carries "Delete my account" in plain sight. It
-  asks for their password (it must be them), then one clear
-  confirm — and everything goes: the app data, the account
-  itself. It is the ONLY whole-account delete, it is always
-  theirs to trigger, and it never happens by accident or by
-  the app's own choice.
-- Signing out is separate and safe: their data stays in the
-  account, and this phone goes back to a clean, empty start
-  for the next person who opens it.
-
-## The failure paths (tested, not hoped)
-
-No signal at all · signal dies mid-sign-in · a door sheet that
-never settles · a password wrong three ways · an email already
-registered · the store sheet cancelled · a purchase that fails
-at the store · restore with nothing to restore · the free
-month ending mid-day · a phone restart mid-anything · two
-people sharing one phone in turn. Each one ends in honest
-words and a working app — that is the bar for "perfect for a
-customer".
+See `~/Apps/_qa/pace-ux-notes.md` for the full evidence and remaining release checks.
