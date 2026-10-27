@@ -342,6 +342,16 @@ try {
     <p class="hint" id="dMeta"></p>
     <div id="dSteps"></div>
     <button id="dBreak" class="soft-btn" data-i18n>Break this into small steps</button>
+    <details id="dLook" class="task-look-details">
+      <summary data-i18n>Change icon or color</summary>
+      <div class="task-look-body">
+        <label class="field task-icon-search" data-i18n>Search icons by task or word <input id="dIconSearch" type="search" placeholder="Search icons by task or word" data-i18n-ph autocomplete="off"></label>
+        <div id="dIconPicker" class="task-icon-picker" role="group" aria-label="Task icons"></div>
+        <p class="task-look-label" data-i18n>Task color</p>
+        <div id="dColorPicker" class="task-color-picker" role="group" aria-label="Task colors"></div>
+        <label class="task-custom-color" data-i18n>Custom color <input id="dCustomColor" type="color" aria-label="Custom color" data-i18n-aria value="#7A8699"><input id="dCustomHex" type="text" maxlength="7" placeholder="#7A8699" aria-label="Hex color" data-i18n-aria autocomplete="off"></label>
+      </div>
+    </details>
     <label class="field" data-i18n>Smallest version (low days) <input type="text" id="dMin"></label>
     <label class="field" data-i18n>Biggest version (full days) <input type="text" id="dFull"></label>
     <div class="field-row">

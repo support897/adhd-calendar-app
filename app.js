@@ -22,6 +22,85 @@ var calendar = null;
 var currentTaskId = null;
 var currentInstanceDate = null;
 var drafts = [];
+var TASK_ICONS = [
+  { icon: "", name: "No icon / Sin icono", keywords: "none no icon sin icono ninguno" },
+  { icon: "📌", name: "Pin / Marcar", keywords: "pin priority important note marcar prioridad" },
+  { icon: "🏠", name: "Home / Hogar", keywords: "home house casa hogar" },
+  { icon: "🛏️", name: "Bed / Cama", keywords: "bed bedroom sleep cama dormitorio dormir" },
+  { icon: "🧹", name: "Cleaning / Limpieza", keywords: "clean cleaning chore limpiar limpieza casa" },
+  { icon: "🧺", name: "Laundry / Lavandería", keywords: "laundry wash clothes ropa lavar lavanderia" },
+  { icon: "🚿", name: "Shower / Ducha", keywords: "shower bath bathroom baño ducha" },
+  { icon: "🍽️", name: "Dishes / Platos", keywords: "dishes kitchen plates platos cocina" },
+  { icon: "🗑️", name: "Bins / Basura", keywords: "bins trash rubbish basura reciclaje" },
+  { icon: "🛒", name: "Groceries / Compras", keywords: "groceries shopping market supermercado compras" },
+  { icon: "🥕", name: "Food / Comida", keywords: "food cook meal comida cocinar almuerzo cena" },
+  { icon: "☕", name: "Coffee / Café", keywords: "coffee cafe break café descanso" },
+  { icon: "💧", name: "Water / Agua", keywords: "water drink hydrate agua beber" },
+  { icon: "💊", name: "Medicine / Medicina", keywords: "medicine medication pills farmacia medicina pastillas" },
+  { icon: "🩺", name: "Doctor / Médico", keywords: "doctor appointment health médico doctora cita salud" },
+  { icon: "🦷", name: "Dentist / Dentista", keywords: "dentist teeth dental dentista dientes" },
+  { icon: "❤️", name: "Health / Salud", keywords: "health heart care salud corazón cuidado" },
+  { icon: "🏃", name: "Exercise / Ejercicio", keywords: "exercise run gym workout ejercicio correr gimnasio" },
+  { icon: "🚶", name: "Walk / Caminar", keywords: "walk walking steps paseo caminar andar" },
+  { icon: "🧘", name: "Stretch / Estirar", keywords: "stretch yoga breathe estirar yoga respirar" },
+  { icon: "🌙", name: "Sleep / Dormir", keywords: "sleep rest bedtime sueño dormir descanso" },
+  { icon: "📚", name: "Study / Estudiar", keywords: "study read books school estudiar leer libros" },
+  { icon: "🎓", name: "School / Escuela", keywords: "school class homework school escuela clase deberes" },
+  { icon: "💻", name: "Computer / Computadora", keywords: "computer laptop tech computadora ordenador tecnologia" },
+  { icon: "💼", name: "Work / Trabajo", keywords: "work office job work oficina empleo" },
+  { icon: "📧", name: "Email / Correo", keywords: "email mail inbox correo bandeja" },
+  { icon: "📞", name: "Call / Llamar", keywords: "call phone telephone llamar teléfono telefono" },
+  { icon: "📅", name: "Meeting / Reunión", keywords: "meeting calendar appointment reunion reunión calendario cita" },
+  { icon: "✍️", name: "Write / Escribir", keywords: "write writing notes redactar escribir notas" },
+  { icon: "💰", name: "Money / Dinero", keywords: "money finance cash budget dinero finanzas efectivo presupuesto" },
+  { icon: "🧾", name: "Bills / Facturas", keywords: "bill invoice taxes rent factura recibo impuestos alquiler" },
+  { icon: "🛍️", name: "Shopping / Comprar", keywords: "shopping buy shop compras comprar tienda" },
+  { icon: "🎁", name: "Gift / Regalo", keywords: "gift present birthday regalo cumpleaños" },
+  { icon: "👨‍👩‍👧", name: "Family / Familia", keywords: "family people parents kids familia padres hijos" },
+  { icon: "👶", name: "Baby / Bebé", keywords: "baby infant childcare bebe bebé cuidado" },
+  { icon: "🐕", name: "Dog / Perro", keywords: "dog pet puppy perro mascota" },
+  { icon: "🐈", name: "Cat / Gato", keywords: "cat pet kitten gato mascota" },
+  { icon: "🚗", name: "Car / Coche", keywords: "car drive vehicle coche conducir vehículo" },
+  { icon: "🚌", name: "Bus / Autobús", keywords: "bus transit train transport autobus autobús transporte" },
+  { icon: "✈️", name: "Travel / Viaje", keywords: "travel trip flight vacation viaje vacaciones vuelo" },
+  { icon: "🗺️", name: "Map / Mapa", keywords: "map location directions mapa ubicación direcciones" },
+  { icon: "🌱", name: "Plant / Planta", keywords: "plant seed grow planta semilla crecer" },
+  { icon: "🌻", name: "Garden / Jardín", keywords: "garden yard outdoor jardin jardín patio" },
+  { icon: "☀️", name: "Sun / Sol", keywords: "sun bright sunny sol luz" },
+  { icon: "☔", name: "Rain / Lluvia", keywords: "rain weather umbrella lluvia clima paraguas" },
+  { icon: "📦", name: "Package / Paquete", keywords: "package parcel delivery box paquete entrega caja" },
+  { icon: "🔧", name: "Tools / Herramientas", keywords: "tools repair fix herramientas reparar arreglar" },
+  { icon: "🧰", name: "Fix / Reparar", keywords: "fix repair maintenance arreglar reparar mantenimiento" },
+  { icon: "🏦", name: "Bank / Banco", keywords: "bank banking money banco banca dinero" },
+  { icon: "📑", name: "Paperwork / Papeleo", keywords: "paperwork forms documents documentos formularios papeleo" },
+  { icon: "🔑", name: "Keys / Llaves", keywords: "keys lock access llaves cerradura acceso" },
+  { icon: "🧠", name: "Focus / Enfoque", keywords: "focus think brain plan enfoque pensar cerebro plan" },
+  { icon: "💡", name: "Idea / Idea", keywords: "idea think remember idea pensar recordar" },
+  { icon: "🎵", name: "Music / Música", keywords: "music song listen musica música canción escuchar" },
+  { icon: "🎨", name: "Art / Arte", keywords: "art paint craft creative arte pintar manualidades creativo" },
+  { icon: "📷", name: "Photo / Foto", keywords: "photo camera picture foto camara cámara imagen" },
+  { icon: "🧴", name: "Self-care / Cuidado personal", keywords: "self care skincare personal cuidado piel" },
+  { icon: "🤝", name: "People / Personas", keywords: "people friend visit help personas amistad visitar ayudar" },
+  { icon: "💌", name: "Message / Mensaje", keywords: "message text letter mensaje texto carta" },
+  { icon: "🧭", name: "Plan / Planificar", keywords: "plan organize organise schedule planificar organizar horario" },
+  { icon: "🌊", name: "Rest / Descanso", keywords: "rest calm break relax descanso calma pausa relajar" },
+  { icon: "✅", name: "Done / Hecho", keywords: "done check complete finish hecho marcar completar terminar" },
+  { icon: "🔥", name: "Urgent / Urgente", keywords: "urgent priority important urgente prioridad importante" },
+  { icon: "📖", name: "Read / Leer", keywords: "read reading book leer lectura libro" },
+  { icon: "🧼", name: "Wash / Lavar", keywords: "wash clean soap lavar limpiar jabón jabon" },
+  { icon: "🚪", name: "Door / Puerta", keywords: "door leave entry puerta salir entrada" },
+  { icon: "🪴", name: "Plant care / Cuidar plantas", keywords: "plant water gardening regar plantas jardinería jardineria" }
+];
+var TASK_COLORS = [
+  { hex: "#7A8699", name: "Slate / Pizarra" }, { hex: "#C9920E", name: "Amber / Ámbar" },
+  { hex: "#E85D75", name: "Rose / Rosa" }, { hex: "#35704E", name: "Green / Verde" },
+  { hex: "#5B6BD5", name: "Blue / Azul" }, { hex: "#F2994A", name: "Orange / Naranja" },
+  { hex: "#20A39E", name: "Teal / Verde azulado" }, { hex: "#8E7CC3", name: "Lavender / Lavanda" },
+  { hex: "#EE6F5B", name: "Coral / Coral" }, { hex: "#9747A5", name: "Plum / Ciruela" },
+  { hex: "#4FA3D1", name: "Sky / Cielo" }, { hex: "#7C8A2D", name: "Olive / Oliva" },
+  { hex: "#D65792", name: "Pink / Rosa fuerte" }, { hex: "#3F536E", name: "Navy / Azul marino" },
+  { hex: "#5AAE8C", name: "Mint / Menta" }, { hex: "#A66B43", name: "Brown / Marrón" }
+];
 
 function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -407,8 +486,8 @@ function rowHtml(t, done, first, last) {
   if (t.shrunk) meta.push(tr("small version"));
   if (t.repeat) meta.push(tr(t.repeat));
   var id = esc(t.id), date = esc(t.instanceDate);
-  return '<div class="task-row' + (done ? " is-done" : "") + '" data-id="' + id + '" data-date="' + date + '">' +
-    '<span class="tr-dot" style="background:' + t.color + '"></span>' +
+  return '<div class="task-row' + (done ? " is-done" : "") + (t.icon ? " has-task-icon" : "") + '" data-id="' + id + '" data-date="' + date + '">' +
+    '<span class="tr-dot' + (t.icon ? " has-icon" : "") + '" style="background:' + t.color + '">' + (t.icon ? esc(t.icon) : "") + '</span>' +
     '<span class="tr-main"><span class="tr-title">' + esc(t.displayTitle || t.title) + '</span><span class="tr-meta">' + esc(meta.join(" · ")) + "</span></span>" +
     '<span class="tr-actions"><button class="task-move" data-order="-1" data-id="' + id + '" data-date="' + date + '" aria-label="' + tr("Move task up") + '" title="' + tr("Move task up") + '"' + (first ? ' disabled' : '') + '>↑</button>' +
     '<button class="task-move" data-order="1" data-id="' + id + '" data-date="' + date + '" aria-label="' + tr("Move task down") + '" title="' + tr("Move task down") + '"' + (last ? ' disabled' : '') + '>↓</button>' +
@@ -529,7 +608,7 @@ document.querySelectorAll(".level-btn").forEach(function (b) {
 function fcEvents() {
   var a = L.addDays(selected, -45), b = L.addDays(selected, 80);
   return instancesInRange(a, b).map(function (t) {
-    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
+    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
     if (t.time) {
       var startMin = L.toMin(t.time);
       ev.start = t.instanceDate + "T" + t.time + ":00";
@@ -757,6 +836,12 @@ function openTask(id, instanceDate) {
   currentTaskId = id; currentInstanceDate = instanceDate || t.date;
   var inst = instanceOf(t, currentInstanceDate);
   $("dTitle").textContent = inst.title;
+  $("dLook").open = false;
+  $("dIconSearch").value = "";
+  $("dCustomColor").value = /^#[0-9a-f]{6}$/i.test(String(t.color || "")) ? t.color : L.categoryFor(t.title).color;
+  $("dCustomHex").value = $("dCustomColor").value.toUpperCase();
+  renderTaskIconPicker(t);
+  renderTaskColorPicker(t);
   var meta = [];
   meta.push(L.parseKey(currentInstanceDate).toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }));
   if (inst.time) meta.push(inst.time);
@@ -775,6 +860,68 @@ function openTask(id, instanceDate) {
   else $("dOriginalWrap").hidden = true;
   $("taskSheet").hidden = false;
 }
+function renderTaskIconPicker(task) {
+  var wrap = $("dIconPicker"); if (!wrap) return;
+  var query = String($("dIconSearch").value || "").trim().toLowerCase();
+  var list = TASK_ICONS.filter(function (item) {
+    return !query || (item.name + " " + item.keywords + " " + item.icon).toLowerCase().indexOf(query) !== -1;
+  });
+  wrap.innerHTML = "";
+  wrap.setAttribute("aria-label", tr("Task icons"));
+  if (!list.length) { wrap.innerHTML = '<p class="hint task-icon-empty">' + tr("No icons match that search.") + "</p>"; return; }
+  list.forEach(function (item) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "task-icon-option" + (String(task.icon || "") === item.icon ? " is-on" : "");
+    button.setAttribute("aria-label", tr("Use task icon") + " " + item.name);
+    button.setAttribute("aria-pressed", String(String(task.icon || "") === item.icon));
+    button.title = item.name;
+    button.textContent = item.icon || "×";
+    button.addEventListener("click", function () {
+      task.icon = item.icon;
+      save(); renderTaskIconPicker(task); refreshAll();
+    });
+    wrap.appendChild(button);
+  });
+}
+function renderTaskColorPicker(task) {
+  var wrap = $("dColorPicker"); if (!wrap) return;
+  wrap.innerHTML = "";
+  wrap.setAttribute("aria-label", tr("Task colors"));
+  TASK_COLORS.forEach(function (item) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "task-color-option" + (String(task.color || "").toUpperCase() === item.hex ? " is-on" : "");
+    button.style.backgroundColor = item.hex;
+    button.setAttribute("aria-label", tr("Use color {name}", { name: item.name }));
+    button.setAttribute("aria-pressed", String(String(task.color || "").toUpperCase() === item.hex));
+    button.title = item.name;
+    button.addEventListener("click", function () {
+      task.color = item.hex;
+      $("dCustomColor").value = item.hex;
+      $("dCustomHex").value = item.hex;
+      save(); renderTaskColorPicker(task); refreshAll();
+    });
+    wrap.appendChild(button);
+  });
+}
+$("dIconSearch").addEventListener("input", function () {
+  var task = baseTask(currentTaskId); if (task) renderTaskIconPicker(task);
+});
+$("dCustomColor").addEventListener("input", function () {
+  var task = baseTask(currentTaskId);
+  if (!task || !/^#[0-9a-f]{6}$/i.test(this.value)) return;
+  task.color = this.value.toUpperCase();
+  $("dCustomHex").value = task.color;
+  save(); renderTaskColorPicker(task); refreshAll();
+});
+$("dCustomHex").addEventListener("input", function () {
+  var task = baseTask(currentTaskId), value = String(this.value || "").trim();
+  if (!task || !/^#[0-9a-f]{6}$/i.test(value)) return;
+  task.color = value.toUpperCase();
+  $("dCustomColor").value = task.color;
+  save(); renderTaskColorPicker(task); refreshAll();
+});
 function renderSteps(t) {
   var box = $("dSteps");
   $("dBreak").hidden = !!(t.steps && t.steps.length);
