@@ -334,16 +334,25 @@ html[data-sb="collapsed"] #main { padding-left: 70px; }
 .task-row.dragging { opacity: 0.4; }
 .task-row .tr-dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 5px; flex: 0 0 auto; }
 .task-row .tr-main { flex: 1 1 auto; min-width: 0; }
+.task-row .tr-actions { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 2px; }
+.task-row .task-move { width: 44px; height: 44px; flex: 0 0 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-3); font-size: 18px; }
+.task-row .task-move:hover { background: var(--ground-2); color: var(--ink); }
+.task-row .task-move:disabled { opacity: .35; cursor: default; }
 .task-row .tr-title { font-size: 16px; font-weight: 500; display: block; }
 .task-row .tr-meta { font-size: 13px; color: var(--ink-3); display: block; margin-top: 1px; }
-.task-row .tr-check { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--hair); background: var(--card); color: var(--steady); font-size: 15px; flex: 0 0 auto; line-height: 1; }
+.task-row .tr-check { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--hair); background: var(--card); color: var(--steady); font-size: 15px; flex: 0 0 44px; line-height: 1; }
 .task-row.is-done .tr-title { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
 .task-row.is-done .tr-check { background: var(--steady); border-color: var(--steady); color: #fff; animation: pop 0.3s ease; }
 .parked-note { color: var(--ink-3); font-size: 14px; padding: 12px 2px; }
 .stretch-note { padding: 12px 2px; font-size: 15px; border-bottom: 1px solid var(--hair); }
 .stretch-note button { border: 0; background: none; color: var(--accent); font-size: 15px; padding: 0; margin-left: 8px; }
 .empty-note { color: var(--ink-3); font-size: 15px; padding: 16px 2px; }
-.dock-note { display: flex; align-items: center; gap: 12px; }
+.dock-note { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.dock-note > span:not(.dock-skip) { flex: 1 1 calc(100% - 78px); }
+.dock-note .soft-btn { margin-left: 70px; min-height: 44px; }
+.carryover-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 12px 14px; margin: 10px 0; border: 1px solid var(--hair); border-radius: 14px; background: var(--card); }
+.carryover-card p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.carryover-card .soft-btn { min-height: 44px; }
 .dock-skip { flex: none; opacity: 0.92; }
 .dock-skip .skip-svg { width: 58px; height: auto; display: block; }
 
@@ -568,6 +577,13 @@ html[data-cute="1"] .add-btn { border-radius: 16px; }
   .sheet { align-items: flex-end; }
   .level-btn { padding: 10px 13px; font-size: 14.5px; }
   .expand-btn { top: calc(10px + var(--sat)); left: 10px; }
+}
+@media (max-width: 420px) {
+  /* Keep task titles readable at 320px while preserving 44px controls. */
+  .task-row { display: grid; grid-template-columns: 11px minmax(0, 1fr); align-items: start; column-gap: 8px; row-gap: 6px; }
+  .task-row .tr-dot { grid-column: 1; grid-row: 1; margin-top: 5px; }
+  .task-row .tr-main { grid-column: 2; grid-row: 1; min-width: 0; }
+  .task-row .tr-actions { grid-column: 2; grid-row: 2; justify-self: end; }
 }
 @media (min-width: 701px) {
   .sheet { align-items: center; }

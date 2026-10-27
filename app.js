@@ -66,6 +66,13 @@ function load(fromKey) {
       if (typeof t.durationMin !== "number" || !(t.durationMin > 0)) t.durationMin = 25;
       if (typeof t.status !== "string") t.status = "todo";
       t.allDay = !!t.allDay;
+      if (typeof t.icon !== "string" || t.icon.length > 8) t.icon = "";
+      if (!/^#[0-9a-f]{6}$/i.test(String(t.color || ""))) t.color = L.categoryFor(t.title).color;
+    });
+    if (!isObj(s.dayOrder)) s.dayOrder = {};
+    Object.keys(s.dayOrder).forEach(function (day) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Array.isArray(s.dayOrder[day])) delete s.dayOrder[day];
+      else s.dayOrder[day] = s.dayOrder[day].filter(function (id) { return typeof id === "string"; }).slice(0, 5000);
     });
     if (!isObj(s.feelings)) s.feelings = {};
     if (!isObj(s.sent)) s.sent = {};
@@ -131,7 +138,7 @@ function save() {
 function seed() {
   // Empty Start: every fresh visitor begins with a blank calendar.
   // Examples are never inserted unless the person chooses them.
-  return { tasks: [], feelings: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
+  return { tasks: [], feelings: {}, dayOrder: {}, settings: defaultSettings(), welcomed: false, sent: {}, todos: [], habits: [], imports: [] };
 }
 if (!state) { state = ACTIVE_UID ? freshAccountState() : seed(); save(); if (ACTIVE_UID) { state.updatedAt = 0; try { localStorage.setItem(storeKey(), JSON.stringify(state)); } catch (e) {} } }
 
@@ -171,8 +178,24 @@ function instancesInRange(a, b) {
 }
 function baseTask(id) { return state.tasks.filter(function (t) { return t.id === id; })[0]; }
 function levelFor(key) { return state.feelings[key] || "steady"; }
+function sortForDayOrder(items, key) {
+  var saved = state.dayOrder && Array.isArray(state.dayOrder[key]) ? state.dayOrder[key] : [];
+  if (!saved.length) return items;
+  var rank = Object.create(null), fallback = Object.create(null);
+  saved.forEach(function (id, i) { rank[id] = i; });
+  items.forEach(function (task, i) { fallback[task.id] = i; });
+  return items.slice().sort(function (a, b) {
+    var ar = Object.prototype.hasOwnProperty.call(rank, a.id) ? rank[a.id] : saved.length + fallback[a.id];
+    var br = Object.prototype.hasOwnProperty.call(rank, b.id) ? rank[b.id] : saved.length + fallback[b.id];
+    return ar - br;
+  });
+}
 function adaptedFor(key) {
-  return L.adaptDay(tasksOn(key), levelFor(key), tasksOn(L.addDays(key, 1)));
+  var ad = L.adaptDay(tasksOn(key), levelFor(key), tasksOn(L.addDays(key, 1)));
+  ad.visible = sortForDayOrder(ad.visible, key);
+  ad.done = sortForDayOrder(ad.done, key);
+  ad.parked = sortForDayOrder(ad.parked, key);
+  return ad;
 }
 
 /* ---------- appearance + sidebar ---------- */
@@ -340,35 +363,68 @@ function renderDayList() {
   var score = L.dayScore(ad);
   var d = L.parseKey(key);
   var level = levelFor(key);
-  var names = state.settings.names;
+  var carry = key === L.todayKey() ? carryoverTasks(key) : [];
   var html = "<h3>" + d.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }) +
     '<span class="dl-score">' + tr("{done} of {total} done at your {name} pace", { done: score.done, total: score.total, name: displayLevelName(level) }) + "</span></h3>";
   html += '<div class="dl-progress"><i style="width:' + score.pct + '%"></i></div>';
-  if (!ad.visible.length && !ad.done.length) html += '<div class="empty-note dock-note"><span class="dock-skip">' + skipSvg("goodbye") + '</span><span>' + tr("Nothing today. Empty is allowed.") + '</span></div>';
-  ad.visible.forEach(function (t) { html += rowHtml(t, false); });
-  ad.done.forEach(function (t) { html += rowHtml(t, true); });
+  if (carry.length) html += '<div class="carryover-card"><p>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</p><button class="soft-btn" data-act="carry-over">' + tr("Bring them to today") + '</button></div>';
+  if (!ad.visible.length && !ad.done.length && !carry.length) html += '<div class="empty-note dock-note"><span class="dock-skip">' + skipSvg("goodbye") + '</span><span>' + tr("Nothing today. Empty is allowed.") + '</span><button class="soft-btn" data-act="add-first">' + tr("Add one task") + '</button></div>';
+  ad.visible.forEach(function (t, i) { html += rowHtml(t, false, i === 0, i === ad.visible.length - 1); });
+  ad.done.forEach(function (t, i) { html += rowHtml(t, true, i === 0, i === ad.done.length - 1); });
   if (ad.stretch) html += '<div class="stretch-note">' + tr("One more from tomorrow:") + ' <strong>' + esc(ad.stretch.title) + '</strong><button data-act="stretch" data-id="' + ad.stretch.id + '">' + tr("Bring it to today") + '</button></div>';
   if (ad.parked.length) html += '<p class="parked-note">' + tr(ad.parked.length === 1 ? "{n} thing parked. Parked, not dropped. Raise the level to bring them back." : "{n} things parked. Parked, not dropped. Raise the level to bring them back.", { n: ad.parked.length }) + "</p>";
   $("dayList").innerHTML = html;
   bindRows($("dayList"));
 }
-function rowHtml(t, done) {
+function carryoverTasks(key) {
+  return state.tasks.filter(function (t) {
+    return !t.repeat && t.date < key && t.status !== "done" && t.source !== "import" && t.source !== "sample";
+  });
+}
+function carryOverTasks(key) {
+  var pending = carryoverTasks(key);
+  if (!pending.length) return;
+  pending.forEach(function (t) { t.date = key; });
+  state.dayOrder[key] = (state.dayOrder[key] || []).concat(pending.map(function (t) { return t.id; }));
+  save(); refreshAll(); toast(tr("Brought them to today. One step at a time."));
+}
+function reorderDayTask(id, key, direction) {
+  var ad = adaptedFor(key);
+  var group = ad.visible.some(function (t) { return t.id === id; }) ? ad.visible : ad.done;
+  var ids = group.map(function (t) { return t.id; });
+  var from = ids.indexOf(id), to = Math.max(0, Math.min(ids.length - 1, from + direction));
+  if (from < 0 || from === to) return;
+  ids.splice(to, 0, ids.splice(from, 1)[0]);
+  var other = group === ad.visible ? ad.done : ad.visible;
+  state.dayOrder[key] = ids.concat(other.map(function (t) { return t.id; }));
+  save(); refreshAll();
+}
+function rowHtml(t, done, first, last) {
   var meta = [];
   if (t.time) meta.push(t.time);
   meta.push(durationLabel(t));
   if (t.steps && t.steps.length) meta.push(tr("{a} of {b} steps", { a: t.steps.filter(function (s) { return s.done; }).length, b: t.steps.length }));
   if (t.shrunk) meta.push(tr("small version"));
   if (t.repeat) meta.push(tr(t.repeat));
-  return '<div draggable="true" class="task-row' + (done ? " is-done" : "") + '" data-id="' + t.id + '" data-date="' + t.instanceDate + '">' +
+  var id = esc(t.id), date = esc(t.instanceDate);
+  return '<div class="task-row' + (done ? " is-done" : "") + '" data-id="' + id + '" data-date="' + date + '">' +
     '<span class="tr-dot" style="background:' + t.color + '"></span>' +
     '<span class="tr-main"><span class="tr-title">' + esc(t.displayTitle || t.title) + '</span><span class="tr-meta">' + esc(meta.join(" · ")) + "</span></span>" +
-    '<button class="tr-check" data-check="' + t.id + '" aria-label="' + tr("Mark done") + '">' + (done ? icon("i-check") : "") + "</button></div>";
+    '<span class="tr-actions"><button class="task-move" data-order="-1" data-id="' + id + '" data-date="' + date + '" aria-label="' + tr("Move task up") + '" title="' + tr("Move task up") + '"' + (first ? ' disabled' : '') + '>↑</button>' +
+    '<button class="task-move" data-order="1" data-id="' + id + '" data-date="' + date + '" aria-label="' + tr("Move task down") + '" title="' + tr("Move task down") + '"' + (last ? ' disabled' : '') + '>↓</button>' +
+    '<button class="tr-check" data-check="' + id + '" aria-label="' + tr("Mark done") + '">' + (done ? icon("i-check") : "") + "</button></span></div>";
 }
 function bindRows(root) {
   root.querySelectorAll(".task-row").forEach(function (row) {
     row.addEventListener("click", function (e) {
-      if (e.target.hasAttribute("data-check")) return;
+      if (e.target.closest("[data-check], [data-order]")) return;
       openTask(row.getAttribute("data-id"), row.getAttribute("data-date"));
+    });
+  });
+  root.querySelectorAll("[data-order]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      reorderDayTask(btn.getAttribute("data-id"), btn.getAttribute("data-date"), +btn.getAttribute("data-order"));
     });
   });
   root.querySelectorAll("[data-check]").forEach(function (btn) {
@@ -378,6 +434,10 @@ function bindRows(root) {
       toggleDone(row.getAttribute("data-id"), row.getAttribute("data-date"));
     });
   });
+  var addFirst = root.querySelector('[data-act="add-first"]');
+  if (addFirst) addFirst.addEventListener("click", function () { $("addBtn").click(); });
+  var carryButton = root.querySelector('[data-act="carry-over"]');
+  if (carryButton) carryButton.addEventListener("click", function () { carryOverTasks(selected); });
   var st = root.querySelector('[data-act="stretch"]');
   if (st) st.addEventListener("click", function () {
     if (!plusGate("stretch")) return;
