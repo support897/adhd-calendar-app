@@ -267,9 +267,12 @@ try {
           <button id="clearSamples" class="soft-btn" data-i18n>Remove the sample tasks</button>
           <button id="guideAgain" class="soft-btn" data-i18n>Setup guide</button>
           <button id="importOpen2" class="soft-btn" data-i18n>Bring my calendar in</button>
+          <button id="exportCalendarBtn" class="soft-btn" data-i18n>Save calendar as .ics</button>
           <button id="plansOpen" class="soft-btn" data-i18n>Plans</button>
         </div>
         <p class="hint" data-i18n>On this device only.</p>
+        <p id="exportCalendarHint" class="hint" data-i18n>Calendar export contains calendar tasks. Times use this device's local clock.</p>
+        <p id="exportCalendarStatus" class="hint" role="status"></p>
       </div>
       <div class="settings-group" id="accountGroup" hidden>
         <h3 data-i18n>Account</h3>
@@ -556,6 +559,7 @@ try {
 <script src="vendor/tesseract/tesseract.min.js"></script>
 <script src="vendor/ical/ical.min.js"></script>
 <script src="calendar-import.js"></script>
+<script src="calendar-export.js"></script>
 <script src="firebase-config.js"></script>
 <script src="billing-config.js"></script>
 <script src="billing.js"></script>

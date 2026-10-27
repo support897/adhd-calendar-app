@@ -1956,10 +1956,34 @@ function runImport(text, label) {
   $("importResult").textContent = bits.join(" \u00B7 ") + ".";
   toast(res.added ? tr("Calendar brought in.") : tr("Nothing new to bring in."));
 }
-if (DEMO_SESSION) { $("importBtn").hidden = true; $("importOpen2").hidden = true; }
+if (DEMO_SESSION) { $("importBtn").hidden = true; $("importOpen2").hidden = true; $("exportCalendarBtn").hidden = true; }
 $("importBtn").addEventListener("click", openImport);
 $("importOpen2").addEventListener("click", openImport);
 $("guideImport").addEventListener("click", function () { closeGuide(); openImport(); });
+function exportCalendarICS() {
+  var text;
+  try { text = window.PaceCalendarExport.toICS(state); }
+  catch (e) { toast(tr("Calendar export did not work. Nothing was changed.")); return; }
+  var FS = null, SH = null;
+  try { FS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem; SH = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share; } catch (e) {}
+  if (FS && SH) {
+    FS.writeFile({ path: "pace-calendar.ics", data: text, directory: "CACHE", encoding: "utf8" })
+      .then(function () { return FS.getUri({ path: "pace-calendar.ics", directory: "CACHE" }); })
+      .then(function (r) { return SH.share({ title: "Pace Calendar", text: tr("Calendar file is ready to share."), url: r.uri }); })
+      .then(function () { toast(tr("Calendar file is ready to share.")); })
+      .catch(function () { toast(tr("Calendar export did not work. Nothing was changed.")); });
+    return;
+  }
+  try {
+    var blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+    var a = document.createElement("a"), url = URL.createObjectURL(blob);
+    a.href = url; a.download = "pace-calendar.ics"; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+    toast(tr("Calendar file downloaded."));
+  } catch (e) { toast(tr("Calendar export did not work. Nothing was changed.")); }
+}
+$("exportCalendarBtn").addEventListener("click", exportCalendarICS);
 $("importClose").addEventListener("click", function () { $("importSheet").hidden = true; });
 document.querySelectorAll(".import-src").forEach(function (b) {
   b.addEventListener("click", function () {
