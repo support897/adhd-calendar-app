@@ -1,6 +1,6 @@
 # Pace Calendar
 
-Pace is a calm day planner for people who want a clear next step. It combines a calendar, a separate to-do list, habits, energy check-ins, searchable task icons and colours, calendar import/export, task notes, optional audio notes, speech-to-text, and reminder settings.
+Pace is a calm day planner for people who want a clear next step. It combines a calendar, a separate to-do list, goals that become one small step a day, habits with a weekly view and forgiving streaks, energy check-ins, searchable task icons and colours, calendar import/export, task notes, optional audio notes, speech-to-text, and reminder settings.
 
 ## Your data
 
