@@ -57,19 +57,24 @@
   }
 
   function cleanCalendarText(text) {
-    var lines = String(text || "").split(/\r\n|\n|\r/), kept = [], malformed = 0, canFold = false;
-    lines.forEach(function (line) {
+    var raw = String(text || "").split(/\r\n|\n|\r/), lines = [], malformed = 0, canFold = false;
+    // RFC 5545 unfolding FIRST: a long line (an ATTENDEE with a long CN, say)
+    // can be cut before its colon, so judge whole logical lines, never the pieces.
+    raw.forEach(function (line) {
       if (!line) return;
       if (/^[ \t]/.test(line)) {
-        if (canFold) kept.push(line); else malformed++;
+        if (lines.length) lines[lines.length - 1] += line.slice(1); else malformed++;
         return;
       }
+      lines.push(line);
+    });
+    var kept = [];
+    lines.forEach(function (line) {
       var colon = contentLineColon(line);
-      if (colon <= 0) { malformed++; canFold = false; return; }
+      if (colon <= 0) { malformed++; return; }
       var name = line.slice(0, colon).split(";")[0];
-      if (!/^(?:[A-Za-z0-9-]+\.)?[A-Za-z0-9-]+$/.test(name)) { malformed++; canFold = false; return; }
+      if (!/^(?:[A-Za-z0-9-]+\.)?[A-Za-z0-9-]+$/.test(name)) { malformed++; return; }
       kept.push(line);
-      canFold = true;
     });
     return { text: kept.join("\r\n"), malformedLines: malformed };
   }

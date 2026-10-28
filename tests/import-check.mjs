@@ -93,5 +93,12 @@ const floating = CI.parseICS(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", 
 const floatingPlan = CI.planImport(floating, [], { now: NOW, sourceLabel: "floating" });
 check("floating local-time series stays a truthful live daily repeat", floatingPlan.liveRepeats === 1 && floatingPlan.add[0].repeat === "every day");
 
+
+// Regression: an ATTENDEE line folded BEFORE its colon (long CN) must unfold, not count as malformed.
+{
+  const folded = ["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT","UID:fold1","DTSTART:20261111T000000Z","DTEND:20261111T010000Z","SUMMARY:Folded attendee","ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=Il"," se Placencia;X-NUM-GUESTS=0:mailto:a@example.com","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const r = CI.parseICS(folded);
+  check("line folded before the colon is not malformed", r.malformedLines === 0 && r.events.length === 1);
+}
 console.log("RESULT pass=" + pass + " fail=" + fail);
 process.exit(fail ? 1 : 0);
