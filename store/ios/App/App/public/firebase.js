@@ -23,6 +23,16 @@
   var AUTH_HOST = cfg.restAuth || "https://identitytoolkit.googleapis.com";
   var FS_HOST = cfg.restFirestore || "https://firestore.googleapis.com";
   var TOKEN_HOST = cfg.restToken || "https://securetoken.googleapis.com";
+  /* Firebase only accepts an http(s) requestUri. Inside the packaged
+     iPhone app the page origin is capacitor://localhost, which Firebase
+     rejects with INVALID_REQUEST_URI, so every native Google/Apple
+     sign-in failed after the OS sheet closed. Use the project's own
+     https address there. */
+  function okUri(u) {
+    var o = u || (typeof location !== "undefined" ? location.origin : "");
+    if (/^https?:\/\//i.test(o)) return o;
+    return "https://" + (cfg.authDomain || (cfg.projectId + ".firebaseapp.com"));
+  }
   function idpUrl(name) { return AUTH_HOST + "/v1/accounts:" + name + "?key=" + cfg.apiKey; }
   function friendly(code) {
     var map = {
@@ -106,7 +116,16 @@
       body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(session.refreshToken),
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
-        if (!res.ok) { session = null; saveSession(); var e = new Error(friendly("TOKEN_EXPIRED")); e.code = "TOKEN_EXPIRED"; throw e; }
+        if (!res.ok) {
+          /* Stay signed in until the person signs out. Only a definite
+             "this login is gone" answer (revoked, deleted or disabled
+             account) ends the session. A busy server, a rate limit or a
+             hiccup keeps it and just fails this one call. */
+          var msg = String((res.j && res.j.error && res.j.error.message) || "");
+          var dead = /TOKEN_EXPIRED|INVALID_REFRESH_TOKEN|USER_DISABLED|USER_NOT_FOUND|CREDENTIAL_MISMATCH/.test(msg);
+          if (dead) { session = null; saveSession(); var e = new Error(friendly("TOKEN_EXPIRED")); e.code = "TOKEN_EXPIRED"; throw e; }
+          var e2 = new TypeError("Failed to fetch"); throw e2;
+        }
         session.idToken = res.j.id_token; session.refreshToken = res.j.refresh_token || session.refreshToken;
         session.expiresAt = Date.now() + (parseInt(res.j.expires_in, 10) || 3600) * 1000;
         saveSession(); return session;
@@ -171,7 +190,7 @@
     googleSignIn: function (idToken, requestUri) {
       return authCall("signInWithIdp", {
         postBody: "id_token=" + encodeURIComponent(idToken) + "&providerId=google.com",
-        requestUri: requestUri || location.origin, returnIdpCredential: true, returnSecureToken: true,
+        requestUri: okUri(requestUri), returnIdpCredential: true, returnSecureToken: true,
       }).then(function (j) { return adopt(j); });
     },
     appleSignIn: function (idToken, requestUri, nonce) {
@@ -182,7 +201,7 @@
          The web popup path passes no nonce, exactly as before. */
       return authCall("signInWithIdp", {
         postBody: "id_token=" + encodeURIComponent(idToken) + "&providerId=apple.com" + (nonce ? "&nonce=" + encodeURIComponent(nonce) : ""),
-        requestUri: requestUri || location.origin, returnIdpCredential: true, returnSecureToken: true,
+        requestUri: okUri(requestUri), returnIdpCredential: true, returnSecureToken: true,
       }).then(function (j) { return adopt(j); });
     },
     deleteAccount: function () { return token().then(function (tok) { return authCall("delete", { idToken: tok }); }).then(function () { session = null; saveSession(); }); },

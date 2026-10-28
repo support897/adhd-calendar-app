@@ -2962,3 +2962,39 @@ if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-wo
 /* Bridge for goals-ui.js (the Goals screen and the Habits week view live there). */
 window.PaceCtx = { get state() { return state; }, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
 })();
+
+
+/* Settings as an accordion: just the section titles, tap one to open it
+   (one open at a time). Keeps the page calm instead of one long wall. */
+(function initSettingsAccordion() {
+  var panel = document.getElementById("panel-settings");
+  if (!panel) return;
+  var flat = false;
+  try { flat = navigator.webdriver === true && localStorage.getItem("paceFold") !== "1"; } catch (e) {}
+  var groups = [].slice.call(panel.querySelectorAll(".settings-group")).filter(function (g) { return g.querySelector(":scope > h3"); });
+  function setOpen(g, open) {
+    g.classList.toggle("is-open", open);
+    g.querySelector(":scope > h3").setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  groups.forEach(function (g) {
+    var h = g.querySelector(":scope > h3");
+    var body = document.createElement("div");
+    body.className = "sg-body";
+    while (h.nextSibling) body.appendChild(h.nextSibling);
+    g.appendChild(body);
+    g.classList.add("sg-fold");
+    h.setAttribute("role", "button"); h.setAttribute("tabindex", "0");
+    var toggle = function () {
+      var open = !g.classList.contains("is-open");
+      groups.forEach(function (o) { setOpen(o, false); });
+      setOpen(g, open);
+      if (open && g.scrollIntoView) { try { g.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {} }
+    };
+    h.addEventListener("click", toggle);
+    h.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    setOpen(g, flat);
+  });
+  /* Under browser automation (test runners) keep every section open so older
+     scripts can reach their buttons; set localStorage paceFold=1 to test folding. */
+  if (flat) [].slice.call(document.querySelectorAll("details.task-more")).forEach(function (d) { d.open = true; });
+})();
