@@ -35,7 +35,7 @@ check("export is a valid VCALENDAR with no malformed lines", !reparsed.error && 
 check("export declares the device timezone hint", exported.includes("X-WR-TIMEZONE:Australia/Brisbane"));
 check("weekly and weekday recurrences are serialized as RRULEs", exported.includes("RRULE:FREQ=WEEKLY;BYDAY=MO") && exported.includes("RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"));
 check("all-day events use DATE values and exclusive next-day DTEND", /DTSTART;VALUE=DATE:20261020\r\nDTEND;VALUE=DATE:20261021/.test(exported));
-check("skipped repeat dates become EXDATE", exported.includes("EXDATE:20261019T110000"));
+check("skipped repeat dates become EXDATE", /EXDATE(;TZID=[^:]+)?:20261019T110000/.test(exported));
 check("comma in title is escaped and apostrophe text survives", exported.includes("SUMMARY:Pay rent\\, then plan") && reparsed.events.some(e => e.title === "Mum's birthday"));
 check("written task notes round-trip in the event description", exported.includes("DESCRIPTION:Breathe\\, then leave.") && reparsed.events.some(e => e.title === "Pay rent, then plan" && e.notes === "Breathe, then leave."));
 
@@ -55,3 +55,16 @@ const empty = CI.parseICS(CE.toICS({ tasks: [] }, { now }));
 check("empty calendar export stays a valid empty calendar", !empty.error && empty.events.length === 0);
 console.log("RESULT pass=" + pass + " fail=" + fail);
 if (fail) process.exitCode = 1;
+
+// TZID: timed events carry their zone; all-day events stay floating dates.
+{
+  const ics = CE.toICS({ tasks: [
+    { id: "tz1", title: "Zoned", date: "2026-11-02", time: "09:00", durationMin: 30, skipDates: ["2026-11-09"], repeat: "every monday", status: "todo" },
+    { id: "tz2", title: "Allday", date: "2026-11-03", time: null, allDay: true, status: "todo" }
+  ] }, { timeZone: "Australia/Brisbane", now: "2026-10-28T00:00:00Z" });
+  check("timed DTSTART has TZID", /DTSTART;TZID=Australia\/Brisbane:20261102T090000/.test(ics));
+  check("timed DTEND has TZID", /DTEND;TZID=Australia\/Brisbane:20261102T093000/.test(ics));
+  check("EXDATE has TZID", /EXDATE;TZID=Australia\/Brisbane:20261109T090000/.test(ics));
+  check("all-day stays a plain date", /DTSTART;VALUE=DATE:20261103/.test(ics));
+  console.log("TZ pass/fail", pass, fail);
+}

@@ -95,6 +95,14 @@
         var end = localEnd(task.date, clock.text, duration); if (!end) return;
         event.startDate = toDateTime(ICALRef, task.date, clock.text);
         event.endDate = toDateTime(ICALRef, end.date, end.time);
+        if (zone) {
+          // Timed events carry the wall-clock time AND its zone (TZID), so
+          // another calendar app in a different zone shows the same instant.
+          ["dtstart", "dtend"].forEach(function (name) {
+            var prop = eventComponent.getFirstProperty(name);
+            if (prop) prop.setParameter("tzid", zone);
+          });
+        }
       }
       var rule = repeatRule(task.repeat, task.date);
       if (rule) eventComponent.addProperty(ICALRef.Property.fromString("RRULE:" + rule));
@@ -102,6 +110,7 @@
       var skips = Array.isArray(task.skipDates) ? task.skipDates.filter(function (key) { return !!dateParts(key); }) : [];
       if (skips.length) {
         var exdate = new ICALRef.Property("exdate");
+        if (!allDay && zone) exdate.setParameter("tzid", zone);
         exdate.setValues(skips.map(function (key) {
           return allDay ? ICALRef.Time.fromDateString(key) : toDateTime(ICALRef, key, clock.text);
         }));
