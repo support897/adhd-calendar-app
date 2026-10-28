@@ -332,6 +332,8 @@ function load(fromKey) {
       if (typeof t.durationMin !== "number" || !(t.durationMin > 0)) t.durationMin = 25;
       if (typeof t.status !== "string") t.status = "todo";
       t.allDay = !!t.allDay;
+      if (t.remind != null && !Array.isArray(t.remind)) t.remind = null;
+      if (t.repeat != null && typeof t.repeat !== "string") t.repeat = null;
       if (typeof t.icon !== "string" || t.icon.length > 8) t.icon = "";
       if (!/^#[0-9a-f]{6}$/i.test(String(t.color || ""))) t.color = L.categoryFor(t.title).color;
     });
@@ -368,6 +370,7 @@ function load(fromKey) {
     s.goals.forEach(function (g) { if (!g.id) g.id = uid(); if (typeof g.start !== "string") g.start = L.todayKey(); if (!g.pace) g.pace = "daily"; });
     s.settings = Object.assign(defaultSettings(), isObj(s.settings) ? s.settings : {});
     s.settings.notif = Object.assign(defaultSettings().notif, isObj(s.settings.notif) ? s.settings.notif : {});
+    if (s.settings.notif.leads != null && !Array.isArray(s.settings.notif.leads)) delete s.settings.notif.leads;
     if (!isObj(s.settings.names)) s.settings.names = defaultSettings().names;
     ["low", "steady", "full"].forEach(function (k) {
       if (typeof s.settings.names[k] !== "string" || !s.settings.names[k].trim()) s.settings.names[k] = defaultSettings().names[k];
@@ -423,9 +426,27 @@ function repeatMatches(task, key) {
   if (r === "every weekday") return wd >= 1 && wd <= 5;
   if (r === "every weekend") return wd === 0 || wd === 6;
   if (r === "every week") return wd === L.parseKey(task.date).getDay();
+  var start = L.parseKey(task.date);
+  if (r === "every 2 weeks") return wd === start.getDay() && Math.round((d - start) / 86400000) % 14 === 0;
+  if (r === "every month") {
+    var last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    return d.getDate() === Math.min(start.getDate(), last);
+  }
+  if (r === "every year") {
+    var lastM = new Date(d.getFullYear(), start.getMonth() + 1, 0).getDate();
+    return d.getMonth() === start.getMonth() && d.getDate() === Math.min(start.getDate(), lastM);
+  }
+  if (/^days:/.test(r)) return r.slice(5).split(",").indexOf(String(wd)) !== -1;
   var names = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   if (r === "every " + names[wd]) return true;
   return false;
+}
+var WD_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+var WD_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+function repeatLabel(r) {
+  if (!r) return "";
+  if (/^days:/.test(r)) return r.slice(5).split(",").map(function (n) { return tr(WD_SHORT[+n] || ""); }).join(" ");
+  return tr(r);
 }
 function instanceOf(task, key) {
   var copy = {}; for (var k in task) copy[k] = task[k];
@@ -676,9 +697,9 @@ function rowHtml(t, done, first, last) {
   meta.push(durationLabel(t));
   if (t.steps && t.steps.length) meta.push(tr("{a} of {b} steps", { a: t.steps.filter(function (s) { return s.done; }).length, b: t.steps.length }));
   if (t.shrunk) meta.push(tr("small version"));
-  if (t.repeat) meta.push(tr(t.repeat));
+  if (t.repeat) meta.push(repeatLabel(t.repeat));
   var id = esc(t.id), date = esc(t.instanceDate);
-  return '<div class="task-row' + (done ? " is-done" : "") + (t.icon ? " has-task-icon" : "") + '" data-id="' + id + '" data-date="' + date + '">' +
+  return '<div draggable="true" class="task-row' + (done ? " is-done" : "") + (t.icon ? " has-task-icon" : "") + '" data-id="' + id + '" data-date="' + date + '">' +
     '<span class="tr-dot' + (t.icon ? " has-icon" : "") + '" style="background:' + t.color + '">' + (t.icon ? esc(t.icon) : "") + '</span>' +
     '<span class="tr-main"><span class="tr-title">' + esc(t.displayTitle || t.title) + '</span><span class="tr-meta">' + esc(meta.join(" · ")) + "</span></span>" +
     '<span class="tr-actions"><button class="task-move" data-order="-1" data-id="' + id + '" data-date="' + date + '" aria-label="' + tr("Move task up") + '" title="' + tr("Move task up") + '"' + (first ? ' disabled' : '') + '>↑</button>' +
@@ -980,11 +1001,14 @@ document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
 });
 
 /* ---------- quick add ---------- */
+var addCat = null;
+function pickAddCat(c) { addCat = c; renderCatChips($("fCatChips"), c ? c.id : null, pickAddCat, true); }
 $("addBtn").addEventListener("click", function () {
   $("quickText").value = ""; $("fTitle").value = "";
   $("fDate").value = selected; $("fTime").value = ""; $("fDur").value = 25;
   $("fMin").value = ""; $("fFull").value = ""; $("fEssential").checked = false;
   $("quickPreview").hidden = true;
+  $("fRepeat").value = ""; addCat = null; renderCatChips($("fCatChips"), null, pickAddCat, true);
   $("addSheet").hidden = false;
   setTimeout(function () { $("quickText").focus(); }, 50);
 });
@@ -1018,6 +1042,8 @@ $("addSave").addEventListener("click", function () {
     if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: minV, fullVersion: $("fFull").value.trim() };
   }
   if (!task) { toast(tr("Give it a title first, even a messy one.")); return; }
+  if ($("fRepeat").value) task.repeat = $("fRepeat").value;
+  if (addCat) { task.category = addCat.id; task.color = addCat.color; }
   task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = $("quickText").value.trim(); task.skipDates = []; task.doneDates = [];
   state.tasks.push(task); save(); markActivated("event");
   $("addSheet").hidden = true;
@@ -1041,11 +1067,12 @@ function openTask(id, instanceDate) {
   $("dCustomHex").value = $("dCustomColor").value.toUpperCase();
   renderTaskIconPicker(t);
   renderTaskColorPicker(t);
+  renderTaskOrganise(t);
   var meta = [];
   meta.push(L.parseKey(currentInstanceDate).toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }));
   if (inst.time) meta.push(inst.time);
   meta.push(durationLabel(inst));
-  if (inst.repeat) meta.push(tr("repeats {repeat} · changes to date or done apply to this day only", { repeat: tr(inst.repeat) }));
+  if (inst.repeat) meta.push(tr("repeats {repeat} · changes to date or done apply to this day only", { repeat: repeatLabel(inst.repeat) }));
   if (inst.source === "sample") meta.push(tr("sample task"));
   $("dMeta").textContent = meta.join(" · ");
   renderSteps(t);
@@ -1123,6 +1150,116 @@ $("dCustomHex").addEventListener("input", function () {
   $("dCustomColor").value = task.color;
   save(); renderTaskColorPicker(task); refreshAll();
 });
+
+/* ---------- organise: category, repeat, reminders ---------- */
+var REMIND_MINS = [0, 5, 10, 15, 30, 60, 1440];
+function remindLabel(m) {
+  if (m === 0) return tr("At start time");
+  if (m === 5) return tr("5 min before");
+  if (m === 10) return tr("10 min before");
+  if (m === 15) return tr("15 min before");
+  if (m === 30) return tr("30 min before");
+  if (m === 60) return tr("1 hour before");
+  if (m === 1440) return tr("1 day before");
+  return tr("{n} min before", { n: m });
+}
+function cleanLeads(list) {
+  var seen = {}, out = [];
+  (list || []).forEach(function (v) { v = Math.round(+v); if (v >= 0 && v <= 10080 && !seen[v]) { seen[v] = 1; out.push(v); } });
+  return out.sort(function (x, y) { return x - y; });
+}
+function defaultLeads() { var n = state.settings.notif; return Array.isArray(n.leads) ? cleanLeads(n.leads) : [n.setup == null ? 5 : n.setup]; }
+function leadsFor(t) { return Array.isArray(t.remind) ? cleanLeads(t.remind) : defaultLeads(); }
+function chipButton(label, on, onClick, dot, cls) {
+  var b = document.createElement("button");
+  b.type = "button"; b.className = "chip" + (cls ? " " + cls : "") + (on ? " is-on" : "");
+  b.setAttribute("aria-pressed", String(!!on));
+  if (dot) { var d = document.createElement("span"); d.className = "chip-dot"; d.style.background = dot; b.appendChild(d); }
+  b.appendChild(document.createTextNode(label));
+  b.addEventListener("click", onClick);
+  return b;
+}
+function renderCatChips(box, currentId, onPick, withAuto) {
+  if (!box) return;
+  box.innerHTML = "";
+  if (withAuto) box.appendChild(chipButton(tr("Auto"), !currentId, function () { onPick(null); }));
+  L.CATEGORY_LIST.forEach(function (c) {
+    box.appendChild(chipButton(tr(c.label), currentId === c.id, function () { onPick(c); }, c.color));
+  });
+}
+function repeatOptionFor(t) {
+  var r = t.repeat || "";
+  if (/^days:/.test(r)) return "custom";
+  return r;
+}
+function renderTaskOrganise(t) {
+  renderCatChips($("dCatChips"), t.category, function (c) {
+    t.category = c.id; t.color = c.color;
+    $("dCustomColor").value = c.color; $("dCustomHex").value = c.color;
+    save(); renderTaskOrganise(t); renderTaskColorPicker(t); refreshAll();
+  }, false);
+  var sel = $("dRepeat");
+  [].slice.call(sel.querySelectorAll("option[data-dyn]")).forEach(function (o) { o.remove(); });
+  var cur = repeatOptionFor(t);
+  if (cur && !sel.querySelector('option[value="' + cur + '"]')) {
+    var o = document.createElement("option"); o.value = cur; o.textContent = repeatLabel(t.repeat); o.setAttribute("data-dyn", "1"); sel.insertBefore(o, sel.firstChild.nextSibling);
+  }
+  sel.value = cur;
+  var days = $("dRepeatDays");
+  days.hidden = cur !== "custom";
+  days.innerHTML = "";
+  if (cur === "custom") {
+    var on = String(t.repeat).slice(5).split(",");
+    [1, 2, 3, 4, 5, 6, 0].forEach(function (wd) {
+      var isOn = on.indexOf(String(wd)) !== -1;
+      days.appendChild(chipButton(tr(WD_SHORT[wd]), isOn, function () {
+        var set = on.filter(function (x) { return x !== ""; });
+        var i = set.indexOf(String(wd));
+        if (i === -1) set.push(String(wd)); else if (set.length > 1) set.splice(i, 1);
+        t.repeat = "days:" + set.sort().join(",");
+        save(); renderTaskOrganise(t); refreshAll();
+      }, null, "chip-day"));
+    });
+  }
+  var box = $("dRemChips"), useDefault = !Array.isArray(t.remind), leads = leadsFor(t);
+  $("dRemDefault").checked = useDefault;
+  box.innerHTML = "";
+  REMIND_MINS.concat(leads.filter(function (m) { return REMIND_MINS.indexOf(m) === -1; })).forEach(function (m) {
+    box.appendChild(chipButton(remindLabel(m), leads.indexOf(m) !== -1, function () {
+      var base = Array.isArray(t.remind) ? cleanLeads(t.remind) : defaultLeads().slice();
+      var i = base.indexOf(m);
+      if (i === -1) base.push(m); else base.splice(i, 1);
+      t.remind = cleanLeads(base);
+      save(); renderTaskOrganise(t);
+    }));
+  });
+}
+$("dRepeat").addEventListener("change", function () {
+  var t = baseTask(currentTaskId); if (!t) return;
+  var v = this.value;
+  if (v === "custom") t.repeat = /^days:/.test(t.repeat || "") ? t.repeat : "days:" + L.parseKey(currentInstanceDate).getDay();
+  else t.repeat = v || null;
+  if (t.repeat && !t.doneDates) t.doneDates = [];
+  save(); renderTaskOrganise(t); refreshAll();
+});
+$("dRemDefault").addEventListener("change", function () {
+  var t = baseTask(currentTaskId); if (!t) return;
+  t.remind = this.checked ? null : defaultLeads().slice();
+  save(); renderTaskOrganise(t);
+});
+function renderLeadChips() {
+  var box = $("nLeads"); if (!box) return;
+  var n = state.settings.notif, leads = defaultLeads();
+  box.innerHTML = "";
+  REMIND_MINS.concat(leads.filter(function (m) { return REMIND_MINS.indexOf(m) === -1; })).forEach(function (m) {
+    box.appendChild(chipButton(remindLabel(m), leads.indexOf(m) !== -1, function () {
+      var cur = defaultLeads().slice(), i = cur.indexOf(m);
+      if (i === -1) cur.push(m); else cur.splice(i, 1);
+      n.leads = cleanLeads(cur);
+      save(); renderLeadChips();
+    }));
+  });
+}
 function renderSteps(t) {
   var box = $("dSteps");
   $("dBreak").hidden = !!(t.steps && t.steps.length);
@@ -1537,6 +1674,20 @@ function renderTodos() {
   state.todos.forEach(function (item) {
     var row = document.createElement("div");
     row.className = "todo-row" + (item.done ? " is-done" : "");
+    row.draggable = true;
+    row.addEventListener("dragstart", function (e) { row.classList.add("dragging"); e.dataTransfer.setData("text/plain", "todo:" + item.id); });
+    row.addEventListener("dragend", function () { row.classList.remove("dragging"); });
+    row.addEventListener("dragover", function (e) { e.preventDefault(); row.classList.add("drop-target"); });
+    row.addEventListener("dragleave", function () { row.classList.remove("drop-target"); });
+    row.addEventListener("drop", function (e) {
+      e.preventDefault(); row.classList.remove("drop-target");
+      var raw = e.dataTransfer.getData("text/plain") || "";
+      if (raw.indexOf("todo:") !== 0) return;
+      var from = state.todos.findIndex(function (t) { return t.id === raw.slice(5); }), to = state.todos.indexOf(item);
+      if (from < 0 || to < 0 || from === to) return;
+      state.todos.splice(to, 0, state.todos.splice(from, 1)[0]);
+      save(); renderTodos();
+    });
     row.innerHTML =
       '<button class="todo-tick" data-act="tick" aria-label="' + tr("Mark done") + '">' + (item.done ? icon("i-check") : "") + "</button>" +
       '<span class="todo-text"></span>' +
@@ -1688,6 +1839,39 @@ $("dayList").addEventListener("dragstart", function (e) {
 $("dayList").addEventListener("dragend", function () {
   $("dayList").querySelectorAll(".dragging").forEach(function (r) { r.classList.remove("dragging"); });
 });
+/* Drop a day-list row on another row of the same day to reorder it. */
+function moveDayTaskTo(id, key, targetId) {
+  if (!id || !targetId || id === targetId) return false;
+  var ad = adaptedFor(key);
+  var group = ad.visible.some(function (t) { return t.id === id; }) ? ad.visible : ad.done;
+  var ids = group.map(function (t) { return t.id; });
+  var from = ids.indexOf(id), to = ids.indexOf(targetId);
+  if (from < 0 || to < 0) return false;
+  ids.splice(to, 0, ids.splice(from, 1)[0]);
+  var other = group === ad.visible ? ad.done : ad.visible;
+  state.dayOrder[key] = ids.concat(other.map(function (t) { return t.id; }));
+  save(); refreshAll();
+  return true;
+}
+(function bindDayListDrop() {
+  var list = $("dayList");
+  function clear() { list.querySelectorAll(".drop-target").forEach(function (r) { r.classList.remove("drop-target"); }); }
+  list.addEventListener("dragover", function (e) {
+    var row = e.target.closest ? e.target.closest(".task-row") : null;
+    if (!row) return;
+    e.preventDefault(); clear(); row.classList.add("drop-target");
+  });
+  list.addEventListener("dragleave", function (e) { if (e.target === list) clear(); });
+  list.addEventListener("drop", function (e) {
+    var row = e.target.closest ? e.target.closest(".task-row") : null;
+    clear();
+    if (!row) return;
+    var info; try { info = JSON.parse(e.dataTransfer.getData("text/plain") || "null"); } catch (err) { return; }
+    if (!info || !info.id || info.date !== row.getAttribute("data-date")) return;
+    e.preventDefault();
+    if (moveDayTaskTo(info.id, info.date, row.getAttribute("data-id"))) toast(tr("Moved. The day re-shaped itself."));
+  });
+})();
 $("ticker").addEventListener("dragover", function (e) { e.preventDefault(); });
 $("ticker").addEventListener("drop", function (e) {
   var raw = e.dataTransfer.getData("text/plain");
@@ -1710,6 +1894,7 @@ function bindSettings() {
   $("nSetup").value = s.notif.setup; $("nDigest").checked = s.notif.digest;
   $("nDigestTimes").value = s.notif.digestTimes.join(", ");
   $("nDone").checked = s.notif.done; $("nDoneTime").value = s.notif.doneTime;
+  renderLeadChips();
   renderNotifStatus();
 }
 function readSettings() {
@@ -1781,7 +1966,14 @@ var PaceRemind = (function () {
       push("checkin", "day", s.checkinTime, tr("How are you feeling today?"), tr("One tap sets the shape of your day."));
     if (n.start) ad.visible.forEach(function (t) {
       if (!t.time) return;
-      push("start", String(t.id), L.nudgeTime(t, n.setup), tr("Time to start: {title}", { title: (t.displayTitle || t.title) }), tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin }), String(t.id));
+      leadsFor(t).forEach(function (lead) {
+        var at = atMs(dayKey, t.time) - lead * 60000;
+        if (at <= floor) return;
+        var shown = t.displayTitle || t.title;
+        var head = lead === 0 ? tr("Starting now: {title}", { title: shown }) : lead >= 60 ? tr("Coming up: {title}", { title: shown }) : tr("Time to start: {title}", { title: shown });
+        var body = lead >= 60 ? tr("Starts at {time}. First step: {step}", { time: t.time, step: L.nextStepText(t) }) : tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin });
+        out.push({ id: nid("start", String(t.id) + "@" + lead, dayKey), title: head, body: body, at: at, extra: { paceKind: "start", paceTask: String(t.id), paceDate: dayKey } });
+      });
     });
     if (n.digest) n.digestTimes.forEach(function (hhmm) {
       push("digest", hhmm, hhmm, tr("Your day, gently"), L.digestText(ad.visible));
@@ -1912,11 +2104,20 @@ function checkNotifications() {
   }
   var ad = adaptedFor(today);
   if (n.start) {
-    ad.visible.forEach(function (t) {
-      if (!t.time) return;
-      if (L.nudgeTime(t, n.setup) === hhmm) {
-        notify(tr("Time to start: {title}", { title: (t.displayTitle || t.title) }), tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin }), "start-" + t.id + "-" + today, { task: String(t.id), date: today });
-      }
+    var nowMin = Math.floor(Date.now() / 60000);
+    [today, L.addDays(today, 1)].forEach(function (day) {
+      adaptedFor(day).visible.forEach(function (t) {
+        if (!t.time) return;
+        var p = day.split("-"), tt = t.time.split(":");
+        var base = new Date(+p[0], +p[1] - 1, +p[2], +tt[0], +tt[1], 0, 0).getTime();
+        leadsFor(t).forEach(function (lead) {
+          if (Math.floor((base - lead * 60000) / 60000) !== nowMin) return;
+          var shown = t.displayTitle || t.title;
+          var head = lead === 0 ? tr("Starting now: {title}", { title: shown }) : lead >= 60 ? tr("Coming up: {title}", { title: shown }) : tr("Time to start: {title}", { title: shown });
+          var body = lead >= 60 ? tr("Starts at {time}. First step: {step}", { time: t.time, step: L.nextStepText(t) }) : tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin });
+          notify(head, body, "start-" + t.id + "-" + day + "-" + lead, { task: String(t.id), date: day });
+        });
+      });
     });
   }
   if (n.digest && n.digestTimes.indexOf(hhmm) !== -1) {

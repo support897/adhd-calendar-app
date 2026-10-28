@@ -273,7 +273,9 @@ try {
         <p class="hint" id="notifStatus" data-i18n>Notifications are off.</p>
         <label class="row check" data-i18n><input type="checkbox" id="nCheckin"> Morning check-in reminder</label>
         <label class="row check" data-i18n><input type="checkbox" id="nStart"> Start nudge before each timed task</label>
-        <label class="row" data-i18n>Nudge lead-in (minutes) <input type="number" id="nSetup" value="5" min="0" max="60"></label>
+        <p class="task-look-label" data-i18n>Remind me before a timed task (tick all you want)</p>
+        <div id="nLeads" class="chip-row" role="group" aria-label="Reminder times"></div>
+        <label class="row" hidden>Nudge lead-in (minutes) <input type="number" id="nSetup" value="5" min="0" max="60"></label>
         <label class="row check" data-i18n><input type="checkbox" id="nDigest"> A gentle round-up of what is left</label>
         <label class="row" data-i18n>Round-up times <input type="text" id="nDigestTimes" value="12:30, 16:30" size="14"></label>
         <label class="row check" data-i18n><input type="checkbox" id="nDone"> End of day done note (only what got done)</label>
@@ -337,6 +339,18 @@ try {
       </div>
       <label class="field" data-i18n>Smallest version (for low days) <input type="text" id="fMin" data-i18n-ph placeholder="e.g. Just ring and rebook"></label>
       <label class="field" data-i18n>Biggest version (for full days) <input type="text" id="fFull" data-i18n-ph placeholder="e.g. The whole deep clean"></label>
+      <label class="field" data-i18n>Repeat <select id="fRepeat">
+        <option value="">Does not repeat</option>
+        <option value="every day">Every day</option>
+        <option value="every weekday">Every weekday</option>
+        <option value="every weekend">Every weekend</option>
+        <option value="every week">Every week</option>
+        <option value="every 2 weeks">Every 2 weeks</option>
+        <option value="every month">Every month</option>
+        <option value="every year">Every year</option>
+      </select></label>
+      <p class="task-look-label" data-i18n>Category (Auto picks one from the words)</p>
+      <div id="fCatChips" class="chip-row" role="group" aria-label="Category"></div>
       <label class="row check" data-i18n><input type="checkbox" id="fEssential"> This one must not slip</label>
     </details>
     <div class="sheet-actions">
@@ -381,8 +395,10 @@ try {
     </section></div>
     </details>
     <div class="task-more-look"><details id="dLook" class="task-look-details">
-      <summary data-i18n>Change icon or color</summary>
+      <summary data-i18n>Category, icon and color</summary>
       <div class="task-look-body">
+        <p class="task-look-label" data-i18n>Category</p>
+        <div id="dCatChips" class="chip-row" role="group" aria-label="Category"></div>
         <label class="field task-icon-search" data-i18n>Search icons by task or word <input id="dIconSearch" type="search" placeholder="Search icons by task or word" data-i18n-ph autocomplete="off"></label>
         <div id="dIconPicker" class="task-icon-picker" role="group" aria-label="Task icons"></div>
         <p class="task-look-label" data-i18n>Task color</p>
@@ -390,6 +406,29 @@ try {
         <label class="task-custom-color" data-i18n>Custom color <input id="dCustomColor" type="color" aria-label="Custom color" data-i18n-aria value="#7A8699"><input id="dCustomHex" type="text" maxlength="7" placeholder="#7A8699" aria-label="Hex color" data-i18n-aria autocomplete="off"></label>
       </div>
     </details></div>
+    <details class="task-more" id="dRepeatWrap"><summary data-i18n>Repeat</summary>
+      <div class="task-more-body">
+        <label class="field" data-i18n>How often <select id="dRepeat">
+          <option value="">Does not repeat</option>
+          <option value="every day">Every day</option>
+          <option value="every weekday">Every weekday</option>
+          <option value="every weekend">Every weekend</option>
+          <option value="every week">Every week</option>
+          <option value="every 2 weeks">Every 2 weeks</option>
+          <option value="every month">Every month</option>
+          <option value="every year">Every year</option>
+          <option value="custom">Pick the days…</option>
+        </select></label>
+        <div id="dRepeatDays" class="chip-row" role="group" aria-label="Repeat on these days" hidden></div>
+      </div>
+    </details>
+    <details class="task-more" id="dRemWrap"><summary data-i18n>Reminders</summary>
+      <div class="task-more-body">
+        <p class="hint" data-i18n>Tick every reminder you want for this task.</p>
+        <div id="dRemChips" class="chip-row" role="group" aria-label="Reminders for this task"></div>
+        <label class="row check" data-i18n><input type="checkbox" id="dRemDefault"> Use my usual reminders</label>
+      </div>
+    </details>
     <details class="task-more" id="dVersions"><summary data-i18n>Make it easier or bigger</summary>
       <div class="task-more-body"><label class="field" data-i18n>Smallest version (low days) <input type="text" id="dMin"></label>
       <label class="field" data-i18n>Biggest version (full days) <input type="text" id="dFull"></label></div>
