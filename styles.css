@@ -693,3 +693,62 @@ html[data-cute="1"] .add-btn { border-radius: 16px; }
   }
   #main { padding-bottom: 96px; }
 }
+
+/* ---------- goals + habit week (build 30) ---------- */
+.goal-form { background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 16px; margin: 14px 0; display: flex; flex-direction: column; gap: 14px; }
+.gf-field { display: flex; flex-direction: column; gap: 6px; }
+.gf-label { font-size: 14px; color: var(--ink-2); font-weight: 600; }
+.goal-form input[type="text"], .goal-form input[type="date"], .goal-form select, .goal-form textarea { padding: 12px 14px; font-size: 16.5px; border: 1px solid var(--hair); border-radius: var(--radius); background: var(--ground); color: var(--ink); width: 100%; min-height: 44px; font-family: inherit; }
+.goal-form textarea { resize: vertical; }
+.gf-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+.gf-cat { min-height: 44px; border: 1px solid var(--hair); background: var(--card); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: 15px; cursor: pointer; }
+.gf-cat.is-on { border: 2px solid var(--accent); background: var(--seg); font-weight: 600; }
+.gf-err { color: var(--danger); font-size: 14px; min-height: 0; margin: 0; }
+.gf-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.gf-h { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
+.gf-sum { margin: 0; color: var(--ink-2); line-height: 1.45; }
+.gf-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.gf-steps li { display: flex; gap: 10px; align-items: baseline; }
+.gs-date { flex: none; font-size: 13px; color: var(--ink-3); min-width: 84px; }
+.gs-title { overflow-wrap: anywhere; }
+.goal-today { margin: 10px 0; padding: 12px 14px; border-radius: var(--radius); background: var(--seg); font-weight: 600; }
+.goal-card { background: var(--card); border: 1px solid var(--hair); border-left: 5px solid var(--gc, var(--accent)); border-radius: var(--radius); padding: 15px; margin-top: 12px; animation: rise .25s ease both; }
+.goal-head { display: flex; gap: 12px; align-items: center; }
+.goal-emoji { font-size: 26px; flex: none; }
+.goal-title-wrap { display: flex; flex-direction: column; min-width: 0; }
+.goal-title { font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.goal-chip { font-size: 13px; color: var(--ink-3); }
+.goal-bar { height: 12px; border-radius: 999px; background: var(--seg); overflow: hidden; margin: 12px 0 6px; }
+.goal-fill { height: 100%; background: var(--gc, var(--accent)); border-radius: 999px; transition: width .4s ease; }
+.goal-nums { font-size: 14px; color: var(--ink-2); }
+.goal-msg { margin: 8px 0 2px; font-size: 15px; }
+.goal-next { margin: 2px 0 8px; font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
+.goal-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.goal-actions .soft-btn { min-height: 44px; }
+.goal-steps { margin-top: 10px; border-top: 1px solid var(--hair); padding-top: 8px; max-height: 340px; overflow-y: auto; }
+.gs-row { display: flex; gap: 10px; align-items: center; padding: 4px 0; }
+.gs-row.is-done .gs-title { text-decoration: line-through; color: var(--ink-3); }
+.gs-tick { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--ink-3); background: none; color: #fff; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.gs-row.is-done .gs-tick { background: var(--green); border-color: var(--green); }
+.gs-text { display: flex; flex-direction: column; min-width: 0; }
+.why-box { margin-top: 18px; color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
+.why-box summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.habit-card { background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 15px; margin-top: 12px; animation: rise .25s ease both; }
+.habit-head { display: flex; align-items: center; gap: 12px; }
+.habit-sub { font-size: 13px; color: var(--ink-3); overflow-wrap: anywhere; }
+.habit-weekrow { display: flex; gap: 4px; margin: 14px 0 10px; }
+.hw-day { flex: 1 1 0; min-width: 38px; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink-2); }
+.hw-label { font-size: 13px; font-weight: 600; }
+.hw-dot { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--ink-3); display: flex; align-items: center; justify-content: center; color: #fff; }
+.hw-dot .ico { width: 18px; height: 18px; }
+.hw-day.is-done .hw-dot { background: var(--green); border-color: var(--green); animation: pop .3s ease; }
+.hw-day.is-today .hw-label { color: var(--accent); }
+.hw-day.is-today .hw-dot { box-shadow: 0 0 0 3px var(--seg); }
+.hw-day.is-future { opacity: .4; cursor: default; }
+.habit-stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-2); }
+.habit-stats strong { font-size: 20px; color: var(--ink); }
+.habit-msg { margin: 8px 0 0; font-size: 14.5px; color: var(--ink-2); }
+@media (max-width: 360px) { .hw-day { min-width: 36px; } .hw-dot { width: 30px; height: 30px; } .gs-date { min-width: 70px; } }
+
+.goal-form .soft-btn { align-self: flex-start; }
+.goal-form .hint:empty { display: none; }

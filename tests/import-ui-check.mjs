@@ -1,11 +1,11 @@
 // "Bring my calendar in" — browser end-to-end: sheet, file import,
 // counts, persistence, dedupe on re-import, demo fence.
 // Run: node tests/import-ui-check.mjs
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http";
 import { readFile } from "fs/promises";
 import { extname } from "path";
-const ROOT = "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".ttf": "font/ttf", ".gz": "application/gzip" };
 const srv = http.createServer(async (req, res) => {
   try {
@@ -17,7 +17,7 @@ const srv = http.createServer(async (req, res) => {
 await new Promise(r => srv.listen(8943, r));
 let pass = 0, fail = 0;
 const check = (n, ok) => { if (ok) { pass++; console.log("PASS", n); } else { fail++; console.log("FAIL", n); } };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const p = await b.newPage({ viewport: { width: 1280, height: 860 } });
 p.on("pageerror", e => { console.log("PAGE ERROR:", e.message); fail++; });
 await p.goto("http://localhost:8943/", { waitUntil: "networkidle" });

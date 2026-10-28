@@ -8,10 +8,10 @@
 //      server payload on the tick itself.
 // The server side is read through the mock's own store, so
 // the payload bytes are the evidence.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-import { startMock } from "/home/hatch/workspace/adhd-calendar-app/tests/mock-firebase.mjs";
-const DIR = "/home/hatch/workspace/adhd-calendar-app", PORT = 9153;
+import { startMock } from "/Users/ilse/Apps/adhd-calendar-app/tests/mock-firebase.mjs";
+const DIR = "/Users/ilse/Apps/adhd-calendar-app", PORT = 9153;
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest", ".png": "image/png", ".ttf": "font/ttf", ".woff2": "font/woff2" };
 let fails = 0, passes = 0;
 const check = (n, c, d) => { if (c) { passes++; console.log("PASS " + n); } else { fails++; console.log("FAIL " + n + (d ? " [" + d + "]" : "")); } };
@@ -19,7 +19,7 @@ const srv = http.createServer((req, res) => { const p = decodeURIComponent(new U
 const mock = await startMock();
 const MOCKCFG = `window.PACE_FB_CONFIG={apiKey:"test-key-1234567890",projectId:"pace-test",restAuth:"http://localhost:${mock.port}",restFirestore:"http://localhost:${mock.port}",googleClientId:"x",appleEnabled:false};`;
 await new Promise((r) => srv.listen(PORT, r));
-const browser = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const EMAIL = "fresh-device@example.com", PW = "password-1", SENTINEL = "Sentinel task QD7";
 async function dismissals(p) {
   for (let i = 0; i < 14; i++) {

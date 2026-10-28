@@ -5,12 +5,12 @@
 // env(safe-area-inset-*) vars. Headless Chromium reports a 0 inset, so
 // the render legs drive the SAME var the device fills via env() and
 // measure the button's real position both ways.
-import pw from "/home/hatch/node_modules/playwright-core/index.mjs";
+import pw from "playwright-core";
 const { chromium } = pw;
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-const ROOT = "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = "/Users/ilse/Apps/adhd-calendar-app";
 let pass = 0, fail = 0;
 const check = (n, ok) => { if (ok) { pass++; console.log("PASS", n); } else { fail++; console.log("FAIL", n); } };
 
@@ -31,7 +31,7 @@ check("NO-ZOOM: html carries touch-action: manipulation (the double-tap gesture 
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ttf": "font/ttf", ".webmanifest": "application/manifest+json" };
 const server = http.createServer((req, res) => { let f = req.url.split("?")[0]; if (f === "/") f = "/index.html"; const fp = path.join(ROOT, f); if (!existsSync(fp)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": types[path.extname(fp)] || "application/octet-stream" }); res.end(readFileSync(fp)); });
 await new Promise(r => server.listen(8949, r));
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const p = await b.newPage({ viewport: { width: 390, height: 844 } });
 await p.goto("http://localhost:8949/", { waitUntil: "networkidle" });
 await p.evaluate(() => {

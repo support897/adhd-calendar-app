@@ -5,12 +5,12 @@
 // Remove carries Undo (Law B2). AA is proven at the worst case: the
 // veil composited over pure-black and pure-white photo pixels, ink
 // from the live CSS, contrast formula — not eyeballed.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import { writeFileSync } from "fs";
 const URL = "http://localhost:9119/";
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 // Two busy test photos (deterministic noise), one dark, one bright.
 {
   const p = await b.newPage();

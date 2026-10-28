@@ -4,10 +4,10 @@
 // REAL app against the mock (which emulates the v2.4 shape via
 // mayDelete) with a staged subscriptions record; a second account's
 // record is the no-collateral control.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
 import { startMock } from "./mock-firebase.mjs";
-const ROOT = "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".png": "image/png" };
 const mock = await startMock();
 const testConfig = `window.PACE_FB_CONFIG = { apiKey: "test-key-1234567890", authDomain: "x", projectId: "pace-test", appId: "1:x:web:y", googleClientId: null, appleEnabled: false, restAuth: "http://127.0.0.1:${mock.port}", restFirestore: "http://127.0.0.1:${mock.port}", restToken: "http://127.0.0.1:${mock.port}" };`;
@@ -37,7 +37,7 @@ for (const u of [A, B]) {
   mock.docs.set("subscriptions/" + u.localId, { entitlement: "plus", status: "active" });
 }
 check("staged: A's full footprint incl. subscriptions stands", !!mock.docs.get("subscriptions/" + A.localId) && !!mock.docs.get("users/" + A.localId));
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 }, serviceWorkers: "block" });
 const p = await ctx.newPage();
 p.setDefaultTimeout(9000);

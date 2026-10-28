@@ -19,8 +19,8 @@ let pass = 0, fail = 0;
 const check = (n, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + n + (extra ? "  [" + extra + "]" : "")); ok ? pass++ : fail++; };
 await new Promise((r) => server.listen(8971, r));
 // Plain playwright-core launch (the house harness pattern):
-const pwc = (await import("node:module")).createRequire(import.meta.url)("/home/hatch/node_modules/playwright-core");
-const browser = await pwc.chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const pwc = (await import("node:module")).createRequire(import.meta.url)(process.env.HOME+"/Apps/_qa/pw/node_modules/playwright-core");
+const browser = await pwc.chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
 const page = await ctx.newPage();
 const errors = [];

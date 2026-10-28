@@ -1,11 +1,11 @@
 // Proof screenshots for the v3 panels (seeded with realistic use, then shot).
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const ROOT = "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split("?")[0]); if (p === "/") p = "/index.html"; const f = path.join(ROOT, p); if (!f.startsWith(ROOT) || !fs.existsSync(f)) { res.writeHead(404); res.end(); return; } res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(res); });
 await new Promise(r => server.listen(8920, r));
-const browser = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 2 });
 await page.goto("http://localhost:8920/", { waitUntil: "networkidle" });
 await page.click("#welcomeSkip");

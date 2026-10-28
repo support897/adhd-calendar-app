@@ -11,10 +11,10 @@
 // On the pre-cure bytes all three legs hang past their
 // windows; on the cured bytes each answers honestly inside
 // its bound.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-import { startMock } from "/home/hatch/workspace/adhd-calendar-app/tests/mock-firebase.mjs";
-const DIR = "/home/hatch/workspace/adhd-calendar-app", PORT = 9137, HANG = 9138;
+import { startMock } from "/Users/ilse/Apps/adhd-calendar-app/tests/mock-firebase.mjs";
+const DIR = "/Users/ilse/Apps/adhd-calendar-app", PORT = 9137, HANG = 9138;
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest", ".png": "image/png", ".ttf": "font/ttf", ".woff2": "font/woff2" };
 let fails = 0, passes = 0;
 const check = (n, c, d) => { if (c) { passes++; console.log("PASS " + n); } else { fails++; console.log("FAIL " + n + (d ? " [" + d + "]" : "")); } };
@@ -32,7 +32,7 @@ await new Promise((r) => hangSrv.listen(HANG, r));
 const mock = await startMock();
 const MOCKO = `http://localhost:${mock.port}`;
 const cfgFor = (restAuth, restFirestore) => `window.PACE_FB_CONFIG={apiKey:"test-key-1234567890",projectId:"pace-test",restAuth:${JSON.stringify(restAuth)},restFirestore:${JSON.stringify(restFirestore)},googleClientId:"x",appleEnabled:false};`;
-const browser = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 async function bootPage(restAuth, restFirestore, init) {
   const ctx = await browser.newContext();
   if (init) await ctx.addInitScript(init);

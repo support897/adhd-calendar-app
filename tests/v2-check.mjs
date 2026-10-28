@@ -5,7 +5,7 @@
 // a loaded machine.
 import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const ROOT = process.env.APP_ROOT || "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = process.env.APP_ROOT || "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split("?")[0]); if (p === "/") p = "/index.html"; const file = path.join(ROOT, p); if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; } res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" }); fs.createReadStream(file).pipe(res); });
 await new Promise(r => server.listen(8915, r));
@@ -57,7 +57,7 @@ check("law: content uses the full screen when hidden (centred, not pushed by a p
 await sbOpen(page);
 check("brand: sidebar shows the Pace wordmark", /Pace/.test(await page.locator(".brand-name").textContent()));
 check("brand: logo mark renders in the sidebar", await page.locator(".brand .brand-mark").isVisible());
-check("icons: nav items use svg icons", (await page.locator(".side-item svg.ico").count()) === 6);
+check("icons: nav items use svg icons", (await page.locator(".side-item svg.ico").count()) === 7);
 check("ring: today's progress ring is in the sidebar", await page.locator(".side-ring").isVisible() && /%/.test(await page.locator("#ringPct").textContent()));
 
 // Sidebar collapse: completely gone, one-tap return; every load starts hidden.

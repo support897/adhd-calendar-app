@@ -2,7 +2,7 @@
 // Same setup as browser-check.mjs.
 import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const ROOT = process.env.APP_ROOT || "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = process.env.APP_ROOT || "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split("?")[0]); if (p === "/") p = "/index.html"; const file = path.join(ROOT, p); if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; } res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" }); fs.createReadStream(file).pipe(res); });
 await new Promise(r => server.listen(8918, r));
@@ -18,7 +18,7 @@ const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem("calmca
 
 /* Sidebar carries both new items. */
 await page.evaluate(() => { if (document.documentElement.getAttribute("data-sb") === "collapsed") document.getElementById("sbExpand").click(); });
-check("sidebar has 6 items incl To do + Habits", (await page.locator(".side-item").count()) === 6 &&
+check("sidebar has 7 items incl To do + Habits", (await page.locator(".side-item").count()) === 7 &&
   await page.locator('.side-item[data-panel="todo"]').isVisible() && await page.locator('.side-item[data-panel="habits"]').isVisible());
 
 /* ---- To do ---- */

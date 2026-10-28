@@ -3,7 +3,7 @@
 // their smallest versions and parks the rest, Ok is the normal capped
 // day, Good offers the stretch versions. Proven on the rendered list
 // and the saved state, not asserted from the logic alone.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 const URL = "http://localhost:9119/";
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
@@ -19,7 +19,7 @@ const seed = { settings: { guide: "done", onboarded: true, names: { low: "Bad", 
            mk("b", "Clean the garage", { time: "11:00" }),
            mk("c", "School pickup", { time: "15:30", essential: true }) ],
   todos: [], habits: [], feelings: {}, checks: {}, habitLog: {}, imports: [], samplesLoaded: false };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const p = await b.newPage();
 await p.addInitScript((s) => { if (!localStorage.getItem("calmcal-v1:guest")) localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)); }, seed);
 await p.goto(URL, { waitUntil: "networkidle" }); await p.waitForTimeout(500);

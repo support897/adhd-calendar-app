@@ -9,10 +9,10 @@
 // moves content backwards. RACE_ROOT points it at a www tree:
 // the shipped b12 extraction (expected RED) or the repo tree
 // (expected GREEN). Cycles repeat; every cycle must pass.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
 import { startMock } from "./mock-firebase.mjs";
-const ROOT = process.env.RACE_ROOT || "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = process.env.RACE_ROOT || "/Users/ilse/Apps/adhd-calendar-app";
 const CYCLES = Number(process.env.RACE_CYCLES || 3);
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".gz": "application/gzip", ".png": "image/png", ".ttf": "font/ttf" };
 const mock = await startMock();
@@ -28,7 +28,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(9129, r));
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
 // The race's network shape: document READS take 2000ms (slower
 // than the 1200ms sync debounce), writes 250ms, auth instant.

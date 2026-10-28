@@ -9,9 +9,9 @@
 // round trip: sign up -> journey -> sign out -> sign in ->
 // data present + own -> second-account isolation -> delete
 // via the app's own flow (proven dead at the server after).
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const DIR = "/home/hatch/workspace/adhd-calendar-app", PORT = 9157;
+const DIR = "/Users/ilse/Apps/adhd-calendar-app", PORT = 9157;
 const APIKEY = "AIzaSyAI8xat1FRdFSBaBebOf1-lDn-SNKCUbE4";
 const A = { email: "placenciailse+qa.pace.a1@gmail.com", pw: "PaceQa-2026-a1" };
 const B = { email: "placenciailse+qa.pace.b1@gmail.com", pw: "PaceQa-2026-b1" };
@@ -26,7 +26,7 @@ const check = (n, c, d) => { if (c) { passes++; console.log("PASS " + n); } else
 const srv = http.createServer((req, res) => { const p = decodeURIComponent(new URL(req.url, "http://x").pathname); const f = path.join(DIR, p === "/" ? "index.html" : p); if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "text/plain" }); res.end(fs.readFileSync(f)); });
 await new Promise((r) => srv.listen(PORT, r));
 const APP = `http://localhost:${PORT}/`;
-const browser = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"], });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"], });
 async function dismissals(p) {
   for (let i = 0; i < 16; i++) {
     if (await p.locator("#welcome").isVisible().catch(() => false)) { await p.evaluate(() => document.getElementById("welcomeSkip").click()); await p.waitForTimeout(350); }

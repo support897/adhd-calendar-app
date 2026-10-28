@@ -1,9 +1,9 @@
 // LAW B2 (shipped in pace-v11): every user-data delete carries ONE
 // safety step — an Undo in the toast. Runs against the app tree.
 // Run: node tests/delete-undo-check.mjs
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import { readFile } from "fs/promises"; import { extname } from "path";
-const APP = "/home/hatch/workspace/adhd-calendar-app";
+const APP = "/Users/ilse/Apps/adhd-calendar-app";
 const STAGE = APP;
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".ttf": "font/ttf", ".gz": "application/gzip", ".png": "image/png" };
 const srv = http.createServer(async (req, res) => {
@@ -14,7 +14,7 @@ const srv = http.createServer(async (req, res) => {
   } catch { res.writeHead(404); res.end(); }
 });
 await new Promise(r => srv.listen(9109, r));
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const p = await b.newPage({ viewport: { width: 1280, height: 850 } });
 const errs = []; p.on("pageerror", e => errs.push(String(e)));
 let pass = 0, fail = 0; const check = (n, ok) => { ok ? (pass++, console.log("PASS", n)) : (fail++, console.log("FAIL", n)); };

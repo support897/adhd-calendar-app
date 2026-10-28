@@ -10,7 +10,7 @@
 // out); (3) a scheduled start reminder carries its tap payload;
 // (4) a fired tap opens the task sheet; (5) a cold open carrying
 // the payload in the address routes the same way; (6) no errors.
-import pw from "/home/hatch/node_modules/playwright-core/index.mjs";
+import pw from "playwright-core";
 const { chromium } = pw;
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -52,7 +52,7 @@ const stub = () => {
       addListener: async (name, fn) => { (window.__ln.listeners[name] = window.__ln.listeners[name] || []).push(fn); return {}; },
     } } };
 };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
 await ctx.addInitScript(stub);
 const p = await ctx.newPage();

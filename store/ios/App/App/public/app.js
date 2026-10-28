@@ -360,7 +360,12 @@ function load(fromKey) {
       if (!h.id) h.id = uid();
       if (L.HABIT_ICONS.indexOf(h.icon) === -1) h.icon = "star";
       if (!isObj(h.days)) h.days = {};
+      if (typeof h.plan !== "string") h.plan = "";
+      if (typeof h.tiny !== "string") h.tiny = "";
     });
+    if (!Array.isArray(s.goals)) s.goals = [];
+    s.goals = s.goals.filter(function (g) { return isObj(g) && typeof g.title === "string" && typeof g.end === "string"; });
+    s.goals.forEach(function (g) { if (!g.id) g.id = uid(); if (typeof g.start !== "string") g.start = L.todayKey(); if (!g.pace) g.pace = "daily"; });
     s.settings = Object.assign(defaultSettings(), isObj(s.settings) ? s.settings : {});
     s.settings.notif = Object.assign(defaultSettings().notif, isObj(s.settings.notif) ? s.settings.notif : {});
     if (!isObj(s.settings.names)) s.settings.names = defaultSettings().names;
@@ -1624,54 +1629,12 @@ function renderIconPicker() {
     wrap.appendChild(b);
   });
 }
-function renderHabits() {
-  var wrap = $("habitList"); if (!wrap) return;
-  wrap.innerHTML = "";
-  if (!state.habits.length) wrap.innerHTML = '<div class="empty-note">' + icon("i-habits") + "<span>" + tr("No habits yet. Name one and pick its icon below.") + "</span></div>";
-  var today = L.todayKey();
-  state.habits.forEach(function (h, idx) {
-    var info = L.streakInfo(h.days, today);
-    var row = document.createElement("div");
-    row.className = "habit-row";
-    var dots = info.last7.map(function (d, i) {
-      return '<button class="week-dot' + (d.done ? " is-done" : "") + (i === 6 ? " is-today" : "") + '" data-key="' + d.key + '" aria-label="Toggle ' + d.key + '"></button>';
-    }).join("");
-    var streakDots = "";
-    for (var i = 0; i < Math.min(info.current, 10); i++) streakDots += '<span class="streak-dot"></span>';
-    row.innerHTML =
-      '<span class="habit-ico tint-' + (idx % 6) + '">' + icon(habitIconId(h.icon)) + "</span>" +
-      '<span class="habit-main"><span class="habit-name"></span>' +
-      '<span class="habit-streak">' + streakDots + (info.current ? '<span class="streak-num">' + tr("{n} in a row", { n: info.current }) + "</span>" : '<span class="streak-none">' + tr("No run yet") + "</span>") + "</span></span>" +
-      '<span class="habit-week">' + dots + "</span>" +
-      '<button class="habit-tick' + (h.days[today] ? " is-done" : "") + '" aria-label="' + tr("Done today") + '">' + (h.days[today] ? icon("i-check") : "") + "</button>" +
-      '<button class="habit-del" aria-label="' + tr("Delete habit") + '">' + icon("i-trash") + "</button>";
-    row.querySelector(".habit-name").textContent = h.name;
-    row.querySelectorAll(".week-dot").forEach(function (d) {
-      d.addEventListener("click", function () {
-        var k = d.getAttribute("data-key");
-        if (h.days[k]) delete h.days[k]; else h.days[k] = true;
-        save(); renderHabits();
-      });
-    });
-    row.querySelector(".habit-tick").addEventListener("click", function () {
-      if (h.days[today]) delete h.days[today]; else h.days[today] = true;
-      save(); renderHabits();
-    });
-    row.querySelector(".habit-del").addEventListener("click", function () {
-      var habitIdx = state.habits.indexOf(h);
-      state.habits = state.habits.filter(function (x) { return x.id !== h.id; });
-      save(); renderHabits();
-      toast(tr("Habit removed."), function () { restoreAt(state.habits, h, habitIdx); save(); renderHabits(); toast(tr("Back again.")); });
-    });
-    wrap.appendChild(row);
-  });
-  renderIconPicker();
-}
+function renderHabits() { if (window.PaceGoalsUI) window.PaceGoalsUI.renderHabits(); renderIconPicker(); }
 function submitHabit() {
   var name = $("habitName").value.trim();
   if (!name) { toast(tr("Give the habit a name first.")); return; }
-  state.habits.push({ id: uid(), name: name, icon: habitPick, days: {} });
-  $("habitName").value = "";
+  state.habits.push({ id: uid(), name: name, icon: habitPick, days: {}, plan: ($("habitPlan") ? $("habitPlan").value.trim() : ""), tiny: ($("habitTiny") ? $("habitTiny").value.trim() : "") });
+  $("habitName").value = ""; if ($("habitPlan")) $("habitPlan").value = ""; if ($("habitTiny")) $("habitTiny").value = "";
   save(); renderHabits();
 }
 $("habitAddBtn").addEventListener("click", submitHabit);
@@ -2044,9 +2007,10 @@ function buildTour() {
   TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar lets you switch Day, Week, Month, Year, and Agenda.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Talk to it turns a sentence into tasks. Speaking is optional.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "todo", pose: "point", bubble: "To do keeps loose tasks beside the calendar.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress, Habits, and Settings.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress, Habits, Goals, and Settings.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Progress groups tasks by status. If it is locked, Pace will say so.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "habits", pose: "point", bubble: "Habits helps you notice routines, one day at a time.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "goals", pose: "point", bubble: "Goals turns one big goal into one small step a day on your calendar.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", pose: "point", bubble: "Settings is where reminders and this guide live.", next: "Done ✓", last: true });
 }
 var guideStep = 0;
@@ -2065,6 +2029,7 @@ function showGuide(step) {
     else if (s.panel === "capture") { showPanel("capture"); setBottomTab("capture"); }
     else if (s.panel === "todo") { showPanel("todo"); setBottomTab("todo"); }
     else if (s.panel === "habits") { showPanel("habits"); setBottomTab("more"); }
+    else if (s.panel === "goals") { showPanel("goals"); setBottomTab("more"); }
     else if (s.panel === "settings") { showPanel("settings"); setBottomTab("more"); }
     else if (s.panel === "more" || s.panel === "progress") { setBottomTab("more"); }
   } else if (s.kind === "reminders") { showPanel("settings"); setBottomTab("more"); }
@@ -2088,7 +2053,7 @@ function showGuide(step) {
   if (s.kind === "tour") {
     if (s.panel === "more") target = $("sbExpand");
     else if (s.panel === "progress") target = document.querySelector('.side-item[data-panel="progress"]');
-    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" ? "more" : s.panel) + '"]');
+    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" || s.panel === "goals" ? "more" : s.panel) + '"]');
   }
   if (target) target.classList.add("guide-target");
   var ex = $("guideExtra");
@@ -2458,7 +2423,7 @@ function guestPot() {
     // (source "sample") are not user data — a samples-only slot is
     // no pot, or the next account would be offered the demo set.
     var n = (g.tasks || []).filter(function (t) { return t && t.source !== "sample"; }).length
-      + (g.todos || []).length + (g.habits || []).length;
+      + (g.todos || []).length + (g.habits || []).length + (g.goals || []).length;
     return n > 0 ? g : null;
   } catch (e) { return null; }
 }
@@ -2538,8 +2503,8 @@ function reconcileAccount() {
       // freshAccountState), AND this invariant stands at the
       // decision itself as the second lock: local with no user
       // content + a server doc with content = ADOPT.
-      var localEmpty = !(state && ((state.tasks || []).length || (state.todos || []).length || (state.habits || []).length || Object.keys(state.feelings || {}).length));
-      var serverHas = !!(serverObj && ((serverObj.tasks || []).length || (serverObj.todos || []).length || (serverObj.habits || []).length || Object.keys(serverObj.feelings || {}).length));
+      var localEmpty = !(state && ((state.tasks || []).length || (state.todos || []).length || (state.habits || []).length || (state.goals || []).length || Object.keys(state.feelings || {}).length));
+      var serverHas = !!(serverObj && ((serverObj.tasks || []).length || (serverObj.todos || []).length || (serverObj.habits || []).length || (serverObj.goals || []).length || Object.keys(serverObj.feelings || {}).length));
       if (serverObj && (serverAt > localAt || (localEmpty && serverHas))) {
         adoptStateObject(serverObj);
       } else {
@@ -2659,7 +2624,7 @@ function resolvePot(bring) {
 }
 function freshAccountState() {
   var s = seed();
-  s.tasks = []; s.todos = []; s.habits = []; s.feelings = {}; s.imports = [];
+  s.tasks = []; s.todos = []; s.habits = []; s.goals = []; s.feelings = {}; s.imports = [];
   // A born state has NO content, so it claims NO content time:
   // updatedAt 0 keeps its birth save() from outranking the
   // account's real server content at the reconcile (QA F1).
@@ -2980,7 +2945,7 @@ function bindAccounts() {
 }
 
 /* ---------- boot ---------- */
-function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
+function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
 applyI18n();
 initCalendar();
 applyAppearance();
@@ -2994,4 +2959,6 @@ checkNotifications();
 bindAccounts();
 if (!ACTIVE_UID && window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(null, null, null); } catch (e) {} }
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
+/* Bridge for goals-ui.js (the Goals screen and the Habits week view live there). */
+window.PaceCtx = { get state() { return state; }, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
 })();

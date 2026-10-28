@@ -8,7 +8,7 @@
 // every save), and Export writes the file + shares it. Web untouched.
 // This battery stubs the Capacitor bridge and proves both branches,
 // plus the web control.
-import pw from "/home/hatch/node_modules/playwright-core/index.mjs";
+import pw from "playwright-core";
 const { chromium } = pw;
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -25,7 +25,7 @@ const server = http.createServer((req, res) => {
 let pass = 0, fail = 0;
 const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); ok ? pass++ : fail++; };
 await new Promise((r) => server.listen(8953, r));
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 
 const now = new Date();
 const tk = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");

@@ -4,10 +4,10 @@
 // (PC-1), per-account isolation, activation stamps, the saved-data
 // round trip, the string heal, and account deletion. The live
 // test-twin battery (Security P4) proves the real rules text.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
 import { startMock } from "./mock-firebase.mjs";
-const ROOT = "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".gz": "application/gzip", ".png": "image/png" };
 const mock = await startMock();
 const testConfig = `window.PACE_FB_CONFIG = { apiKey: "test-key-1234567890", authDomain: "x", projectId: "pace-test", appId: "1:x:web:y", googleClientId: null, appleEnabled: false, restAuth: "http://127.0.0.1:${mock.port}", restFirestore: "http://127.0.0.1:${mock.port}", restToken: "http://127.0.0.1:${mock.port}" };`;
@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(9123, r));
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
 const p = await ctx.newPage();
 p.setDefaultTimeout(9000);

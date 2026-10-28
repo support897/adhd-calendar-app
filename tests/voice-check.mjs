@@ -3,16 +3,16 @@
 // native store-app plugin (granted / denied / silence), and the no-
 // voice-at-all fallback. Live cloud transcription cannot happen in a
 // sandbox; what is proven here is the app's own hearing path end to end.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const DIR = "/home/hatch/workspace/adhd-calendar-app";
+const DIR = "/Users/ilse/Apps/adhd-calendar-app";
 const URL = "http://localhost:9119/";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest", ".png": "image/png", ".ttf": "font/ttf", ".woff2": "font/woff2" };
 const srv = http.createServer((req, res) => { const p = decodeURIComponent(new globalThis.URL(req.url, "http://x").pathname); if (p === "/firebase-config.js") { res.writeHead(200, { "Content-Type": "text/javascript" }); return res.end("window.PACE_FB_CONFIG={};"); } const f = path.join(DIR, p === "/" ? "index.html" : p); if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "text/plain" }); res.end(fs.readFileSync(f)); });
 await new Promise((r) => srv.listen(9119, r));
 let pass = 0, fail = 0;
 const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
-const browser = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 
 const seedSrc = `
   localStorage.setItem("calmcal-v1:guest", JSON.stringify({ welcomed: true, settings: { guide: "done", guideDone: true, onboarded: true },

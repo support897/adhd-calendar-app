@@ -5,7 +5,7 @@ import http from "http";
 import fs from "fs";
 import path from "path";
 
-const ROOT = process.env.APP_ROOT || "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = process.env.APP_ROOT || "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".md": "text/plain", ".json": "application/json", ".png": "image/png" };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);

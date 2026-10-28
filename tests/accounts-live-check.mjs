@@ -3,9 +3,9 @@
 // (pace-test-c00fa) with the shipped firestore.rules published.
 // Assertions read over REST with each user's own token; denials
 // are the live 403s. TU identities per MULTIUSER §10.
-import { chromium } from "/home/hatch/node_modules/playwright-core/index.mjs";
+import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const ROOT = "/home/hatch/workspace/adhd-calendar-app";
+const ROOT = "/Users/ilse/Apps/adhd-calendar-app";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".gz": "application/gzip", ".png": "image/png" };
 const TWIN = { apiKey: "AIzaSyDtzBATSYj-pbQiBipcj4rZ6G6lx66TRhg", projectId: "pace-test-c00fa" };
 const testConfig = `window.PACE_FB_CONFIG = { apiKey: "${TWIN.apiKey}", authDomain: "pace-test-c00fa.firebaseapp.com", projectId: "${TWIN.projectId}", appId: "1:993767785197:web:ecc7b4b9390db5967742e4", googleClientId: null, appleEnabled: false };`;
@@ -36,7 +36,7 @@ async function fsGet(path, token) {
 // failure that looks like an app fault. Node's own fetch (the
 // assertion legs) uses the env proxy natively.
 const px = new URL(process.env.https_proxy || process.env.HTTPS_PROXY || "http://127.0.0.1:1");
-const b = await chromium.launch({ executablePath: "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"], proxy: { server: px.protocol + "//" + px.host, username: decodeURIComponent(px.username), password: decodeURIComponent(px.password), bypass: "localhost,127.0.0.1" } });
+const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"], proxy: { server: px.protocol + "//" + px.host, username: decodeURIComponent(px.username), password: decodeURIComponent(px.password), bypass: "localhost,127.0.0.1" } });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
 const p = await ctx.newPage();
 p.setDefaultTimeout(12000);
