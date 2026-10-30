@@ -1053,7 +1053,19 @@ document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
 /* ---------- quick add ---------- */
 var addCat = null;
 function pickAddCat(c) { addCat = c; renderCatChips($("fCatChips"), c ? c.id : null, pickAddCat, true); }
+var addRemind = [];
+function renderAddRemind() {
+  var box = $("fRemChips"); if (!box) return;
+  box.innerHTML = "";
+  REMIND_MINS.forEach(function (m) {
+    box.appendChild(chipButton(remindLabel(m), addRemind.indexOf(m) !== -1, function () {
+      var i = addRemind.indexOf(m); if (i === -1) addRemind.push(m); else addRemind.splice(i, 1);
+      addRemind = cleanLeads(addRemind); renderAddRemind();
+    }));
+  });
+}
 $("addBtn").addEventListener("click", function () {
+  addRemind = defaultLeads().slice(); renderAddRemind();
   $("quickText").value = ""; $("fTitle").value = "";
   $("fDate").value = selected; $("fTime").value = ""; $("fDur").value = 25;
   $("fMin").value = ""; $("fFull").value = ""; $("fEssential").checked = false;
@@ -1094,6 +1106,7 @@ $("addSave").addEventListener("click", function () {
   if (!task) { toast(tr("Give it a title first, even a messy one.")); return; }
   if ($("fRepeat").value) task.repeat = $("fRepeat").value;
   if (addCat) { task.category = addCat.id; task.color = addCat.color; }
+  task.remind = cleanLeads(addRemind); /* its own reminders, not the general setting */
   task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = $("quickText").value.trim(); task.skipDates = []; task.doneDates = [];
   state.tasks.push(task); save(); markActivated("event");
   $("addSheet").hidden = true;

@@ -107,6 +107,20 @@ const pl = await m.evaluate(() => { const s = PaceGoals.buildPlan({ title: "Lear
 check("goal 'Learn Spanish' is read as a learning playbook with 4 stages", pl.kind === "playbook" && pl.stages === 4 && /Spanish/.test(pl.first) && !/learn Spanish/.test(pl.first));
 const pl2 = await m.evaluate(() => PaceGoals.buildPlan({ title: "Pass my biology exam", start: "2026-11-02", end: "2026-12-11", pace: "daily", mins: 20, category: "school", text: "Pass my biology exam" }).analysis.summary);
 check("an exam goal gets exam stages", /exam goal/.test(pl2));
+/* reminders are per task, not general */
+async function addWithRem(text, labels) {
+  await m.click("#addBtn");
+  const on = m.locator("#fRemChips .chip.is-on");
+  while (await on.count()) await on.first().click();
+  for (const l of labels) await m.locator("#fRemChips .chip", { hasText: l }).click();
+  await m.fill("#quickText", text); await m.click("#addSave"); await m.waitForTimeout(300);
+}
+await addWithRem("Pay rent today at 4pm", ["30 min before"]);
+await addWithRem("Ring mum today at 5pm", ["1 hour before", "At start time"]);
+const rems = await m.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); const s = JSON.parse(localStorage.getItem(k)); const f = n => s.tasks.filter(t => t.title === n)[0].remind; return { a: f("Pay rent"), b: f("Ring mum"), g: s.tasks.filter(t => t.goalId)[0].remind }; });
+check("task A keeps its own reminder [30]", JSON.stringify(rems.a) === "[30]");
+check("task B keeps its own reminders [0,60]", JSON.stringify(rems.b) === "[0,60]");
+check("goal steps carry their own reminder too", JSON.stringify(rems.g) === "[10]");
 /* narrow phone + Spanish */
 await m.setViewportSize({ width: 320, height: 640 });
 await m.screenshot({ path: SH + "/cal-320.png" });

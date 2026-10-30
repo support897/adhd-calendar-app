@@ -318,7 +318,7 @@ function commitDraft() {
   d.steps.forEach(function (st) {
     var slot = slotFor(st, placed);
     var task = { id: uid(), title: st.title, date: st.date, time: slot, durationMin: st.durationMin, priority: 0, repeat: null, category: "other", color: cat.color, icon: cat.emoji,
-      essential: false, status: "todo", steps: [], minVersion: st.minVersion, fullVersion: "", source: "goal", goalId: goal.id, originalText: goal.title, skipDates: [], doneDates: [] };
+      essential: false, status: "todo", steps: [], minVersion: st.minVersion, fullVersion: "", source: "goal", goalId: goal.id, remind: [10], originalText: goal.title, skipDates: [], doneDates: [] };
     C.state.tasks.push(task);
     if (slot) placed.push(task);
   });
