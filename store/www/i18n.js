@@ -18,7 +18,8 @@
    ============================================================ */
 (function () {
   var nav = (navigator.language || "en").toLowerCase();
-  var LANG = nav.indexOf("es") === 0 ? "es" : "en";
+  /* 30 Oct 2026 (owner ruling): English only. The device language is ignored; the Spanish table below stays dormant. */
+  var LANG = "en";
   window.PACE_LANG = LANG;
 
   /* Legal lines: English until a human checks them. */
