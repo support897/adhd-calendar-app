@@ -31,6 +31,8 @@
   var HUMAN_OK = {}; /* e.g. HUMAN_OK["Delete my account"] = true once checked */
 
   var ES = {
+    "That is a lot for the days left. The steps are bigger than usual \u2014 a later finish date would make them small again.": "Es mucho para los días que quedan. Los pasos son más grandes de lo normal: una fecha de término más lejana los haría pequeños otra vez.",
+    "{n} of these days already look full, so those steps will sit in the day's list instead of at a set time.": "{n} de estos días ya se ven llenos, así que esos pasos quedarán en la lista del día en vez de a una hora fija.",
     " at {time}": " a las {time}",
     " · no time yet": " · sin hora todavía",
     "A calendar file": "Un archivo de calendario",
