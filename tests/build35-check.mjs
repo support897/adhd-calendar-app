@@ -135,6 +135,20 @@ console.log("INFO mock server status: B reading A =", srvB, ", A reading A =", s
 check("mock server: B is refused A's data (" + srvB + ")", srvB === 403 || srvB === 401);
 check("journey: no page errors", j.errs.length === 0 || (console.log(j.errs), false));
 
+/* ===== build 35 phase D: quick-add suggestion chips ===== */
+const qa = await mkPhone("quick35@test.dev");
+await qa.click("#addBtn"); await qa.fill("#quickText", "Call mum");
+await qa.click('#quickSuggest [data-add="tomorrow"]'); await qa.click('#quickSuggest [data-add="at 6pm"]'); await qa.click('#quickSuggest [data-add="every day"]'); await qa.click('#quickSuggest [data-add="!!!"]');
+check("suggestion chips build the sentence (" + await qa.inputValue("#quickText") + ")", /Call mum tomorrow at 6pm every day!!!$/.test(await qa.inputValue("#quickText")));
+const pv = await qa.locator("#quickPreview").innerText();
+check("preview shows date, time, repeat and priority chips", /Repeats every day/.test(pv) && /6:?0?0?\s?(pm|PM)|18:00/.test(pv) && /Priority high/.test(pv));
+await qa.screenshot({ path: SH + "/add-chips-390.png" });
+await qa.click("#addSave"); await qa.waitForTimeout(500);
+const tk = await qa.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); return JSON.parse(localStorage.getItem(k)).tasks.find(t => /Call mum/.test(t.title)); });
+check("the saved task has time 18:00, repeat and priority 3", tk && tk.time === "18:00" && tk.repeat === "every day" && tk.priority === 3);
+check("the saved task has its own reminder (per task)", tk && Array.isArray(tk.remind) && tk.remind.length >= 1);
+check("quick add: no page errors", qa.errs.length === 0 || (console.log(qa.errs), false));
+
 check("no page errors (desktop)", errors.length === 0 || (console.log(errors), false));
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); mock.close && mock.close(); server.close();

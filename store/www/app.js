@@ -1101,7 +1101,15 @@ $("quickText").addEventListener("input", function () {
     (item.time ? chip("qc-time", tr("at {time}", { time: item.time })) : item.allDay ? "" : chip("qc-none", tr("no time yet"))) +
     chip("qc-dur", durationLabel(item)) +
     (item.repeat ? chip("qc-rep", "Repeats " + item.repeat) : "") + rem +
+    (item.priority ? chip("qc-ess", "Priority " + ["", "low", "medium", "high"][item.priority]) : "") +
     (item.essential ? chip("qc-ess", "must not slip") : "") + "</div>";
+});
+document.querySelectorAll("#quickSuggest [data-add]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var inp = $("quickText"), add = b.getAttribute("data-add");
+    inp.value = (inp.value.replace(/\s+$/, "") + (add === "!!!" ? "" : " ") + add).trim();
+    inp.dispatchEvent(new Event("input", { bubbles: true })); inp.focus();
+  });
 });
 $("addSave").addEventListener("click", function () {
   // A smallest version typed at creation is a teach (Plus);
