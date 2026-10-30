@@ -75,5 +75,31 @@ check("empty habit has gentle start message", /Start tiny/.test(G.habitMessage(G
 check("future ticks are ignored", G.habitStats(day("2026-10-29"), "2026-10-28").total === 0);
 const longRun = {}; for (let i = 0; i < 70; i++) longRun[L.addDays("2026-10-28", -i)] = true;
 check("66-day milestone message", /66-day average/.test(G.habitMessage(G.habitStats(longRun, "2026-10-28"))));
+// --- the analyzer (build 33): steps come from the goal's own work
+check("analyzer reads chapters", (G.analyzeWork("Read 12 chapters of my textbook") || {}).unit === "chapter");
+check("analyzer reads words with commas", (G.analyzeWork("Write my 3,000-word essay") || {}).total === 3000);
+check("analyzer reads money", (G.analyzeWork("Save $600 for the bond") || {}).kind === "money");
+check("analyzer reads a title list", (G.analyzeList("Clean the kitchen, bathroom and garage") || { items: [] }).items.length === 3);
+check("analyzer leaves plain titles alone", G.analyzeWork("Pass my exam") === null && G.analyzeList("Pass my exam") === null);
+const ch = G.buildPlan({ title: "Read 12 chapters of my textbook", category: "school", start: "2026-10-29", end: "2026-11-26", pace: "daily", mins: 20 });
+check("chapter plan carries its analysis", !!ch.analysis && ch.analysis.kind === "count" && ch.analysis.total === 12);
+check("chapter steps name the real chapters", ch[0].title === "Read chapter 1" && ch.some(s => /chapter 12/.test(s.title) || /^Finish:/.test(s.title)));
+check("chapter steps are sized from the work (a chapter ~25 min)", ch[0].durationMin === 25);
+check("chapter plan groups by week", ch.analysis.weeks.length >= 2 && /chapters 1/.test(ch.analysis.weeks[0].text));
+check("chapter plan finishes before the deadline", ch[ch.length - 1].date < "2026-11-26");
+const wd = G.buildPlan({ title: "Write my 3,000-word essay", category: "school", start: "2026-10-29", end: "2026-11-19", pace: "daily", mins: 20 });
+check("word plan steps say words, not ranges", /Write \d+ words/.test(wd[0].title) && wd.every(s => !/words \d/.test(s.title)));
+check("word plan covers the whole count", wd.reduce((a, s) => a + (s.chunk ? s.chunk.to - s.chunk.from + 1 : 0), 0) === 3000 || wd.length >= 15);
+const sv = G.buildPlan({ title: "Save $600 for the bond", category: "money", start: "2026-10-29", end: "2026-11-28", pace: "daily", mins: 20 });
+check("money plan steps carry running totals", /Put \$\d+ aside \(\$\d+ of \$600\)/.test(sv[0].title) || /^Finish:/.test(sv[0].title));
+check("money plan reaches the full amount", sv.some(s => /of \$600\)/.test(s.title) && /\$600 of/.test(s.title)) || /Finish:/.test(sv[sv.length - 1].title));
+const li = G.buildPlan({ title: "Clean the kitchen, bathroom and garage", category: "home", start: "2026-10-29", end: "2026-11-12", pace: "daily", mins: 20 });
+check("list plan works through the real rooms", li.some(s => /Kitchen/.test(s.title)) && li.some(s => /Garage/.test(s.title)));
+check("list plan uses home words, not school words", li.every(s => !/practice questions/i.test(s.title)));
+const tight = G.buildPlan({ title: "Read 40 chapters", category: "school", start: "2026-10-29", end: "2026-11-08", pace: "daily", mins: 20 });
+check("an impossible pace is flagged tight, not hidden", !!tight.analysis && tight.analysis.tight === true);
+const moneyTpl = G.buildPlan({ title: "Get the bond sorted", category: "money", start: "2026-10-29", end: "2026-12-10", pace: "daily", mins: 20 });
+check("money fallback never gets school verbs", moneyTpl.every(s => !/practice questions/i.test(s.title)));
+
 console.log("RESULT pass=" + pass + " fail=" + fail);
 if (fail) process.exitCode = 1;

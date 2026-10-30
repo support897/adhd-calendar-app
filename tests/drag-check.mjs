@@ -15,7 +15,7 @@ const server = http.createServer((req, res) => {
 await new Promise(r => server.listen(8912, r));
 let pass = 0, fail = 0;
 function check(n, c) { if (c) { pass++; console.log("PASS " + n); } else { fail++; console.log("FAIL " + n); } }
-const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await ctx.newPage();
 const errors = [];

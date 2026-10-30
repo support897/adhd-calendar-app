@@ -12,6 +12,18 @@ const testConfigPre = `window.PACE_FB_CONFIG = { apiKey: "test-key-1234567890", 
 const server = http.createServer((req, res) => { const p = decodeURIComponent(new URL(req.url, "http://x").pathname); if (p === "/firebase-config.js") { res.writeHead(200, { "Content-Type": "text/javascript" }); return res.end(testConfigPre); } const f = path.join(DIR, p === "/" ? "index.html" : p); if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "text/plain" }); res.end(fs.readFileSync(f)); });
 await new Promise((r) => server.listen(9131, r));
 const mock = mockPre;
+/* Battery care (29 Oct, build 33's door lock): the "guest" personas
+   are now ACCOUNTS — the door law leaves no usable guest app. An
+   aged account = a mock sign-up whose spine is seeded 40 days old,
+   so its free month is spent exactly as the aged device stamp once
+   proved for guests (accounts anchor on the spine, §3). */
+async function agedAccount(email, stateDoc, ageDays) {
+  const r = await fetch(`http://127.0.0.1:${mock.port}/v1/accounts:signUp?key=x`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "password-1", returnSecureToken: true }) });
+  const A = await r.json();
+  mock.docs.set("users/" + A.localId, { createdAt: new Date(Date.now() - (ageDays == null ? 40 : ageDays) * 864e5).toISOString(), lastActiveAt: new Date().toISOString(), deletedByUser: false }); // ISO strings: what a production Firestore read returns (a raw Date here parses to anchor 0 in billing — a mock-fidelity trap, found on ctx5)
+  if (stateDoc) mock.docs.set("users/" + A.localId + "/data/state", { stateJson: JSON.stringify(stateDoc), updatedAt: new Date() });
+  return { uid: A.localId, key: "calmcal-v1:" + A.localId, sess: { uid: A.localId, email: A.email, idToken: A.idToken, refreshToken: A.refreshToken, expiresAt: Date.now() + 3600e3 } };
+}
 let pass = 0, fail = 0; const check = (n, ok) => { console.log((ok ? "PASS " : "FAIL ") + n); ok ? pass++ : fail++; };
 const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const ctx = await b.newContext({ viewport: { width: 540, height: 960 } });
@@ -83,9 +95,7 @@ for (let i = 0; i < 16; i++) {
   if (!(await p.locator("#welcome").isVisible().catch(() => false)) && !(await p.locator("#guideSheet").isVisible().catch(() => false))) break;
   await p.waitForTimeout(400);
 }
-await p.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
-await p.click('.side-item[data-panel="settings"]'); await p.waitForTimeout(400);
-await p.click("#accountOpen"); await p.waitForSelector("#authSheet:not([hidden])");
+await p.waitForSelector("#authSheet:not([hidden])"); // build 33: the boot IS the door (locked) — the sign-up happens here, no Settings route exists before it
 await p.fill("#authEmail", "pay@test.dev"); await p.click("#doorNext"); await p.waitForTimeout(900);
 await p.fill("#authPass", "password-p"); await p.click("#authGo");
 await p.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 12000 }).catch(async (e) => { console.log("door diag:", JSON.stringify(await p.evaluate(() => ({ msg: document.getElementById("authMsg").textContent, line: document.getElementById("accountLine").textContent })).catch(() => "eval dead"))); throw e; });
@@ -96,9 +106,10 @@ check("the client wrote NOTHING to subscriptions/ during sign-up", inApp.subWrit
 /* ---- THE LOCKED TAP (aged guest: free month spent, no record).
         Every Plus apply point refuses AND speaks; free features
         never read the record and keep working. ---- */
+const aged2 = await agedAccount("aged@test.dev");
 const ctx2 = await b.newContext({ viewport: { width: 540, height: 960 } });
-await ctx2.addInitScript(() => { try { localStorage.setItem("pace-first-run", String(Date.now() - 40 * 864e5)); } catch (e) {} });
 const p2 = await ctx2.newPage();
+await p2.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, aged2.sess);
 p2.on("pageerror", (e) => errors.push("aged: " + e.message));
 await p2.goto("http://localhost:9131/", { waitUntil: "networkidle" });
 await p2.waitForFunction(() => window.PaceBilling, null, { timeout: 9000 }).catch(() => {});
@@ -108,7 +119,7 @@ for (let i = 0; i < 16; i++) {
   if (!(await p2.locator("#welcome").isVisible().catch(() => false)) && !(await p2.locator("#guideSheet").isVisible().catch(() => false))) break;
   await p2.waitForTimeout(400);
 }
-check("aged guest: plus is NOT active (free month spent, no record)", await p2.evaluate(() => window.PaceBilling.plusActive()) === false);
+check("aged account: plus is NOT active (free month spent, no record)", await p2.evaluate(() => window.PaceBilling.plusActive()) === false);
 await p2.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
 await p2.click('.side-item[data-panel="settings"]'); await p2.waitForTimeout(400);
 await p2.evaluate(() => document.querySelector('.swatch[data-theme-set="blush"]').click()); await p2.waitForTimeout(500);
@@ -133,14 +144,14 @@ await p2.fill("#quickText", "water the plants");
 await p2.evaluate(() => document.querySelector("details.details-fallback summary").click()); await p2.waitForTimeout(300);
 await p2.fill("#fMin", "just the balcony pots");
 await p2.evaluate(() => document.getElementById("addSave").click()); await p2.waitForTimeout(700);
-const taught = await p2.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}"); const t = (s.tasks || []).find((x) => (x.title || "").toLowerCase().includes("water the plants")); return t ? { saved: true, min: t.minVersion } : { saved: false }; });
+const taught = await p2.evaluate((KEY) => { const s = JSON.parse(localStorage.getItem(KEY) || "{}"); const t = (s.tasks || []).find((x) => (x.title || "").toLowerCase().includes("water the plants")); return t ? { saved: true, min: t.minVersion } : { saved: false }; }, aged2.key);
 check("locked teach at creation: the task saves, the taught version does NOT", taught.saved === true && taught.min === "");
 check("locked teach at creation SPEAKS (the Plus sheet is up)", await p2.locator("#plusSheet").isVisible());
 await p2.evaluate(() => document.getElementById("plusNotNow").click()); await p2.waitForTimeout(300);
 await p2.evaluate(() => document.querySelector('.side-item[data-panel="settings"]').click()); await p2.waitForTimeout(400);
 await p2.evaluate(() => { const i = document.getElementById("nameLow"); i.value = "Rough"; i.dispatchEvent(new Event("change", { bubbles: true })); });
 await p2.waitForTimeout(500);
-const nameKept = await p2.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}").settings?.names?.low);
+const nameKept = await p2.evaluate((KEY) => JSON.parse(localStorage.getItem(KEY) || "{}").settings?.names?.low, aged2.key);
 check("locked energy rename SPEAKS and the factory word stays", (await p2.locator("#plusSheet").isVisible()) && nameKept === "Bad");
 await p2.evaluate(() => document.getElementById("plusNotNow").click()); await p2.waitForTimeout(300);
 await p2.evaluate(async () => { await window.PaceBilling.refresh({ fsGet: () => Promise.resolve({ entitlement: "plus", status: "active", period_ends_at: new Date(Date.now() + 10 * 864e5).toISOString() }) }, "u-aged", new Date(Date.now() - 40 * 864e5).toISOString()); });
@@ -154,15 +165,16 @@ const K = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d
 const K2 = (() => { const d = new Date(Date.now() + 864e5); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
 const mkT = (id, title, date, steps) => ({ id, title, date, time: null, durationMin: 30, priority: 0, repeat: null, category: "work", color: "#5B6BD5", essential: false, status: "todo", steps: steps || [], minVersion: "", fullVersion: "", source: "manual", originalText: "", skipDates: [], doneDates: [] });
 const seed3 = { settings: { guideDone: true }, welcomed: true, samplesLoaded: true, imports: [], feelings: { [K]: "full" }, checks: {}, habitLog: {}, habits: [], todos: [], tasks: [mkT("s1", "Seeded today task", K, []), mkT("s2", "Seeded tomorrow task", K2, [])] };
+const aged3 = await agedAccount("seeded@test.dev", { ...seed3, updatedAt: Date.now() });
 const ctx3 = await b.newContext({ viewport: { width: 540, height: 960 } });
-await ctx3.addInitScript((s) => { try { localStorage.setItem("pace-first-run", String(Date.now() - 40 * 864e5)); if (!localStorage.getItem("calmcal-v1:guest")) localStorage.setItem("calmcal-v1:guest", JSON.stringify(s)); } catch (e) {} }, seed3);
 const p3 = await ctx3.newPage();
+await p3.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, aged3.sess);
 p3.on("pageerror", (e) => errors.push("seeded: " + e.message));
 await p3.goto("http://localhost:9131/", { waitUntil: "networkidle" });
 await p3.waitForTimeout(1500);
 check("the stretch note offers tomorrow's task on a Great day", await p3.locator('[data-act="stretch"]').isVisible().catch(() => false));
 await p3.evaluate(() => document.querySelector('[data-act="stretch"]').click()); await p3.waitForTimeout(500);
-const s2date = await p3.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}"); const t = (s.tasks || []).find((x) => x.id === "s2"); return t ? t.date : null; });
+const s2date = await p3.evaluate((KEY) => { const s = JSON.parse(localStorage.getItem(KEY) || "{}"); const t = (s.tasks || []).find((x) => x.id === "s2"); return t ? t.date : null; }, aged3.key);
 check("locked stretch tap SPEAKS and the task stays on tomorrow", (await p3.locator("#plusSheet").isVisible()) && s2date === K2);
 await p3.evaluate(() => document.getElementById("plusNotNow").click()); await p3.waitForTimeout(300);
 await p3.evaluate(() => { const el = [...document.querySelectorAll(".task-row, .day-task, [data-open-task]")].find((x) => x.textContent.includes("Seeded today task")); if (el) el.click(); });
@@ -170,7 +182,7 @@ await p3.waitForTimeout(800);
 const breakSeen = await p3.locator("#dBreak").isVisible().catch(() => false);
 if (breakSeen) {
   await p3.evaluate(() => document.getElementById("dBreak").click()); await p3.waitForTimeout(500);
-  const stepsAfter = await p3.evaluate(() => { const s = JSON.parse(localStorage.getItem("calmcal-v1:guest") || "{}"); const t = (s.tasks || []).find((x) => x.id === "s1"); return t ? (t.steps || []).length : -1; });
+  const stepsAfter = await p3.evaluate((KEY) => { const s = JSON.parse(localStorage.getItem(KEY) || "{}"); const t = (s.tasks || []).find((x) => x.id === "s1"); return t ? (t.steps || []).length : -1; }, aged3.key);
   check("locked Break tap SPEAKS and no steps are made", (await p3.locator("#plusSheet").isVisible()) && stepsAfter === 0);
 } else {
   check("locked Break tap SPEAKS and no steps are made", false);
@@ -242,8 +254,10 @@ await ctx4.close();
 /* ---- THE PLANS SURFACE, native + live: the buy buttons are
         the app's own classes, priced by the store's strings,
         and a purchase flips the sheet's truth. ---- */
+const fresh5 = await agedAccount("native@test.dev", null, 0);
 const ctx5 = await b.newContext({ viewport: { width: 540, height: 960 } });
 const p5 = await ctx5.newPage();
+await p5.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, fresh5.sess);
 p5.on("pageerror", (e) => errors.push("plans: " + e.message));
 await p5.goto("http://localhost:9131/", { waitUntil: "networkidle" });
 await p5.waitForFunction(() => window.PaceBilling, null, { timeout: 9000 }).catch(() => {});
@@ -312,9 +326,10 @@ await ctx5.close();
    account) — Talk to it's parse must refuse with the popup,
    exactly like a lapsed account. The free month is the only
    door, and it has closed. */
+const aged6 = await agedAccount("lapsed@test.dev");
 const ctx6 = await b.newContext({ viewport: { width: 540, height: 960 } });
-await ctx6.addInitScript(() => { try { localStorage.setItem("pace-first-run", String(Date.now() - 40 * 864e5)); } catch (e) {} });
 const p6 = await ctx6.newPage();
+await p6.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, aged6.sess);
 p6.on("pageerror", (e) => errors.push("p3: " + e.message));
 await p6.goto("http://localhost:9131/", { waitUntil: "networkidle" });
 await p6.waitForTimeout(1500);
@@ -327,7 +342,7 @@ await p6.waitForTimeout(400);
 await p6.fill("#dumpText", "call the dentist tomorrow at 3pm");
 await p6.evaluate(() => document.getElementById("parseBtn").click());
 await p6.waitForTimeout(600);
-check("POLAR P3: a lapsed guest's Talk-to-it parse is refused by the Plus gate (the boundary bites past the free month)", await p6.locator("#plusSheet").isVisible());
+check("POLAR P3: a lapsed account's Talk-to-it parse is refused by the Plus gate (the boundary bites past the free month)", await p6.locator("#plusSheet").isVisible());
 await ctx6.close();
 check("zero page errors in the payments battery", errors.length === 0);
 if (errors.length) console.log(errors.slice(0, 4).join(" | "));

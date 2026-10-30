@@ -20,7 +20,7 @@ await new Promise(r => server.listen(8911, r));
 let pass = 0, fail = 0;
 function check(name, cond) { if (cond) { pass++; console.log("PASS " + name); } else { fail++; console.log("FAIL " + name); } }
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 await ctx.grantPermissions(["notifications"], { origin: "http://localhost:8911" });
 const page = await ctx.newPage();

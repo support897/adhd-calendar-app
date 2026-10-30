@@ -68,8 +68,9 @@ async function doorThrough(pg, email, pw) {
   await pg.click("#authGo");
 }
 async function signUp(email, pw) {
-  await settings();
-  await p.click("#accountOpen"); await p.waitForSelector("#authSheet:not([hidden])");
+  // Battery care (29 Oct, build 33's door lock): the door stands
+  // open at boot and after every sign-out — sign-up happens there.
+  await p.waitForSelector("#authSheet:not([hidden])");
   await doorThrough(p, email, pw); // the door's one button creates the account
   await p.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); return s && s.email === document.querySelector("#authEmail")?.value || (s && s.email); }, null, { timeout: 9000 }).catch(() => {});
   await settleTour();
@@ -92,8 +93,6 @@ async function settleTour() {
   }
 }
 await p.goto("http://localhost:9123/", { waitUntil: "networkidle" }); await p.waitForTimeout(700);
-await settings();
-check("configured build shows the Account group", await p.evaluate(() => !document.getElementById("accountGroup").hidden));
 // 1-3. Sign up A, the door, bring the pot in.
 await signUp("a@test.dev", "password-a");
 const uidA = uidByEmail("a@test.dev");
@@ -112,6 +111,8 @@ check("A's state doc holds the pot on the server", !!docOf(uidA, "data/state") &
 check("the guest pot was consumed (A's tasks gone from the guest slot)", await p.evaluate(() => !(JSON.parse(localStorage.getItem("calmcal-v1:guest")).tasks || []).some((t) => /Guest pot task/.test(t.title))));
 check("A's spine exists and carries NO plan field (v2)", !!docOf(uidA) && !("plan" in docOf(uidA)) && !!docOf(uidA).createdAt);
 check("the aggSignups shard exists in the owner space", !!mock.docs.get("aggSignups/" + uidA) && !!mock.docs.get("aggSignups/" + uidA).createdAt);
+await settings();
+check("configured build shows the Account group", await p.evaluate(() => !document.getElementById("accountGroup").hidden));
 // 4. A's first own event fires the activation stamp.
 await p.evaluate(() => document.querySelector('[data-panel="calendar"]').click()); await p.waitForTimeout(400);
 await p.click("#addBtn"); await p.waitForSelector("#addSheet:not([hidden])");
@@ -149,7 +150,7 @@ check("a non-owner cannot run CEO counts", String(countDenied).startsWith("denie
 // 8. A returns: round trip intact.
 await settings(); await p.click("#accountOut"); await p.waitForTimeout(800);
 await dismissOverlays();
-await settings(); await p.click("#accountOpen"); await p.waitForSelector("#authSheet:not([hidden])");
+await p.waitForSelector("#authSheet:not([hidden])"); // the sign-out reload lands on the locked door
 await doorThrough(p, "a@test.dev", "password-a"); await p.waitForTimeout(2200);
 await dismissOverlays();
 await settleTour();
@@ -179,9 +180,7 @@ const p3 = await ctx3.newPage();
 await p3.goto("http://localhost:9123/", { waitUntil: "load" }); await p3.waitForTimeout(2500);
 if (await p3.locator("#welcome").isVisible().catch(() => false)) { await p3.click("#welcomeSkip"); await p3.waitForTimeout(300); }
 if (await p3.locator("#guideSheet").isVisible().catch(() => false)) { await p3.click("#guideSkip"); await p3.waitForTimeout(300); }
-await p3.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
-await p3.click('.side-item[data-panel="settings"]'); await p3.waitForTimeout(400);
-await p3.click("#accountOpen"); await p3.waitForSelector("#authSheet:not([hidden])");
+await p3.waitForSelector("#authSheet:not([hidden])"); // build 33 lock: the door stands at boot
 await doorThrough(p3, "c@test.dev", "password-c");
 let cDoor = false;
 for (let i = 0; i < 40 && !cDoor; i++) {
@@ -237,10 +236,7 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
     if (!any) break;
     await p4.waitForTimeout(400);
   }
-  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
-  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
-  await p4.click("#accountOpen");
-  await p4.waitForSelector("#authSheet:not([hidden])");
+  await p4.waitForSelector("#authSheet:not([hidden])"); // build 33 lock: a fresh page boots ON the door
   check("the door is a full first page: big mark + name, icon doors, email + arrow only (no password, no name field)", await p4.locator(".door-hero").isVisible() && (await p4.locator(".door-title").innerText()) === "Pace Calendar" && await p4.locator("#googleBtn").isVisible() && await p4.locator("#doorNext").isVisible()
     && !(await p4.locator("#authPass").isVisible().catch(() => false)) && (await p4.locator("#authName").count()) === 0 && (await p4.locator("#nameSheet").count()) === 0 && (await p4.locator("#nameBubble").count()) === 0);
   // PACE-001: a door message must land where the user stands. On step 1
@@ -312,27 +308,19 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
   // A returning sign-in through the door asks nothing again.
   await p4.click("#accountOut"); await p4.waitForTimeout(900);
-  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
-  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
-  await p4.click("#accountOpen"); await p4.waitForSelector("#authSheet:not([hidden])");
+  await p4.waitForSelector("#authSheet:not([hidden])"); // build 33 lock: signing out lands on the door itself — no Settings route back in
   await doorThrough(p4, "named@test.dev", "password-n"); await p4.waitForTimeout(2400);
   check("a returning sign-in goes straight in (no tour, no name ask)", !(await p4.locator("#tourName").isVisible().catch(() => false)) && (await p4.locator("#accountLine").innerText()).startsWith("Hi Sam"));
   // The wrong password for an existing account is named plainly.
   await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
   await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
   await p4.click("#accountOut"); await p4.waitForTimeout(900);
-  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
-  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
-  await p4.click("#accountOpen"); await p4.waitForSelector("#authSheet:not([hidden])");
+  await p4.waitForSelector("#authSheet:not([hidden])"); // build 33 lock: signing out lands on the door itself — no Settings route back in
   await doorThrough(p4, "named@test.dev", "wrong-password"); await p4.waitForTimeout(1200);
   check("a wrong password is refused in plain words", (await p4.locator("#authMsg").innerText()).toLowerCase().includes("password"));
   // The name ask is skippable in the moment: an empty Next
   // moves the tour on and sets nothing.
-  await p4.click("#doorChange"); await p4.waitForTimeout(300);
-  await p4.click("#authClose"); await p4.waitForTimeout(400);
-  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
-  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
-  await p4.click("#accountOpen"); await p4.waitForSelector("#authSheet:not([hidden])");
+  await p4.click("#doorChange"); await p4.waitForTimeout(300); // back to step 1; there is no dismiss any more (the Explore road is abolished)
   await doorThrough(p4, "empty@test.dev", "password-e");
   await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
   for (let i = 0; i < 16; i++) {
@@ -374,9 +362,7 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
   await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
   await p4.click("#accountOut"); await p4.waitForTimeout(900);
-  await p4.evaluate(() => { const sb = document.getElementById("sidebar"); if (sb.getBoundingClientRect().width < 40) document.getElementById("sbExpand").click(); });
-  await p4.click('.side-item[data-panel="settings"]'); await p4.waitForTimeout(400);
-  await p4.click("#accountOpen"); await p4.waitForSelector("#authSheet:not([hidden])");
+  await p4.waitForSelector("#authSheet:not([hidden])"); // build 33 lock: signing out lands on the door itself — no Settings route back in
   await doorThrough(p4, "skip2@test.dev", "password-s");
   await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
   for (let i = 0; i < 16; i++) {
@@ -445,8 +431,7 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   await pN.goto("http://localhost:9123/", { waitUntil: "networkidle" });
   await pN.waitForTimeout(600);
   await settleN();
-  await settingsN();
-  await pN.click("#accountOpen"); await pN.waitForSelector("#authSheet:not([hidden])");
+  await pN.waitForSelector("#authSheet:not([hidden])"); // build 33 lock: the native page boots on the door too
   check("native: the Apple button shows on native even with the web Apple door off", await pN.locator("#appleBtn").isVisible());
   const idpBefore = mock.idpCalls.length;
   await pN.click("#googleBtn");
@@ -459,8 +444,7 @@ check("after deletion the app boots as guest", await p.evaluate(() => !localStor
   await settingsN();
   await pN.click("#accountOut"); await pN.waitForTimeout(900);
   check("native: sign-out clears the native session", !(await sessN()));
-  await settingsN();
-  await pN.click("#accountOpen"); await pN.waitForSelector("#authSheet:not([hidden])");
+  await pN.waitForSelector("#authSheet:not([hidden])"); // sign-out lands on the door itself
   await pN.click("#appleBtn");
   await pN.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); } catch (e) { return false; } }, null, { timeout: 9000 }).catch(() => {});
   const sessA = await sessN();

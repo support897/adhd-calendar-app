@@ -17,8 +17,14 @@ const check = (n, ok) => { if (ok) { pass++; console.log("PASS", n); } else { fa
 const css = readFileSync(ROOT + "/styles.css", "utf8");
 const html = readFileSync(ROOT + "/index.html", "utf8");
 check("css: --sat/--sab defined from env(safe-area-inset-*)", /--sat:\s*env\(safe-area-inset-top/.test(css) && /--sab:\s*env\(safe-area-inset-bottom/.test(css));
-check("css: the menu button's top adds the inset", /\.expand-btn\s*\{[^}]*top:\s*calc\(14px \+ var\(--sat\)\)/.test(css));
-check("css: the phone-width override also adds the inset (a bare top:10px stood here and won at phone widths — the battery's first run caught it)", /\.expand-btn\s*\{\s*top:\s*calc\(10px \+ var\(--sat\)\)/.test(css));
+// Build-33 leg care (29 Oct): the layout fix made the menu button
+// IN-FLOW (first child of the calendar topbar) — it no longer carries
+// its own top; it rides #main's inset padding (pinned by the #main
+// legs below). These legs pin the new mechanism: static position,
+// and no .expand-btn rule anywhere pins a top (the floating-button
+// shape is gone and must not creep back).
+check("css: the menu button is in-flow (its rule carries no fixed/absolute positioning — it rides #main's inset padding)", !/\.expand-btn\s*\{[^}]*position:\s*(fixed|absolute)/.test(css));
+check("css: no .expand-btn rule pins a top (the floating-button mechanism is gone)", !/\.expand-btn\s*\{[^}]*top\s*:/.test(css));
 check("css: #main top padding adds the inset", /#main\s*\{[^}]*padding:\s*calc\(26px \+ var\(--sat\)\)/.test(css));
 check("css: the sidebar's top padding adds the inset", /#sidebar\s*\{[^}]*padding:\s*calc\(22px \+ var\(--sat\)\)/.test(css));
 check("css: the phone-width sidebar (the P8 fixed overlay) still pads its top by the inset", /#sidebar\s*\{[^}]*position:\s*fixed;[^}]*padding:\s*calc\(18px \+ var\(--sat\)\)/.test(css));
@@ -29,33 +35,45 @@ check("NO-ZOOM: the viewport bars scaling (maximum-scale + user-scalable=no)", /
 check("NO-ZOOM: html carries touch-action: manipulation (the double-tap gesture is off)", /html\s*\{\s*touch-action:\s*manipulation/.test(css));
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ttf": "font/ttf", ".webmanifest": "application/manifest+json" };
-const server = http.createServer((req, res) => { let f = req.url.split("?")[0]; if (f === "/") f = "/index.html"; const fp = path.join(ROOT, f); if (!existsSync(fp)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": types[path.extname(fp)] || "application/octet-stream" }); res.end(readFileSync(fp)); });
+/* Battery care (29 Oct, build 33's door lock): a signed-out boot is
+   the door page only, so the render legs run as a signed-in harness
+   account on the mock — the CSS/render substance is unchanged. */
+const { startMock } = await import(ROOT + "/tests/mock-firebase.mjs");
+const mock = await startMock();
+const testConfig = `window.PACE_FB_CONFIG = { apiKey: "test-key-1234567890", authDomain: "x", projectId: "pace-test", appId: "1:x:web:y", googleClientId: null, appleEnabled: false, restAuth: "http://127.0.0.1:${mock.port}", restFirestore: "http://127.0.0.1:${mock.port}", restToken: "http://127.0.0.1:${mock.port}" };`;
+const server = http.createServer((req, res) => { let f = req.url.split("?")[0]; if (f === "/") f = "/index.html"; if (f === "/firebase-config.js") { res.writeHead(200, { "Content-Type": "text/javascript" }); return res.end(testConfig); } const fp = path.join(ROOT, f); if (!existsSync(fp)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": types[path.extname(fp)] || "application/octet-stream" }); res.end(readFileSync(fp)); });
 await new Promise(r => server.listen(8949, r));
+const rS = await fetch(`http://127.0.0.1:${mock.port}/v1/accounts:signUp?key=x`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "safearea@test.dev", password: "password-1", returnSecureToken: true }) });
+const SA = await rS.json();
+const KEY = "calmcal-v1:" + SA.localId;
+const SESS = { uid: SA.localId, email: SA.email, idToken: SA.idToken, refreshToken: SA.refreshToken, expiresAt: Date.now() + 3600e3 };
 const b = await chromium.launch({ executablePath: process.env.CHROME_EXE, args: ["--no-sandbox"] });
 const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+await p.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, SESS);
 await p.goto("http://localhost:8949/", { waitUntil: "networkidle" });
-await p.evaluate(() => {
+await p.evaluate((KEY) => {
   const st = { tasks: [], feelings: {}, settings: { appearance: { theme: "white", cute: false }, guideDone: true, sidebarCollapsed: true, notif: { digestTimes: ["12:30"] } }, welcomed: true, sent: {}, todos: [], habits: [], imports: [] };
-  localStorage.setItem("calmcal-v1:guest", JSON.stringify(st));
-});
+  localStorage.setItem(KEY, JSON.stringify(st));
+}, KEY);
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(500);
 const ta = await p.evaluate(() => getComputedStyle(document.documentElement).touchAction);
 check("render: NO-ZOOM — the document's computed touch-action is manipulation", ta === "manipulation", ta);
 const top0 = await p.locator("#sbExpand").evaluate((el) => el.getBoundingClientRect().top);
-check("render: at phone width with a 0 inset the button sits at its 10px home (got " + top0 + ")", Math.abs(top0 - 10) < 1.5);
+check("render: at phone width with a 0 inset the button sits at its in-flow home — 16px, #main's phone padding (got " + top0 + ")", Math.abs(top0 - 16) < 1.5);
 await p.evaluate(() => document.documentElement.style.setProperty("--sat", "47px"));
 await p.waitForTimeout(120);
 const r = await p.locator("#sbExpand").evaluate((el) => { const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; });
-check("render: with a 47px inset (a notched phone) the button sits fully below it — top " + r.top + ", bottom " + r.bottom, Math.abs(r.top - 57) < 1.5 && r.top >= 47);
+check("render: with a 47px inset (a notched phone) the button sits fully below it — top " + r.top + ", bottom " + r.bottom + " (home + the whole inset)", Math.abs(r.top - (top0 + 47)) < 1.5 && r.top >= 47);
 // The OPEN state (Quality's finding): a fresh page with the menu open
 // from load, inset driven — the drawer's brand head must clear it too.
 const p2 = await b.newPage({ viewport: { width: 390, height: 844 } });
+await p2.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, SESS);
 await p2.goto("http://localhost:8949/", { waitUntil: "networkidle" });
-await p2.evaluate(() => {
+await p2.evaluate((KEY) => {
   const st = { tasks: [], feelings: {}, settings: { appearance: { theme: "white", cute: false }, guideDone: true, sidebarCollapsed: false, notif: { digestTimes: ["12:30"] } }, welcomed: true, sent: {}, todos: [], habits: [], imports: [] };
-  localStorage.setItem("calmcal-v1:guest", JSON.stringify(st));
-});
+  localStorage.setItem(KEY, JSON.stringify(st));
+}, KEY);
 await p2.reload({ waitUntil: "networkidle" });
 await p2.waitForTimeout(500);
 // The menu is hidden on every load by law — open it the user's way,

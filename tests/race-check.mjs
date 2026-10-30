@@ -71,17 +71,26 @@ async function doorThrough(email, pw) {
   await p.fill("#authPass", pw); await p.click("#authGo");
 }
 async function signUpOrIn(email, pw) {
-  await settings();
+  // Battery care (29 Oct, build 33's door lock): the door stands at
+  // boot and after every sign-out — Settings is only needed to
+  // reach Sign out, and only while signed in.
   const signedInAs = await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); return s && s.email; }).catch(() => null);
   if (signedInAs === email) return;
-  if (signedInAs) { await p.click("#accountOut"); await p.waitForTimeout(2500); await dismissOverlays(); await settings(); }
-  await p.click("#accountOpen"); await p.waitForSelector("#authSheet:not([hidden])");
+  if (signedInAs) { await settings(); await p.click("#accountOut"); await p.waitForTimeout(2500); await dismissOverlays(); }
+  await p.waitForSelector("#authSheet:not([hidden])");
   await doorThrough(email, pw);
   await poll(() => p.evaluate((e) => { const s = JSON.parse(localStorage.getItem("pace-auth-v1") || "null"); return s && s.email === e; }, email), 20000);
   await settleTour();
 }
 async function signOut() { await settings(); await p.click("#accountOut"); await p.waitForTimeout(2500); await dismissOverlays(); }
 async function quickAdd(text) {
+  // Battery care (30 Oct, QA's b33 qualification 1): when the pot
+  // door is answered before a fresh account's tour finishes, the
+  // guide sheet is still standing at this call and intercepts the
+  // #addBtn click (cycle 2 B died on exactly that). settleTour is
+  // the battery's own looping dismissal (name step, guide, welcome)
+  // — run it first, like a person tapping through, then add.
+  await settleTour(); await dismissOverlays();
   await p.evaluate(() => document.querySelector('[data-panel="calendar"]').click()); await p.waitForTimeout(300);
   await p.click("#addBtn"); await p.waitForSelector("#addSheet:not([hidden])");
   await p.fill("#quickText", text); await p.click("#addSave"); await p.waitForTimeout(400);

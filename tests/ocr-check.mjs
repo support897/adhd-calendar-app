@@ -8,7 +8,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css
 const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split("?")[0]); if (p === "/") p = "/index.html"; const file = path.join(ROOT, p); if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; } res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" }); fs.createReadStream(file).pipe(res); });
 await new Promise(r => server.listen(8931, r));
 let pass = 0, fail = 0; const check = (n, c) => { if (c) { pass++; console.log("PASS " + n); } else { fail++; console.log("FAIL " + n); } };
-const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium-1187/chrome-linux/chrome", args: ["--no-sandbox"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
 const render = await browser.newPage({ viewport: { width: 900, height: 300 } });
 await render.setContent('<body style="margin:0;background:white;color:black;font:64px Arial;padding:70px">PACE OCR TEST 123</body>');
 const img = path.join(os.tmpdir(), "pace-ocr-test.png");

@@ -84,6 +84,13 @@ await dismissals(p2);
 await doorSignIn(p2, EMAIL);
 await dismissals(p2);
 await p2.waitForTimeout(2500); // reconcile settle + any flush
+// Build-33 battery care (29 Oct): Polar's line (builds 24-32) boots the
+// calendar in timeGridDay, not dayGridMonth, so a tomorrow task is not in
+// the boot DOM. The leg's substance is unchanged — the task must stand in
+// the UI on a fresh device — so select the sentinel's day first (the same
+// .tick navigation context 1 uses), then read the UI.
+await p2.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 1); const k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); [...document.querySelectorAll(".tick")].find((c) => c.getAttribute("data-date") === k)?.click(); });
+await p2.waitForTimeout(900);
 const uiHas = await p2.evaluate(() => document.body.textContent.includes("Sentinel"));
 const s2 = serverTask(uid);
 console.log("F1 fresh context: UI has sentinel:", uiHas, "| server:", JSON.stringify(s2));
