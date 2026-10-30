@@ -216,6 +216,7 @@ function buildForm() {
   var f = el("form", "goal-form", null, { novalidate: "novalidate" });
   f.addEventListener("submit", function (e) { e.preventDefault(); });
   if (draft && draft.steps) return buildPreview(f);
+  if (draft && draft.ask) return buildAsk(f);
   var today = L.todayKey();
   var title = el("input", null, null, { id: "goalTitle", type: "text", maxlength: "100", autocomplete: "off", placeholder: tr("e.g. Pass my biology exam") });
   var notes = el("textarea", null, null, { id: "goalNotes", rows: "5", maxlength: "6000", placeholder: tr("Optional: paste your outline, syllabus or notes. One item per line becomes a stage of your plan.") });
@@ -258,10 +259,10 @@ function buildForm() {
     if (!t && n.trim()) t = n.trim().split(/\r\n|\n|\r/)[0].replace(/^\s*(?:[-*•]|\d{1,2}[.)])\s*/, "").slice(0, 60);
     if (!t) { err.textContent = tr("Give your goal a name first."); title.focus(); return; }
     if (!end.value || end.value <= today) { err.textContent = tr("Pick a finish date after today."); end.focus(); return; }
-    var steps = G.buildPlan({ title: t, category: picked, start: today, end: end.value, pace: pace.value, mins: +mins.value, milestones: n.split(/\r\n|\n|\r/).filter(function (l) { return l.trim().length >= 3; }).length >= 3 ? G.parseMilestones(n, picked) : undefined, text: t + "\n" + n, price: +price.value || 0 });
-    if (!steps.length) { err.textContent = tr("That date is too close for a plan. Pick a later date."); return; }
-    steps.forEach(function (st) { st.full = st.time ? false : !freeSlot(st.date, st.durationMin); });
-    draft = { price: +price.value || 0, title: t, notes: n, category: picked, end: end.value, pace: pace.value, mins: +mins.value, steps: steps, fullCount: steps.filter(function (s) { return s.full; }).length };
+    var base = { price: +price.value || 0, title: t, notes: n, category: picked, end: end.value, pace: pace.value, mins: +mins.value };
+    var qs = G.questionsFor(t, t + "\n" + n, picked, n);
+    if (qs.length) { base.ask = qs; base.answers = {}; draft = base; renderGoals(true); return; }
+    if (!finishPlan(base)) { err.textContent = tr("That date is too close for a plan. Pick a later date."); return; }
     renderGoals(true);
   });
   f.appendChild(field(tr("What is your goal?"), title));
@@ -275,6 +276,65 @@ function buildForm() {
   f.appendChild(err);
   var row = el("div", "gf-actions"); row.appendChild(go); row.appendChild(cancel); f.appendChild(row);
   setTimeout(function () { if (draft) { title.value = draft.title || ""; notes.value = draft.notes || ""; pace.value = draft.pace || "daily"; mins.value = String(draft.mins || 20); } }, 0);
+  return f;
+}
+function finishPlan(d) {
+  var today = L.todayKey(), a = d.answers || {}, price = +a.price || d.price || 0, notes = d.notes || "";
+  var lines = notes.split(/\r\n|\n|\r/).filter(function (l) { return l.trim().length >= 3; });
+  var ms = lines.length >= 3 ? G.parseMilestones(notes, d.category) : undefined;
+  if (!ms && a.parts) {
+    var parts = String(a.parts).split(/[,;\n]/).map(function (x) { return x.trim(); }).filter(function (x) { return x.length >= 2; });
+    if (parts.length >= 2) {
+      ms = [];
+      if (a.done) ms.push("Write down what done looks like: " + a.done);
+      ms = ms.concat(parts.map(function (x) { return x.charAt(0).toUpperCase() + x.slice(1); }));
+      ms.push("Check it and fix gaps"); ms.push("Finish and share");
+    }
+  }
+  var steps = G.buildPlan({ title: d.title, category: d.category, start: today, end: d.end, pace: d.pace, mins: d.mins, milestones: ms, text: d.title + "\n" + notes, price: price, answers: a });
+  if (!steps.length) return false;
+  steps.forEach(function (st) { st.full = st.time ? false : !freeSlot(st.date, st.durationMin); });
+  if (a.done) d.notes = "Done looks like: " + a.done + (notes ? "\n" + notes : "");
+  d.price = price; d.steps = steps; d.fullCount = steps.filter(function (s) { return s.full; }).length; d.ask = null;
+  draft = d; return true;
+}
+function buildAsk(f) {
+  f.appendChild(el("h3", "gf-h", draft.title));
+  f.appendChild(el("p", "gf-sum", tr("A few quick questions, so the steps fit you. Skip any you like.")));
+  draft.ask.forEach(function (q) {
+    var box = el("div", "gf-field", null, { "data-q": q.id });
+    box.appendChild(el("span", "gf-label", tr(q.label)));
+    if (q.options) {
+      var row = el("div", "gf-cats", null, { role: "radiogroup", "aria-label": tr(q.label) });
+      var cur = draft.answers[q.id] || "";
+      q.options.forEach(function (o) {
+        var b = el("button", "gf-cat" + (o.v === cur ? " is-on" : ""), tr(o.l), { type: "button", role: "radio", "aria-checked": String(o.v === cur), "data-v": o.v });
+        b.addEventListener("click", function () {
+          draft.answers[q.id] = o.v;
+          row.querySelectorAll(".gf-cat").forEach(function (x) { var on = x === b; x.classList.toggle("is-on", on); x.setAttribute("aria-checked", String(on)); });
+        });
+        row.appendChild(b);
+      });
+      box.appendChild(row);
+    } else {
+      var inp = el("input", null, null, { type: q.type === "number" ? "number" : "text", id: "goalQ_" + q.id, maxlength: "120", autocomplete: "off", placeholder: tr(q.placeholder || "") });
+      if (q.type === "number") { inp.setAttribute("min", "1"); inp.setAttribute("inputmode", "decimal"); }
+      inp.value = draft.answers[q.id] || "";
+      inp.addEventListener("input", function () { draft.answers[q.id] = inp.value.trim(); });
+      box.appendChild(inp);
+    }
+    f.appendChild(box);
+  });
+  var err = el("p", "gf-err", "", { role: "alert" });
+  f.appendChild(err);
+  var go = el("button", "primary-btn", tr("Make my plan"), { type: "button", id: "goalAskGo" });
+  var skip = el("button", "soft-btn", tr("Skip the questions"), { type: "button", id: "goalAskSkip" });
+  var back = el("button", "soft-btn", tr("Change something"), { type: "button" });
+  function run(skipAll) { if (skipAll) draft.answers = {}; if (!finishPlan(draft)) { err.textContent = tr("That date is too close for a plan. Pick a later date."); return; } renderGoals(true); }
+  go.addEventListener("click", function () { run(false); });
+  skip.addEventListener("click", function () { run(true); });
+  back.addEventListener("click", function () { draft = null; renderGoals(true); });
+  var row2 = el("div", "gf-actions"); row2.appendChild(go); row2.appendChild(skip); row2.appendChild(back); f.appendChild(row2);
   return f;
 }
 function buildPreview(f) {

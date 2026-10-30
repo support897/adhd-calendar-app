@@ -75,11 +75,18 @@ await m.fill("#goalTitle", "Build my business and reach 5000 revenue this month"
 const endD = await m.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
 await m.fill("#goalEnd", endD);
 await m.click("#goalPlanBtn");
+await m.waitForTimeout(300);
+check("follow-up questions appear for a revenue goal", (await m.locator("#goalsRoot [data-q]").count()) === 3);
+await m.screenshot({ path: SH + "/goal-ask-390.png", fullPage: true });
+await m.locator('[data-q="customers"] .gf-cat', { hasText: "Not yet" }).click();
+await m.fill("#goalQ_price", "100");
+await m.locator('[data-q="when"] .gf-cat', { hasText: "Evening" }).click();
+await m.click("#goalAskGo");
 await m.waitForTimeout(400);
 const prev = await m.locator("#goalsRoot").innerText();
-check("preview names the funnel (sales and reach-outs)", /sales at \$\d+ each/.test(prev) && /reach-outs a day/.test(prev));
-check("preview shows a normal day with clock times", /09:00/.test(prev) && /13:00/.test(prev) && /17:30/.test(prev));
-check("preview says the price is a guess", /is a guess/.test(prev));
+check("answers change the plan: 50 sales at $100", /about 50 sales at \$100 each/.test(prev));
+check("evening answer moves the blocks to the evening", /18:00/.test(prev) && /19:40/.test(prev) && !/09:00/.test(prev.split("A normal day")[1] || ""));
+check("a typed price means no guess note", !/is a guess/.test(prev));
 await m.screenshot({ path: SH + "/goal-preview-390.png", fullPage: true });
 await m.click("#goalAddBtn");
 await m.waitForTimeout(600);
@@ -121,7 +128,13 @@ const rems = await m.evaluate(() => { const k = Object.keys(localStorage).find(x
 check("task A keeps its own reminder [30]", JSON.stringify(rems.a) === "[30]");
 check("task B keeps its own reminders [0,60]", JSON.stringify(rems.b) === "[0,60]");
 check("goal steps carry their own reminder too", JSON.stringify(rems.g) === "[10]");
-/* narrow phone + Spanish */
+const qg = await m.evaluate(() => ({ gen: PaceGoals.questionsFor("Plan my wedding", "Plan my wedding", "personal", "").map(q => q.id), cnt: PaceGoals.questionsFor("Read 12 chapters", "Read 12 chapters", "school", "").map(q => q.id), own: PaceGoals.questionsFor("x", "x", "school", "read part one\nwrite part two\nreview part three").length }));
+check("any other goal asks done / main parts / when", qg.gen.join() === "done,parts,when");
+check("counted goals ask only when", qg.cnt.join() === "when");
+check("a pasted outline asks nothing", qg.own === 0);
+const gp = await m.evaluate(() => PaceGoals.buildPlan({ title: "Plan my wedding", start: "2026-11-02", end: "2026-12-11", pace: "daily", mins: 20, category: "personal", text: "Plan my wedding", milestones: ["Venue", "Guest list", "Food", "Music"], answers: { when: "morning" } }));
+check("named parts become the steps, at the chosen time", gp.some(s => /Guest list/.test(s.title)) && gp.every(s => !s.time || s.time === "08:30"));
+/* narrow phone */
 await m.setViewportSize({ width: 320, height: 640 });
 await m.screenshot({ path: SH + "/cal-320.png" });
 check("no page errors", merrs.length === 0 || (console.log(merrs), false));

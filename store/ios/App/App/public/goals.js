@@ -178,28 +178,32 @@ function analyzeRevenue(text) {
   n = Math.round(n);
   return n >= 100 ? { kind: "revenue", total: n } : null;
 }
+var WHEN_TIME = { morning: "08:30", midday: "12:30", evening: "18:30" };
+var REV_TIMES = { morning: ["09:00", "11:00", "12:30", "13:30"], midday: ["12:00", "14:00", "16:30", "17:30"], evening: ["18:00", "18:40", "19:10", "19:40"], auto: ["09:00", "13:00", "16:30", "17:30"] };
 function buildRevenueSteps(opts, work, days) {
+  var ans = opts.answers || {}, RT = REV_TIMES[ans.when] || REV_TIMES.auto;
+  var custMult = ans.customers === "none" ? 1.3 : ans.customers === "many" ? 0.7 : 1;
   var total = work.total, n = days.length;
   var guess = !(+opts.price > 0);
   var price = guess ? Math.max(10, Math.min(1000, Math.round(total / 25 / 5) * 5)) : Math.round(+opts.price);
   var sales = Math.max(1, Math.ceil(total / price));
-  var msgsDay = Math.max(3, Math.ceil(sales * 10 / Math.max(1, n)));
+  var msgsDay = Math.max(3, Math.ceil(sales * 10 * custMult / Math.max(1, n)));
   var follow = Math.max(1, Math.ceil(msgsDay / 3));
   var steps = [], weeks = [], weekSeen = {}, typical = null;
   days.forEach(function (date, i) {
     var target = Math.round(total * (i + 1) / n), wk = mondayOf(date);
     var list = [];
     if (i === 0) {
-      list.push({ time: "09:00", min: 30, title: tr("Write your offer in one sentence and set the price (about ${p})", { p: price }) });
-      list.push({ time: "13:00", min: 30, title: tr("List {n} people who could buy from you", { n: msgsDay * 3 }) });
+      list.push({ time: RT[0], min: 30, title: tr("Write your offer in one sentence and set the price (about ${p})", { p: price }) });
+      list.push({ time: RT[1], min: 30, title: tr("List {n} people who could buy from you", { n: msgsDay * 3 }) });
     } else {
-      list.push({ time: "09:00", min: Math.max(15, Math.min(45, msgsDay * 3)), title: tr("Reach out to {n} people about your offer", { n: msgsDay }) });
-      list.push({ time: "13:00", min: 20, title: tr("Follow up with {n} people who answered", { n: follow }) });
+      list.push({ time: RT[0], min: Math.max(15, Math.min(45, msgsDay * 3)), title: tr("Reach out to {n} people about your offer", { n: msgsDay }) });
+      list.push({ time: RT[1], min: 20, title: tr("Follow up with {n} people who answered", { n: follow }) });
     }
-    list.push({ time: "16:30", min: 20, title: tr("Share one post that shows your offer") });
+    list.push({ time: RT[2], min: 20, title: tr("Share one post that shows your offer") });
     var lastDay = i === n - 1, endWeek = lastDay || weekdayOf(days[i + 1]) === 1 || mondayOf(days[i + 1]) !== wk;
-    list.push({ time: "17:30", min: 10, title: lastDay ? tr("Finish: count your sales. Goal ${t} (final look, then celebrate)", { t: total }) : tr("Count today: aim for ${t} so far", { t: target }) });
-    if (endWeek && !lastDay) list.push({ time: "18:00", min: 20, title: tr("Weekly review: what sold, what to change next week") });
+    list.push({ time: RT[3], min: 10, title: lastDay ? tr("Finish: count your sales. Goal ${t} (final look, then celebrate)", { t: total }) : tr("Count today: aim for ${t} so far", { t: target }) });
+    if (endWeek && !lastDay) list.push({ time: "20:00", min: 20, title: tr("Weekly review: what sold, what to change next week") });
     if (i === 1) typical = list.slice(0, 4);
     list.forEach(function (it) {
       steps.push({ date: date, time: it.time, title: it.title, durationMin: it.min, minVersion: tr("Just 5 minutes: do the very first bit of this."), weekStart: wk });
@@ -279,7 +283,10 @@ function findPlaybook(text, category) {
 }
 function buildPlaybookSteps(opts, pb, days) {
   var t = pb.quote ? "\u201c" + subjectOf(opts.title) + "\u201d" : nounOf(opts.title), n = days.length, steps = [], phaseRanges = [], cut = 0, pi, i;
-  var counts = pb.phases.map(function (p, k) { return k === pb.phases.length - 1 ? 0 : Math.max(1, Math.round(p.share * n)); });
+  var lvl = (opts.answers || {}).level, sh = pb.phases.map(function (p) { return p.share; });
+  if (lvl === "some") sh[0] *= 0.5; else if (lvl === "lots") { sh[0] *= 0.2; if (sh.length > 2) sh[1] *= 0.7; }
+  var shSum = sh.reduce(function (x, y) { return x + y; }, 0); sh = sh.map(function (x) { return x / shSum; });
+  var counts = pb.phases.map(function (p, k) { return k === pb.phases.length - 1 ? 0 : Math.max(1, Math.round(sh[k] * n)); });
   var used = counts.reduce(function (a, b) { return a + b; }, 0);
   counts[counts.length - 1] = Math.max(1, n - used);
   var mult = Math.max(0.5, Math.min(2, (+opts.mins || 20) / 25));
@@ -303,6 +310,43 @@ function buildPlaybookSteps(opts, pb, days) {
   return steps;
 }
 
+
+/* ---------- follow-up questions (build 34) ----------
+   Pace asks 2 or 3 short questions that really change the plan, then builds it.
+   Every question can be skipped. Rules only, no AI. */
+var WHEN_Q = { id: "when", label: "When in the day suits you best?", options: [{ v: "", l: "Let Pace choose" }, { v: "morning", l: "Morning" }, { v: "midday", l: "Midday" }, { v: "evening", l: "Evening" }] };
+var LEVEL_Q = {
+  launch: { label: "Where are you now?", options: [{ v: "", l: "Just an idea" }, { v: "some", l: "I have a rough version" }, { v: "lots", l: "It is already live" }] },
+  learn: { label: "What is your level?", options: [{ v: "", l: "Brand new" }, { v: "some", l: "I know some" }, { v: "lots", l: "Fairly good already" }] },
+  fitness: { label: "How active are you now?", options: [{ v: "", l: "Not active" }, { v: "some", l: "Sometimes" }, { v: "lots", l: "Often" }] },
+  write: { label: "Where are you now?", options: [{ v: "", l: "Nothing yet" }, { v: "some", l: "I have an outline" }, { v: "lots", l: "I have a draft" }] },
+  job: { label: "Is your CV ready?", options: [{ v: "", l: "No" }, { v: "some", l: "Nearly" }, { v: "lots", l: "Yes" }] },
+  home: { label: "How big is the job?", options: [{ v: "", l: "Big" }, { v: "some", l: "Medium" }, { v: "lots", l: "Small" }] },
+  exam: { label: "How ready do you feel?", options: [{ v: "", l: "Not ready" }, { v: "some", l: "Part way" }, { v: "lots", l: "Nearly there" }] }
+};
+function questionsFor(title, text, category, notes) {
+  var own = String(notes || "").split(/\r\n|\n|\r/).filter(function (l) { return l.trim().length >= 3; }).length;
+  if (own >= 3) return [];
+  var t = String(title || ""), full = text || t;
+  if (analyzeRevenue(full)) return [
+    { id: "customers", label: "Do you already have customers?", options: [{ v: "", l: "A few" }, { v: "none", l: "Not yet" }, { v: "many", l: "Many" }] },
+    { id: "price", label: "Price of one sale (optional)", type: "number", placeholder: "e.g. 100" }, WHEN_Q];
+  if (analyzeWork(full) || analyzeList(t)) return [WHEN_Q];
+  var pb = findPlaybook(t);
+  if (pb) { var lq = LEVEL_Q[pb.id]; return [{ id: "level", label: lq.label, options: lq.options }, WHEN_Q]; }
+  return [
+    { id: "done", label: "What does done look like? One sentence (optional)", type: "text", placeholder: "e.g. The wedding is booked and paid" },
+    { id: "parts", label: "Name the main parts, separated by commas (optional)", type: "text", placeholder: "e.g. venue, guest list, food, music" }, WHEN_Q];
+}
+function buildPlan(opts) {
+  var steps = buildPlanCore(opts), w = (opts.answers || {}).when, wt = WHEN_TIME[w];
+  if (wt) steps.forEach(function (s) {
+    if (!s.time) s.time = wt;
+    else if (s.phase && !/^(Weekly review|Finish)/.test(s.title)) s.time = wt;
+  });
+  return steps;
+}
+
 /* Which days are plan days. pace: "daily" | "weekdays" | "three" (Mon/Wed/Fri) */
 function planDays(startKey, endKey, pace) {
   var out = [], span = diffDays(startKey, endKey);
@@ -318,7 +362,7 @@ function planDays(startKey, endKey, pace) {
 
 /* The plan: ONE small step per plan day. The last 10% of days are kept as a
    buffer (no step) so a slip never means failure; each 7th step is a short review. */
-function buildPlan(opts) {
+function buildPlanCore(opts) {
   var title = String(opts.title || "").trim();
   var mins = Math.max(5, Math.min(90, +opts.mins || 20));
   var days = planDays(opts.start, opts.end, opts.pace || "daily");
@@ -434,7 +478,7 @@ function habitMessage(s) {
   return "One tick today keeps it going.";
 }
 
-var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeRevenue: analyzeRevenue, findPlaybook: findPlaybook, PLAYBOOKS: PLAYBOOKS, analyzeList: analyzeList,
+var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeRevenue: analyzeRevenue, questionsFor: questionsFor, findPlaybook: findPlaybook, PLAYBOOKS: PLAYBOOKS, analyzeList: analyzeList,
   goalProgress: goalProgress, replan: replan, weekDays: weekDays, habitStats: habitStats, habitMessage: habitMessage, diffDays: diffDays };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.PaceGoals = api;
