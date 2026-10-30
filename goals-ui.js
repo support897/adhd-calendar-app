@@ -47,6 +47,22 @@ function freeSlot(key, mins, placed) {
   }
   return null;
 }
+/* A wanted time (build 34): the business plan asks for 09:00, 13:00 and so on.
+   It gets that time only if nothing timed is already there. */
+function timeFree(key, hhmm, mins, placed) {
+  var p = String(hhmm).split(":"), s0 = (+p[0]) * 60 + (+p[1] || 0), clash = false;
+  function chk(t) {
+    if (!t || t.date !== key || !t.time || t.status === "done") return;
+    var q = String(t.time).split(":"), a = (+q[0]) * 60 + (+q[1] || 0);
+    if (s0 < a + Math.max(5, t.durationMin || 25) && s0 + mins > a) clash = true;
+  }
+  C.state.tasks.forEach(chk); (placed || []).forEach(chk);
+  return !clash;
+}
+function slotFor(st, placed) {
+  if (st.time && timeFree(st.date, st.time, st.durationMin, placed)) return st.time;
+  return freeSlot(st.date, st.durationMin, placed);
+}
 /* Quiet replan (build 33): a missed day slides on its own. Once a day,
    when the Goals screen renders, any goal with an overdue open step is
    re-planned from today with the standing replan — no button to find,
@@ -232,6 +248,7 @@ function buildForm() {
   [["daily", tr("Every day")], ["weekdays", tr("Weekdays only")], ["three", tr("Three days a week (Mon, Wed, Fri)")]].forEach(function (o) { pace.appendChild(el("option", null, o[1], { value: o[0] })); });
   var mins = el("select", null, null, { id: "goalMins" });
   [10, 20, 30, 45].forEach(function (m) { var o = el("option", null, tr("About {n} minutes a day", { n: m }), { value: String(m) }); if (m === 20) o.selected = true; mins.appendChild(o); });
+  var price = el("input", null, null, { id: "goalPrice", type: "number", min: "1", inputmode: "decimal", placeholder: tr("Optional, for money goals: price of one sale") });
   var err = el("p", "gf-err", "", { id: "goalErr", role: "alert" });
   var go = el("button", "primary-btn", tr("Make my plan"), { type: "button", id: "goalPlanBtn" });
   var cancel = el("button", "soft-btn", tr("Cancel"), { type: "button" });
@@ -241,10 +258,10 @@ function buildForm() {
     if (!t && n.trim()) t = n.trim().split(/\r\n|\n|\r/)[0].replace(/^\s*(?:[-*•]|\d{1,2}[.)])\s*/, "").slice(0, 60);
     if (!t) { err.textContent = tr("Give your goal a name first."); title.focus(); return; }
     if (!end.value || end.value <= today) { err.textContent = tr("Pick a finish date after today."); end.focus(); return; }
-    var steps = G.buildPlan({ title: t, category: picked, start: today, end: end.value, pace: pace.value, mins: +mins.value, milestones: G.parseMilestones(n, picked), text: t + "\n" + n });
+    var steps = G.buildPlan({ title: t, category: picked, start: today, end: end.value, pace: pace.value, mins: +mins.value, milestones: G.parseMilestones(n, picked), text: t + "\n" + n, price: +price.value || 0 });
     if (!steps.length) { err.textContent = tr("That date is too close for a plan. Pick a later date."); return; }
-    steps.forEach(function (st) { st.full = !freeSlot(st.date, st.durationMin); });
-    draft = { title: t, notes: n, category: picked, end: end.value, pace: pace.value, mins: +mins.value, steps: steps, fullCount: steps.filter(function (s) { return s.full; }).length };
+    steps.forEach(function (st) { st.full = st.time ? false : !freeSlot(st.date, st.durationMin); });
+    draft = { price: +price.value || 0, title: t, notes: n, category: picked, end: end.value, pace: pace.value, mins: +mins.value, steps: steps, fullCount: steps.filter(function (s) { return s.full; }).length };
     renderGoals(true);
   });
   f.appendChild(field(tr("What is your goal?"), title));
@@ -254,6 +271,7 @@ function buildForm() {
   f.appendChild(field(tr("Finish by"), end));
   f.appendChild(field(tr("How often?"), pace));
   f.appendChild(field(tr("How long each day?"), mins));
+  f.appendChild(field(tr("Price of one sale (business goals)"), price));
   f.appendChild(err);
   var row = el("div", "gf-actions"); row.appendChild(go); row.appendChild(cancel); f.appendChild(row);
   setTimeout(function () { if (draft) { title.value = draft.title || ""; notes.value = draft.notes || ""; pace.value = draft.pace || "daily"; mins.value = String(draft.mins || 20); } }, 0);
@@ -269,6 +287,14 @@ function buildPreview(f) {
     var wk = el("div", "gf-weeks");
     s.analysis.weeks.forEach(function (w) { var r = el("p", "gf-week"); r.appendChild(el("span", "gs-date", niceDate(w.start))); r.appendChild(el("span", "gs-title", w.text)); wk.appendChild(r); });
     f.appendChild(wk);
+    if (s.analysis.typicalDay) {
+      f.appendChild(el("p", "gf-sum", tr("A normal day looks like this:")));
+      var td = el("ol", "gf-steps");
+      s.analysis.typicalDay.forEach(function (x) { var li = el("li"); li.appendChild(el("span", "gs-date", x.time)); li.appendChild(el("span", "gs-title", x.title)); td.appendChild(li); });
+      f.appendChild(td);
+      f.appendChild(el("p", "hint", tr("Each block has a reminder before it starts. You can change any time in your calendar.")));
+      if (s.analysis.guess) f.appendChild(el("p", "hint", s.analysis.guess));
+    }
     if (s.analysis.tight) f.appendChild(el("p", "hint", tr("That is a lot for the days left. The steps are bigger than usual \u2014 a later finish date would make them small again.")));
   }
   if (draft.fullCount) f.appendChild(el("p", "hint", tr("{n} of these days already look full, so those steps will sit in the day's list instead of at a set time.", { n: draft.fullCount })));
@@ -290,7 +316,7 @@ function commitDraft() {
   ensureGoals().push(goal);
   var placed = [];
   d.steps.forEach(function (st) {
-    var slot = freeSlot(st.date, st.durationMin, placed);
+    var slot = slotFor(st, placed);
     var task = { id: uid(), title: st.title, date: st.date, time: slot, durationMin: st.durationMin, priority: 0, repeat: null, category: "other", color: cat.color, icon: cat.emoji,
       essential: false, status: "todo", steps: [], minVersion: st.minVersion, fullVersion: "", source: "goal", goalId: goal.id, originalText: goal.title, skipDates: [], doneDates: [] };
     C.state.tasks.push(task);

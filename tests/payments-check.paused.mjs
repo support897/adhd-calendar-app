@@ -1,3 +1,4 @@
+// PAUSED 30 Oct 2026: all features are free (owner ruling). This suite tests the locked-door and plans contract. Restore the name payments-check.mjs when paid plans return.
 // Payments wiring battery — the entitlement layer (Finance
 // §3). The unlock rule, the free month, and the construction
 // proof that the client never writes the record. Run:

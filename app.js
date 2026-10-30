@@ -852,7 +852,7 @@ function initCalendar() {
     dayMaxEvents: 3,
     slotMinTime: "06:00:00",
     slotMaxTime: "22:00:00",
-    scrollTime: "07:30:00",
+    scrollTime: (function () { var h = Math.max(6, new Date().getHours() - 1); return (h < 10 ? "0" : "") + h + ":00:00"; })(),
     eventDidMount: function (info) {
       var c = info.event.backgroundColor || "#5b6bd5";
       info.el.classList.add("ev-calm");
@@ -866,7 +866,33 @@ function initCalendar() {
     eventDurationEditable: true,
     longPressDelay: 250,
     events: fcEvents(),
-    dateClick: function (info) { selectDate(info.dateStr.slice(0, 10), false); },
+    eventMinHeight: 34,
+    eventContent: function (arg) {
+      var v = arg.view.type;
+      if (v === "dayGridMonth") return;
+      var ep = arg.event.extendedProps || {}, isDone = (arg.event.classNames || []).indexOf("ev-done") >= 0 || (arg.el && arg.el.classList.contains("ev-done"));
+      var wrap = document.createElement("div"); wrap.className = "ev-row";
+      var chk = document.createElement("button"); chk.type = "button"; chk.className = "ev-check" + (isDone ? " is-on" : "");
+      chk.setAttribute("aria-label", tr("Mark done")); chk.setAttribute("aria-pressed", String(!!isDone)); chk.innerHTML = isDone ? icon("i-check") : "";
+      ["mousedown", "touchstart", "pointerdown"].forEach(function (n) { chk.addEventListener(n, function (e) { e.stopPropagation(); }); });
+      chk.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); toggleDone(ep.taskId, ep.instanceDate); });
+      var body = document.createElement("span"); body.className = "ev-body";
+      var t = document.createElement("span"); t.className = "ev-t"; t.textContent = arg.event.title;
+      body.appendChild(t);
+      var bt = baseTask(ep.taskId);
+      if (bt && v !== "timeGridWeek") { var m = document.createElement("span"); m.className = "ev-m"; m.textContent = [bt.time, durationLabel(bt)].filter(Boolean).join(" \u00b7 "); body.appendChild(m); }
+      wrap.appendChild(chk); wrap.appendChild(body);
+      return { domNodes: [wrap] };
+    },
+    dateClick: function (info) {
+      selectDate(info.dateStr.slice(0, 10), false);
+      if (!info.allDay && info.dateStr.length > 10 && /timeGrid/.test(info.view.type)) {
+        $("addBtn").click();
+        $("fDate").value = info.dateStr.slice(0, 10);
+        $("fTime").value = info.dateStr.slice(11, 16);
+        var dt = document.querySelector("#addSheet details"); if (dt) dt.open = true; var ft = $("fTitle"); if (ft) ft.focus();
+      }
+    },
     eventClick: function (info) { openTask(info.event.extendedProps.taskId, info.event.extendedProps.instanceDate); },
     eventDrop: function (info) {
       var t = baseTask(info.event.extendedProps.taskId); if (!t) return;
@@ -908,6 +934,10 @@ function selectDate(key, jumpCalendar) {
   if (calendar && jumpCalendar) calendar.gotoDate(key);
   renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderYear();
 }
+$("goalBtn").addEventListener("click", function () {
+  var side = document.querySelector('.side-item[data-panel="goals"]'); if (side) side.click();
+  setTimeout(function () { var b = $("goalNewBtn"); if (b) b.click(); }, 60);
+});
 $("monthTitle").addEventListener("click", function () { selectDate(L.todayKey(), true); });
 document.querySelectorAll(".segmented button").forEach(function (b) {
   b.addEventListener("click", function () {
@@ -2372,6 +2402,7 @@ $("guideAgain").addEventListener("click", function () { TOUR = []; buildTour(); 
    flow with no wanting-moment.) */
 var plusShown = {};
 function maybePlus(edge) {
+  return; /* all features free for now: no upgrade sheet */
   if (DEMO_SESSION) return;
   plusShown[edge] = 1;
   $("plusArt").innerHTML = skipSvg("welcome");

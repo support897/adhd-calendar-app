@@ -193,10 +193,8 @@ await p5.click('.side-item[data-panel="calendar"]'); await p5.waitForTimeout(300
 await p5.click('.side-item[data-panel="capture"]'); await p5.waitForTimeout(400);
 check("Talk to it opens clean on a repeat visit inside the free month", await p5.locator("#plusSheet").isHidden());
 await p5.click('.side-item[data-panel="settings"]'); await p5.waitForTimeout(300);
-await p5.click("#plansOpen"); await p5.waitForTimeout(400);
-const plansTxt = await p5.locator("#plansSheet").textContent();
-check("See the plans opens Plans, truthful per state", (await p5.locator("#plansSheet").isVisible()) && plansTxt.includes("Free forever") && plansTxt.includes("A$4.99 a month, or A$39.99 a year. First month free.") && plansTxt.includes("Not on sale yet. Nothing to pay today.") && plansTxt.includes("A$99.99, once"));
-await p5.click("#plansClose");
+/* build 34 (30 Oct): all features are free, so the Plans button is gone. */
+check("Plans button is hidden: everything is free", await p5.locator("#plansOpen").isHidden());
 await ctx5.close();
 /* PACE-016: the Up Next step sentence reads WHOLE — the Start
    pill never renders inside the sentence's flow. Geometry is

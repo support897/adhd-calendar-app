@@ -160,6 +160,61 @@ function buildCountSteps(opts, work, workDays) {
   return steps;
 }
 
+/* ---------- the business / revenue planner (build 34) ----------
+   "Reach $5000 revenue this month": Pace does the funnel maths out loud.
+   price of one sale (the user's, or a stated guess) -> sales needed ->
+   about 10 reach-outs per sale -> messages a day. Each plan day gets
+   four small blocks at fixed times, so the calendar shows WHEN, not just WHAT.
+   No AI: plain maths, and the preview says which numbers are guesses. */
+var tr = function (s, v) { var f = root.t; if (f) return f(s, v); return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return v[k] != null ? v[k] : m; }) : s; };
+function analyzeRevenue(text) {
+  var s = String(text || "");
+  if (!/(revenue|sales|income|customers?|clients?|business|profit|earn|sell|store|shop|startup|side hustle|freelanc|mrr)/i.test(s)) return null;
+  if (/\bsav(e|ing|ings)\b/i.test(s)) return null;
+  var m = s.match(/\$\s?(\d[\d,.]*)\s*(k)?/i) || s.match(/(\d[\d,.]*)\s*(k)?\s*(?:dollars|usd|aud|a\$|in revenue|revenue|in sales|in income)/i) || s.match(/\b(\d[\d,]{2,})\s*(k)?\b/i);
+  if (!m) return null;
+  var n = parseFloat(m[1].replace(/,/g, ""));
+  if (m[2]) n *= 1000;
+  n = Math.round(n);
+  return n >= 100 ? { kind: "revenue", total: n } : null;
+}
+function buildRevenueSteps(opts, work, days) {
+  var total = work.total, n = days.length;
+  var guess = !(+opts.price > 0);
+  var price = guess ? Math.max(10, Math.min(1000, Math.round(total / 25 / 5) * 5)) : Math.round(+opts.price);
+  var sales = Math.max(1, Math.ceil(total / price));
+  var msgsDay = Math.max(3, Math.ceil(sales * 10 / Math.max(1, n)));
+  var follow = Math.max(1, Math.ceil(msgsDay / 3));
+  var steps = [], weeks = [], weekSeen = {}, typical = null;
+  days.forEach(function (date, i) {
+    var target = Math.round(total * (i + 1) / n), wk = mondayOf(date);
+    var list = [];
+    if (i === 0) {
+      list.push({ time: "09:00", min: 30, title: tr("Write your offer in one sentence and set the price (about ${p})", { p: price }) });
+      list.push({ time: "13:00", min: 30, title: tr("List {n} people who could buy from you", { n: msgsDay * 3 }) });
+    } else {
+      list.push({ time: "09:00", min: Math.max(15, Math.min(45, msgsDay * 3)), title: tr("Reach out to {n} people about your offer", { n: msgsDay }) });
+      list.push({ time: "13:00", min: 20, title: tr("Follow up with {n} people who answered", { n: follow }) });
+    }
+    list.push({ time: "16:30", min: 20, title: tr("Share one post that shows your offer") });
+    var lastDay = i === n - 1, endWeek = lastDay || weekdayOf(days[i + 1]) === 1 || mondayOf(days[i + 1]) !== wk;
+    list.push({ time: "17:30", min: 10, title: lastDay ? tr("Finish: count your sales. Goal ${t} (final look, then celebrate)", { t: total }) : tr("Count today: aim for ${t} so far", { t: target }) });
+    if (endWeek && !lastDay) list.push({ time: "18:00", min: 20, title: tr("Weekly review: what sold, what to change next week") });
+    if (i === 1) typical = list.slice(0, 4);
+    list.forEach(function (it) {
+      steps.push({ date: date, time: it.time, title: it.title, durationMin: it.min, minVersion: tr("Just 5 minutes: do the very first bit of this."), weekStart: wk });
+    });
+    if (!weekSeen[wk]) { weekSeen[wk] = { start: wk, to: target }; weeks.push(weekSeen[wk]); } else weekSeen[wk].to = target;
+  });
+  if (!typical) typical = steps.slice(0, 4);
+  steps.analysis = { kind: "revenue", total: total, unit: "$", tight: false,
+    weeks: weeks.map(function (w) { return { start: w.start, text: tr("aim for ${t} by the end of this week", { t: w.to }) }; }),
+    typicalDay: typical.map(function (s) { return { time: s.time, title: s.title }; }),
+    summary: tr("${t} goal, about {s} sales at ${p} each, about {m} reach-outs a day", { t: total, s: sales, p: price, m: msgsDay }),
+    guess: guess ? tr("The ${p} price of one sale is a guess. Type your real price and make the plan again.", { p: price }) : "" };
+  return steps;
+}
+
 /* Which days are plan days. pace: "daily" | "weekdays" | "three" (Mon/Wed/Fri) */
 function planDays(startKey, endKey, pace) {
   var out = [], span = diffDays(startKey, endKey);
@@ -182,6 +237,8 @@ function buildPlan(opts) {
   if (!days.length) return [];
   var buffer = days.length >= 10 ? Math.floor(days.length * 0.1) : 0;
   var work = days.slice(0, days.length - buffer);
+  var rv = analyzeRevenue(opts.text || title);
+  if (rv) return buildRevenueSteps(opts, rv, work);
   var found = analyzeWork(opts.text || title);
   if (found) return buildCountSteps(opts, found, work);
   var list = analyzeList(title);
@@ -286,7 +343,7 @@ function habitMessage(s) {
   return "One tick today keeps it going.";
 }
 
-var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeList: analyzeList,
+var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeRevenue: analyzeRevenue, analyzeList: analyzeList,
   goalProgress: goalProgress, replan: replan, weekDays: weekDays, habitStats: habitStats, habitMessage: habitMessage, diffDays: diffDays };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.PaceGoals = api;

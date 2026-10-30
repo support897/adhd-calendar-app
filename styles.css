@@ -820,3 +820,16 @@ html[data-door="locked"] #main, html[data-door="locked"] #sidebar, html[data-doo
 .task-row.drop-target, .todo-row.drop-target { box-shadow: 0 -3px 0 var(--accent) inset; }
 .task-row.dragging, .todo-row.dragging { opacity: 0.45; }
 .todo-row[draggable="true"] { cursor: grab; }
+
+/* build 34: calendar blocks you can tick (Structured-style) */
+.fc .ev-row { display: flex; align-items: center; gap: 8px; min-height: 28px; width: 100%; }
+.fc .ev-check { flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ev-c, #5b6bd5); background: var(--card); color: #fff; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.fc .ev-check .ico { width: 14px; height: 14px; stroke: #fff; }
+.fc .ev-check.is-on { background: var(--steady, #35704e); border-color: var(--steady, #35704e); animation: pop 0.3s ease; }
+.fc .ev-body { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.fc .ev-t { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc .ev-m { font-size: 11px; color: var(--ink-3); }
+.fc .ev-done .ev-t { text-decoration: line-through; }
+.fc .fc-timegrid-event .fc-event-main { padding: 1px 2px; }
+.fc .fc-timegrid-event .ev-check { flex-basis: 24px; width: 24px; height: 24px; }
+.fc .fc-event.ev-done { opacity: 0.72; }

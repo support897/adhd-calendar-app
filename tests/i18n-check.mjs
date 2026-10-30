@@ -12,7 +12,7 @@ eval(readFileSync(new URL("../i18n.js", import.meta.url), "utf8"));
 const ES = globalThis.window.PACE_ES_TABLE;
 check("the ES table is exposed and populated (" + (ES ? Object.keys(ES).length : 0) + " entries)", !!ES && Object.keys(ES).length > 300);
 const seen = new Set();
-for (const f of ["app.js", "calendar-import.js", "firebase.js", "billing.js", "logic.js"]) {
+for (const f of ["app.js", "calendar-import.js", "firebase.js", "billing.js", "logic.js", "goals.js", "goals-ui.js"]) {
   const src = readFileSync(new URL("../" + f, import.meta.url), "utf8");
   for (const m of src.matchAll(/\btr\("((?:[^"\\]|\\.)*)"/g)) seen.add(JSON.parse('"' + m[1] + '"'));
 }

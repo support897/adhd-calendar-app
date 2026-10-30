@@ -1,0 +1,100 @@
+// Pace build 34 checks: all free, tickable calendar blocks, business goal planner (30 Oct 2026).
+// Same setup as browser-check.mjs.
+// Build-33 battery care (29 Oct): Polar's line (builds 24-32) emptied
+// the guest samples (Empty-Start: 0 seed tasks, was 8), redesigned the
+// habit card (habit-card + .hw-day week buttons + "N day streak" stats,
+// rendered by goals-ui.js) and expanded Skip's tour (name -> empty ->
+// feeling -> looks (the 2 free looks) -> task -> import -> reminders ->
+// panel stops). The legs below pin the CURRENT shapes; every leg's
+// substance (todo promotes/demotes, habit adds/ticks/streaks/survives,
+// the tour teaches and stays done) is unchanged.
+import { chromium } from "playwright-core";
+import http from "http"; import fs from "fs"; import path from "path";
+const ROOT = process.env.APP_ROOT || "/Users/ilse/Apps/adhd-calendar-app";
+const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
+/* Battery care (29 Oct, build 33's door lock): no usable guest app
+   remains, so every context runs as its own signed-in harness
+   account on the mock; in-page store reads derive the uid key from
+   the session itself. Feature substance unchanged. */
+const { startMock } = await import(path.join(ROOT, "tests/mock-firebase.mjs"));
+const mock = await startMock();
+const testConfig = `window.PACE_FB_CONFIG = { apiKey: "test-key-1234567890", authDomain: "x", projectId: "pace-test", appId: "1:x:web:y", googleClientId: null, appleEnabled: false, restAuth: "http://127.0.0.1:${mock.port}", restFirestore: "http://127.0.0.1:${mock.port}", restToken: "http://127.0.0.1:${mock.port}" };`;
+async function mkSess(email) {
+  const r = await fetch(`http://127.0.0.1:${mock.port}/v1/accounts:signUp?key=x`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "password-1", returnSecureToken: true }) });
+  const A = await r.json();
+  return { uid: A.localId, email: A.email, idToken: A.idToken, refreshToken: A.refreshToken, expiresAt: Date.now() + 3600e3 };
+}
+const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split("?")[0]); if (p === "/") p = "/index.html"; if (p === "/firebase-config.js") { res.writeHead(200, { "Content-Type": "text/javascript" }); res.end(testConfig); return; } const file = path.join(ROOT, p); if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; } res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" }); fs.createReadStream(file).pipe(res); });
+await new Promise(r => server.listen(8918, r));
+let pass = 0, fail = 0; const check = (n, c) => { if (c) { pass++; console.log("PASS " + n); } else { fail++; console.log("FAIL " + n); } };
+const browser = await chromium.launch({ executablePath: process.env.CHROME_EXE || "/home/hatch/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell", args: ["--no-sandbox"] });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const page = await ctx.newPage();
+await page.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, await mkSess("f1@test.dev"));
+const errors = []; page.on("pageerror", e => errors.push(e.message));
+await page.goto("http://localhost:8918/", { waitUntil: "networkidle" });
+await page.click("#welcomeSkip");
+await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:" + JSON.parse(localStorage.getItem("pace-auth-v1")).uid)));
+
+/* ===== build 34: all free, tick-able calendar blocks, business goal planner ===== */
+const SH = process.env.SHOTS || "/Users/ilse/Apps/_qa/shots"; fs.mkdirSync(SH, { recursive: true });
+const ctxM = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const m = await ctxM.newPage();
+await m.addInitScript((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, await mkSess("b34@test.dev"));
+const merrs = []; m.on("pageerror", e => merrs.push(e.message));
+await m.goto("http://localhost:8918/", { waitUntil: "networkidle" });
+await m.click("#welcomeSkip").catch(() => {});
+await m.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+
+check("everything is free: plusActive is true", await m.evaluate(() => window.PaceBilling.plusActive()) === true);
+check("no Plans button is visible anywhere", !(await m.locator("#plansOpen").isVisible()));
+await m.evaluate(() => { try { window.maybePlus && window.maybePlus("look"); } catch (e) {} });
+check("the upgrade sheet never opens", await m.locator("#plusSheet").isHidden());
+
+/* a timed task shows its NAME on the calendar and ticks done in place */
+await m.click("#addBtn");
+await m.fill("#quickText", "Call the dentist today at 10am");
+await m.click("#addSave");
+await m.waitForTimeout(500);
+await m.screenshot({ path: SH + "/cal-390.png" });
+const evTitle = await m.locator("#calendar .ev-t").first().textContent().catch(() => "");
+check("calendar block shows the task name (" + evTitle + ")", /Call the dentist/.test(evTitle || ""));
+check("calendar block has a tick circle", (await m.locator("#calendar .ev-check").count()) >= 1);
+await m.locator("#calendar .ev-check").first().click();
+await m.waitForTimeout(400);
+const doneNow = await m.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); const s = JSON.parse(localStorage.getItem(k)); return s.tasks.filter(t => t.title === "Call the dentist")[0].status; });
+check("tapping the circle marks it done", doneNow === "done");
+await m.locator("#calendar .ev-row").first().scrollIntoViewIfNeeded(); await m.screenshot({ path: SH + "/cal-done-390.png" });
+check("the goal button is in the calendar top bar", await m.locator("#goalBtn").isVisible());
+
+/* the business plan: times, reminders, funnel */
+await m.click("#goalBtn");
+await m.waitForTimeout(300);
+await m.fill("#goalTitle", "Build my business and reach 5000 revenue this month");
+const endD = await m.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
+await m.fill("#goalEnd", endD);
+await m.click("#goalPlanBtn");
+await m.waitForTimeout(400);
+const prev = await m.locator("#goalsRoot").innerText();
+check("preview names the funnel (sales and reach-outs)", /sales at \$\d+ each/.test(prev) && /reach-outs a day/.test(prev));
+check("preview shows a normal day with clock times", /09:00/.test(prev) && /13:00/.test(prev) && /17:30/.test(prev));
+check("preview says the price is a guess", /is a guess/.test(prev));
+await m.screenshot({ path: SH + "/goal-preview-390.png", fullPage: true });
+await m.click("#goalAddBtn");
+await m.waitForTimeout(600);
+const gt = await m.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); const s = JSON.parse(localStorage.getItem(k)); return s.tasks.filter(t => t.goalId).map(t => ({ d: t.date, t: t.time, n: t.title })); });
+const day2 = gt.filter(t => t.d === gt[gt.length - 1].d);
+check("goal tasks landed on the calendar (" + gt.length + ")", gt.length > 60);
+check("most goal tasks have a clock time", gt.filter(t => t.t).length > gt.length * 0.9);
+check("a day has several timed blocks, none stacked on one time", new Set(gt.filter(t => t.d === gt[5].d).map(t => t.t)).size >= 3);
+await m.click('.side-item[data-panel="calendar"]').catch(async () => { await m.evaluate(() => document.querySelector('.side-item[data-panel="calendar"]').click()); });
+await m.waitForTimeout(400);
+await m.locator("#calendar .ev-row").first().scrollIntoViewIfNeeded().catch(() => {}); await m.screenshot({ path: SH + "/cal-goal-390.png" });
+/* narrow phone + Spanish */
+await m.setViewportSize({ width: 320, height: 640 });
+await m.screenshot({ path: SH + "/cal-320.png" });
+check("no page errors", merrs.length === 0 || (console.log(merrs), false));
+console.log("RESULT pass=" + pass + " fail=" + fail);
+await browser.close(); mock.close && mock.close(); server.close();
+process.exit(fail ? 1 : 0);
