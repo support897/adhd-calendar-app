@@ -865,3 +865,7 @@ html[data-door="locked"] #main, html[data-door="locked"] #sidebar, html[data-doo
 .set-tour{margin:0 0 12px}
 .settings-group{scroll-margin-top:64px}
 #panel-settings .settings-group.guide-target{outline:2px solid var(--accent)}
+
+.un-gap{display:block;font-size:13px;color:var(--ink-2);margin:2px 0 4px}
+.fc .fc-non-business{background:rgba(120,130,160,.10)}
+.qsuggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.qsuggest button{border:1px solid var(--hair);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;min-height:36px}.qsuggest button:active{background:var(--today-tint)}

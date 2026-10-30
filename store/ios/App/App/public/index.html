@@ -279,6 +279,8 @@ try {
       </div>
       <div class="settings-group" id="setCheckin">
         <h3 data-i18n>Morning check-in</h3>
+        <label class="row" data-i18n>I wake up at <input type="time" id="wakeTime" value="07:00"></label>
+        <label class="row" data-i18n>I wind down at <input type="time" id="windTime" value="22:00"></label>
         <label class="row" data-i18n>Ask me at <input type="time" id="checkinTime" value="08:00"></label>
         <label class="row" data-i18n>Bad day is called <input type="text" id="nameLow" value="Bad" maxlength="14"></label>
         <label class="row" data-i18n>Ok day is called <input type="text" id="nameSteady" value="Ok" maxlength="14"></label>
@@ -345,6 +347,15 @@ try {
     <label class="field">
       <input type="text" id="quickText" data-i18n-ph placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes" aria-label="Say it in one sentence">
     </label>
+    <div id="quickSuggest" class="qsuggest" role="group" aria-label="Quick add">
+      <button type="button" data-add="today">Today</button>
+      <button type="button" data-add="tomorrow">Tomorrow</button>
+      <button type="button" data-add="at 9am">Morning</button>
+      <button type="button" data-add="at 6pm">Evening</button>
+      <button type="button" data-add="every day">Every day</button>
+      <button type="button" data-add="for 30 minutes">30 min</button>
+      <button type="button" data-add="!!!">Important</button>
+    </div>
     <div id="quickPreview" class="quick-preview" hidden></div>
     <details class="details-fallback"><summary data-i18n>Or fill in the details</summary>
       <label class="field" data-i18n>Title <input type="text" id="fTitle"></label>
