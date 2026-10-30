@@ -840,3 +840,14 @@ html[data-door="locked"] #main, html[data-door="locked"] #sidebar, html[data-doo
 .checkin-card .level-btn.is-active { box-shadow: 0 0 0 2px var(--ink); }
 
 .qchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.qchip{background:#fff;border:1px solid var(--line,#e3e0f0);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}.qc-date,.qc-time{background:#efeaff;color:#4b35b8}.qc-rem{background:#e8f6ee;color:#1f6b45}.qc-rep{background:#fff2e0;color:#8a5200}.qc-ess{background:#ffe8e8;color:#a02525}
+
+/* Phone: the view switcher floats above the tab bar, one thumb away (TickTick-style pill, Pace colours). */
+@media (max-width: 700px) {
+  #panel-calendar .segmented {
+    position: fixed; z-index: 37; left: 50%; transform: translateX(-50%);
+    bottom: calc(72px + var(--sab)); order: 0; flex: none; width: auto; max-width: calc(100vw - 24px);
+    background: var(--card); border: 1px solid var(--hair); box-shadow: 0 6px 22px rgba(26,40,35,.18);
+  }
+  #panel-calendar .segmented button { padding: 6px 12px; font-size: 13px; }
+  #panel-calendar { padding-bottom: 56px; }
+}
