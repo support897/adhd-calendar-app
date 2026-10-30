@@ -91,6 +91,22 @@ check("a day has several timed blocks, none stacked on one time", new Set(gt.fil
 await m.click('.side-item[data-panel="calendar"]').catch(async () => { await m.evaluate(() => document.querySelector('.side-item[data-panel="calendar"]').click()); });
 await m.waitForTimeout(400);
 await m.locator("#calendar .ev-row").first().scrollIntoViewIfNeeded().catch(() => {}); await m.screenshot({ path: SH + "/cal-goal-390.png" });
+/* the calendar follows the feeling */
+await m.evaluate(() => document.querySelector('.side-item[data-panel="calendar"]') && 0);
+await m.click('.level-btn[data-level="low"]'); await m.waitForTimeout(500);
+const restLow = await m.locator("#calendar .fc-event.ev-resting").count();
+const subLow = await m.locator("#checkinSub").innerText();
+check("Bad day: some calendar blocks rest, faded (" + restLow + ")", restLow >= 1);
+check("Bad day: the card says how many are showing/resting", /resting/.test(subLow));
+await m.screenshot({ path: SH + "/cal-bad-390.png" });
+await m.click('.level-btn[data-level="full"]'); await m.waitForTimeout(500);
+check("Great day: nothing rests", (await m.locator("#calendar .fc-event.ev-resting").count()) === 0);
+await m.click('.level-btn[data-level="steady"]'); await m.waitForTimeout(300);
+check("the feeling can be changed again and again", (await m.locator('.level-btn.is-active').getAttribute("data-level")) === "steady");
+const pl = await m.evaluate(() => { const s = PaceGoals.buildPlan({ title: "Learn Spanish", start: "2026-11-02", end: "2026-12-11", pace: "daily", mins: 20, category: "personal", text: "Learn Spanish" }); return { n: s.length, first: s[0].title, kind: s.analysis.kind, stages: s.analysis.weeks.length }; });
+check("goal 'Learn Spanish' is read as a learning playbook with 4 stages", pl.kind === "playbook" && pl.stages === 4 && /Spanish/.test(pl.first) && !/learn Spanish/.test(pl.first));
+const pl2 = await m.evaluate(() => PaceGoals.buildPlan({ title: "Pass my biology exam", start: "2026-11-02", end: "2026-12-11", pace: "daily", mins: 20, category: "school", text: "Pass my biology exam" }).analysis.summary);
+check("an exam goal gets exam stages", /exam goal/.test(pl2));
 /* narrow phone + Spanish */
 await m.setViewportSize({ width: 320, height: 640 });
 await m.screenshot({ path: SH + "/cal-320.png" });

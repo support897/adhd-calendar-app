@@ -833,3 +833,8 @@ html[data-door="locked"] #main, html[data-door="locked"] #sidebar, html[data-doo
 .fc .fc-timegrid-event .fc-event-main { padding: 1px 2px; }
 .fc .fc-timegrid-event .ev-check { flex-basis: 24px; width: 24px; height: 24px; }
 .fc .fc-event.ev-done { opacity: 0.72; }
+
+/* build 34: resting tasks (parked by the feeling) stay visible, faded */
+.fc .fc-event.ev-resting { opacity: 0.45; border: 1.5px dashed var(--hair) !important; border-left: 3px dashed var(--ev-c, #5b6bd5) !important; background: transparent !important; }
+.fc .fc-event.ev-resting .ev-check { visibility: hidden; }
+.checkin-card .level-btn.is-active { box-shadow: 0 0 0 2px var(--ink); }

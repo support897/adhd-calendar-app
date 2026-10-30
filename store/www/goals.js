@@ -215,6 +215,94 @@ function buildRevenueSteps(opts, work, days) {
   return steps;
 }
 
+/* ---------- playbooks (build 34): Pace reads WHAT the goal is ----------
+   Each kind of goal has its own real stages, in order, with real actions and
+   a time of day that suits the work. "Learn Spanish" and "lose 5 kg" are not
+   cut into the same pieces. Plain rules, no AI, and the preview says so. */
+var PLAYBOOKS = [
+  { id: "launch", label: "launch", re: /\b(launch|start|build|create|open|grow)\b.*\b(app|website|site|product|shop|store|brand|channel|newsletter|podcast|startup|course|page|business|agency|service)\b/i,
+    phases: [
+      { name: "Decide", share: 0.15, time: "09:00", min: 30, acts: ["Write who {t} is for, in one sentence", "List the 3 problems {t} solves", "Look at 3 similar things and note what they miss", "Choose the one thing {t} must do first"] },
+      { name: "Build the first version", share: 0.4, time: "09:00", min: 45, acts: ["Build the next small piece of {t}", "Finish one screen, page or part of {t}", "Fix the biggest gap in {t}", "Write the words people will read on {t}"] },
+      { name: "Show it to real people", share: 0.25, time: "13:00", min: 30, acts: ["Show {t} to one real person and write down what they say", "Ask 3 people what is confusing about {t}", "Fix the top thing people said about {t}"] },
+      { name: "Launch", share: 0.2, time: "10:00", min: 30, acts: ["Tell 10 people about {t}", "Post {t} where your people hang out", "Reply to everyone who answered about {t}", "Write down what worked this week for {t}"] }] },
+  { id: "exam", label: "exam", re: /\b(exam|test|quiz|assessment|finals?|certificate|certification|licen[sc]e)\b/i,
+    phases: [
+      { name: "Plan", share: 0.1, time: "09:00", min: 30, acts: ["Find out what {t} covers and when it is", "List every topic in {t} and mark the shaky ones", "Gather notes, readings and past papers for {t}"] },
+      { name: "Learn each topic", share: 0.5, time: "09:00", min: 40, acts: ["Learn the next topic for {t}", "Write 5 key points from today's topic for {t}", "Say today's topic for {t} back without notes", "Make 5 flashcards for {t}"] },
+      { name: "Practise", share: 0.3, time: "15:00", min: 40, acts: ["Do 10 practice questions for {t}", "Do one past paper section for {t}", "Mark your answers and fix the mistakes for {t}"] },
+      { name: "Final review", share: 0.1, time: "09:00", min: 30, acts: ["Review your weakest topics for {t}", "Light review of {t}, then rest well"] }] },
+  { id: "learn", label: "learning", re: /\b(learn|speak|study|master|practi[sc]e|get (good|better|fluent)|play (the )?(guitar|piano|violin|drums|ukulele)|fluent)\b/i,
+    phases: [
+      { name: "Set up", share: 0.1, time: "08:00", min: 20, acts: ["Pick one course, book or teacher for {t}", "Set up a spot and a daily time for {t}", "Write what you can already do in {t}"] },
+      { name: "Basics", share: 0.4, time: "08:00", min: 20, acts: ["Learn the next small piece of {t}", "Repeat yesterday's piece of {t} from memory", "Do 10 minutes of {t} out loud or by hand", "Write down 5 things you learned in {t}"] },
+      { name: "Use it", share: 0.35, time: "18:30", min: 25, acts: ["Use {t} for real: talk, play or write for 15 minutes", "Record yourself doing {t} and listen back", "Do one small test of {t}", "Fix the one thing that went wrong in {t}"] },
+      { name: "Show it", share: 0.15, time: "18:30", min: 30, acts: ["Do {t} with another person", "Do a full run-through of {t} without stopping", "Write what to learn next in {t}"] }] },
+  { id: "fitness", label: "fitness", quote: true, re: /\b(lose|gain|weigh|kg|kilo|pounds?|lbs|fit|fitness|gym|run|running|marathon|5k|10k|workout|muscle|strength|walk|swim|yoga|get stronger|healthy)\b/i,
+    phases: [
+      { name: "Start easy", share: 0.25, time: "06:30", min: 20, acts: ["Easy session for {t}: stop while it still feels easy", "Walk for 20 minutes for {t}", "Prepare tomorrow's food and clothes for {t}"] },
+      { name: "Build", share: 0.4, time: "06:30", min: 30, acts: ["Session for {t}: a little more than last time", "Strength or stretch for 20 minutes for {t}", "Walk or move for 30 minutes for {t}", "Plan this week's meals for {t}"] },
+      { name: "Push a little", share: 0.25, time: "06:30", min: 35, acts: ["Longer session for {t}", "Hard but short session for {t}", "Easy recovery session for {t}"] },
+      { name: "Check and finish", share: 0.1, time: "07:00", min: 30, acts: ["Measure where you are on {t} and write it down", "Final session for {t}, then look back"] }] },
+  { id: "write", label: "writing", re: /\b(write|book|novel|thesis|dissertation|essay|blog|article|script|memoir|screenplay)\b/i,
+    phases: [
+      { name: "Plan", share: 0.15, time: "09:00", min: 30, acts: ["Write the one-line point of {t}", "Outline the parts of {t} on one page", "List what you still need to look up for {t}"] },
+      { name: "Draft", share: 0.55, time: "09:00", min: 45, acts: ["Write the next part of {t}. Do not edit yet", "Write 300 words of {t}", "Write the part of {t} you are most excited about"] },
+      { name: "Edit", share: 0.25, time: "10:00", min: 40, acts: ["Read one part of {t} out loud and fix it", "Cut what does not help {t}", "Fix the weakest part of {t}"] },
+      { name: "Finish", share: 0.05, time: "10:00", min: 30, acts: ["Final read of {t}, then share it"] }] },
+  { id: "job", label: "job search", re: /\b(job|career|interview|resume|cv|apply|applications?|hired|promotion|new role)\b/i,
+    phases: [
+      { name: "Get ready", share: 0.2, time: "09:00", min: 40, acts: ["Update your CV for {t}", "Write 3 sentences about what you want, for {t}", "List 20 places you would like to work, for {t}"] },
+      { name: "Apply and reach out", share: 0.5, time: "09:00", min: 40, acts: ["Send 3 applications for {t}", "Message 3 people who work where you want, for {t}", "Follow up on last week's applications for {t}"] },
+      { name: "Practise", share: 0.2, time: "15:00", min: 30, acts: ["Practise 3 interview answers out loud for {t}", "Do one mock interview for {t}"] },
+      { name: "Close", share: 0.1, time: "09:00", min: 30, acts: ["Follow up on every open application for {t}", "Write down what you learned searching for {t}"] }] },
+  { id: "home", label: "home", re: /\b(declutter|clean|tidy|organi[sz]e|move house|moving|renovat|garage|wardrobe|closet|spring clean)\b/i,
+    phases: [
+      { name: "Look", share: 0.1, time: "10:00", min: 20, acts: ["Walk through and list every area for {t}", "Gather bags, boxes and cleaning things for {t}"] },
+      { name: "Do it area by area", share: 0.8, time: "10:00", min: 30, acts: ["Do the next area of {t}", "Sort one shelf, drawer or corner for {t}", "Take one bag to donate or throw away for {t}"] },
+      { name: "Finish", share: 0.1, time: "10:00", min: 30, acts: ["Final tidy and walk-through for {t}"] }] }
+];
+function subjectOf(title) {
+  var s = String(title || "").trim().replace(/^(i (really )?(want|need|would like|plan|am going) to|my goal is to|help me|please)\s+/i, "");
+  s = s.replace(/\s+(this|next)\s+(week|month|year|semester|quarter)\b.*$/i, "").replace(/\s+by\s+.*$/i, "").replace(/[.!?]+$/, "");
+  s = s.charAt(0).toLowerCase() + s.slice(1);
+  return s.length > 48 ? s.slice(0, 45).replace(/\s+\S*$/, "") + "..." : s;
+}
+function nounOf(title) {
+  var s = subjectOf(title).replace(/^(learn|lose|launch|start|build|create|open|grow|write|get|declutter|clean|tidy|organi[sz]e|pass|study|master|practi[sc]e|improve|finish|complete|prepare for|prepare)\s+(to\s+)?/i, "").trim();
+  return s.length >= 2 ? s : subjectOf(title);
+}
+function findPlaybook(text, category) {
+  var s = String(text || "");
+  for (var i = 0; i < PLAYBOOKS.length; i++) if (PLAYBOOKS[i].re.test(s)) return PLAYBOOKS[i];
+  return null;
+}
+function buildPlaybookSteps(opts, pb, days) {
+  var t = pb.quote ? "\u201c" + subjectOf(opts.title) + "\u201d" : nounOf(opts.title), n = days.length, steps = [], phaseRanges = [], cut = 0, pi, i;
+  var counts = pb.phases.map(function (p, k) { return k === pb.phases.length - 1 ? 0 : Math.max(1, Math.round(p.share * n)); });
+  var used = counts.reduce(function (a, b) { return a + b; }, 0);
+  counts[counts.length - 1] = Math.max(1, n - used);
+  var mult = Math.max(0.5, Math.min(2, (+opts.mins || 20) / 25));
+  for (pi = 0; pi < pb.phases.length; pi++) {
+    var ph = pb.phases[pi], from = cut, to = Math.min(n, cut + counts[pi]);
+    cut = to; if (to <= from) continue;
+    phaseRanges.push({ name: ph.name, from: days[from], to: days[to - 1] });
+    for (i = from; i < to; i++) {
+      var a = ph.acts[(i - from) % ph.acts.length];
+      var last = i === n - 1, review = !last && weekdayOf(days[i]) === 0;
+      var title = last ? tr("Finish: {t}. Final look, then celebrate", { t: t }) : review ? tr("Weekly review: what worked on {t} and what to change", { t: t }) : tr(a, { t: t });
+      steps.push({ date: days[i], time: review || last ? "17:30" : ph.time, title: title.charAt(0).toUpperCase() + title.slice(1), durationMin: review ? 20 : Math.max(10, Math.round(ph.min * mult / 5) * 5),
+        minVersion: tr("Just 5 minutes: do the very first bit of this."), weekStart: mondayOf(days[i]), phase: ph.name });
+    }
+  }
+  steps.analysis = { kind: "playbook", total: n, unit: "", tight: false,
+    weeks: phaseRanges.map(function (r) { return { start: r.from, text: tr(r.name) + " " + tr("until") + " " + r.to.slice(5) }; }),
+    summary: tr("Pace read this as a {k} goal: {n} stages, one clear step a day", { k: tr(pb.label), n: phaseRanges.length }),
+    typicalDay: null,
+    guess: tr("These stages are Pace's own rules for {k} goals, not AI. Change any step in your calendar.", { k: tr(pb.label) }) };
+  return steps;
+}
+
 /* Which days are plan days. pace: "daily" | "weekdays" | "three" (Mon/Wed/Fri) */
 function planDays(startKey, endKey, pace) {
   var out = [], span = diffDays(startKey, endKey);
@@ -241,6 +329,9 @@ function buildPlan(opts) {
   if (rv) return buildRevenueSteps(opts, rv, work);
   var found = analyzeWork(opts.text || title);
   if (found) return buildCountSteps(opts, found, work);
+  var ownLines = String(opts.text || "").split(/\r\n|\n|\r/).filter(function (l) { return l.trim().length >= 3; }).length;
+  var pbk = (ownLines >= 4 || (opts.milestones && opts.milestones.length) || analyzeList(title)) ? null : findPlaybook(title);
+  if (pbk) return buildPlaybookSteps(opts, pbk, work);
   var list = analyzeList(title);
   var ms = list ? list.items : (opts.milestones && opts.milestones.length ? opts.milestones : parseMilestones("", opts.category));
   var steps = [], i;
@@ -343,7 +434,7 @@ function habitMessage(s) {
   return "One tick today keeps it going.";
 }
 
-var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeRevenue: analyzeRevenue, analyzeList: analyzeList,
+var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeRevenue: analyzeRevenue, findPlaybook: findPlaybook, PLAYBOOKS: PLAYBOOKS, analyzeList: analyzeList,
   goalProgress: goalProgress, replan: replan, weekDays: weekDays, habitStats: habitStats, habitMessage: habitMessage, diffDays: diffDays };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.PaceGoals = api;

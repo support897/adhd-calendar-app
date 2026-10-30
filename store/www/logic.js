@@ -200,7 +200,7 @@ function adaptDay(tasks, level, tomorrowTasks) {
        minimum by definition: it stays, shrunk, instead of vanishing. */
     var taught = sorted.filter(function (x) { return !x.essential && x.minVersion; });
     var rest = sorted.filter(function (x) { return !x.essential && !x.minVersion; });
-    visible = ess.slice(0, 4).concat(taught).slice(0, 6);
+    visible = ess.slice(0, 4).concat(taught.slice(0, 3)).slice(0, 6);
     if (!taught.length && visible.length < 4 && rest.length) {
       var tiny = rest.slice().sort(function (a, b) { return a.durationMin - b.durationMin; })[0];
       visible.push(tiny);
@@ -221,7 +221,7 @@ function adaptDay(tasks, level, tomorrowTasks) {
     var copy = {}; for (var k in x) copy[k] = x[k];
     copy.displayTitle = x.title;
     copy.shrunk = false;
-    if (level === "low" && x.minVersion) { copy.displayTitle = x.minVersion; copy.shrunk = true; }
+    if (level === "low" && x.minVersion) { copy.displayTitle = /^Just 5 minutes/.test(x.minVersion) ? "Just 5 minutes: " + x.title : x.minVersion; copy.shrunk = true; }
     if (level === "full" && x.fullVersion) { copy.displayTitle = x.fullVersion; }
     return copy;
   });

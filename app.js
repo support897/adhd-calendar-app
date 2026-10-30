@@ -812,6 +812,9 @@ function renderCheckin() {
   var sl = $("sideLevel");
   var todayLevel = state.feelings[L.todayKey()];
   sl.innerHTML = todayLevel ? tr("Today:") + " <strong>" + esc(displayLevelName(todayLevel)) + "</strong>" : tr("No check-in yet today");
+  var adc = adaptedFor(selected), tot = adc.visible.length + adc.parked.length;
+  var subEl = $("checkinSub");
+  if (subEl && state.feelings[selected]) subEl.textContent = adc.parked.length ? tr("Showing {a} of {b}. {c} resting until you feel up to it. You can change this any time.", { a: adc.visible.length, b: tot, c: adc.parked.length }) : tr("Showing everything for today. You can change this any time.");
   $("checkinQ").textContent = selected === L.todayKey() ? tr("How are you feeling today?") : tr("How does this day feel?");
 }
 document.querySelectorAll(".level-btn").forEach(function (b) {
@@ -829,7 +832,14 @@ document.querySelectorAll(".level-btn").forEach(function (b) {
 /* ---------- calendar ---------- */
 function fcEvents() {
   var a = L.addDays(selected, -45), b = L.addDays(selected, 80);
+  /* The calendar follows the feeling (build 34): each day is adapted at ITS
+     level. Showing tasks keep their place (small version on a Bad day); resting
+     tasks stay on the calendar, faded and dashed, never deleted. */
+  var adaptCache = {};
+  function adaptOf(key) { return adaptCache[key] || (adaptCache[key] = (function () { var ad = adaptedFor(key), m = {}; ad.visible.forEach(function (x) { m[x.id] = x; }); return { map: m, level: levelFor(key) }; })()); }
   return instancesInRange(a, b).map(function (t) {
+    var ao = adaptOf(t.instanceDate), shown = ao.map[t.id], resting = t.status !== "done" && !shown;
+    if (shown && shown.displayTitle) t = Object.assign({}, t, { title: shown.displayTitle, durationMin: shown.shrunk ? Math.min(t.durationMin, 5) : t.durationMin });
     var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
     if (t.time) {
       var startMin = L.toMin(t.time);
@@ -838,6 +848,7 @@ function fcEvents() {
       if (startMin + t.durationMin >= 1440) { ev.end = L.addDays(t.instanceDate, 1) + "T" + L.toHHMM(startMin + t.durationMin) + ":00"; }
     } else { ev.start = t.instanceDate; }
     if (t.status === "done") ev.classNames = ["ev-done"];
+    else if (resting) ev.classNames = ["ev-resting"];
     return ev;
   });
 }

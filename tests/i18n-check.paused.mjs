@@ -1,3 +1,4 @@
+// PAUSED 30 Oct 2026: Spanish removed (owner ruling), the app is English only. Restore the name i18n-check.mjs if a language returns.
 // Pace — Spanish coverage sweep, runtime-accurate (PACE-013).
 // tr() literals are extracted from the shipped JS and unescaped the
 // JS way (JSON.parse) before lookup — a purely textual sweep cannot

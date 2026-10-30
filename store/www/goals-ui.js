@@ -258,7 +258,7 @@ function buildForm() {
     if (!t && n.trim()) t = n.trim().split(/\r\n|\n|\r/)[0].replace(/^\s*(?:[-*•]|\d{1,2}[.)])\s*/, "").slice(0, 60);
     if (!t) { err.textContent = tr("Give your goal a name first."); title.focus(); return; }
     if (!end.value || end.value <= today) { err.textContent = tr("Pick a finish date after today."); end.focus(); return; }
-    var steps = G.buildPlan({ title: t, category: picked, start: today, end: end.value, pace: pace.value, mins: +mins.value, milestones: G.parseMilestones(n, picked), text: t + "\n" + n, price: +price.value || 0 });
+    var steps = G.buildPlan({ title: t, category: picked, start: today, end: end.value, pace: pace.value, mins: +mins.value, milestones: n.split(/\r\n|\n|\r/).filter(function (l) { return l.trim().length >= 3; }).length >= 3 ? G.parseMilestones(n, picked) : undefined, text: t + "\n" + n, price: +price.value || 0 });
     if (!steps.length) { err.textContent = tr("That date is too close for a plan. Pick a later date."); return; }
     steps.forEach(function (st) { st.full = st.time ? false : !freeSlot(st.date, st.durationMin); });
     draft = { price: +price.value || 0, title: t, notes: n, category: picked, end: end.value, pace: pace.value, mins: +mins.value, steps: steps, fullCount: steps.filter(function (s) { return s.full; }).length };
