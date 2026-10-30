@@ -1084,10 +1084,14 @@ $("quickText").addEventListener("input", function () {
   var item = L.parseItem(v, selected);
   if (!item) { $("quickPreview").hidden = true; return; }
   $("quickPreview").hidden = false;
-  $("quickPreview").innerHTML = "<strong>" + esc(item.title) + "</strong><br>" +
-    esc(L.parseKey(item.date).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" })) +
-    (item.time ? tr(" at {time}", { time: item.time }) : item.allDay ? "" : tr(" · no time yet")) + " · " + durationLabel(item) +
-    (item.repeat ? " · " + esc(item.repeat) : "") + (item.essential ? " · must not slip" : "");
+  var chip = function (cls, t) { return '<span class="qchip ' + cls + '">' + esc(t) + '</span>'; };
+  var rem = (item.time && !item.allDay) ? chip("qc-rem", "Reminder " + (leadsFor(item)[0] || 10) + " min before") : "";
+  $("quickPreview").innerHTML = "<strong>" + esc(item.title) + "</strong><div class=\"qchips\">" +
+    chip("qc-date", L.parseKey(item.date).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" })) +
+    (item.time ? chip("qc-time", tr("at {time}", { time: item.time })) : item.allDay ? "" : chip("qc-none", tr("no time yet"))) +
+    chip("qc-dur", durationLabel(item)) +
+    (item.repeat ? chip("qc-rep", "Repeats " + item.repeat) : "") + rem +
+    (item.essential ? chip("qc-ess", "must not slip") : "") + "</div>";
 });
 $("addSave").addEventListener("click", function () {
   // A smallest version typed at creation is a teach (Plus);
@@ -2275,7 +2279,13 @@ function buildTour() {
   TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Progress groups tasks by status. If it is locked, Pace will say so.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "habits", pose: "point", bubble: "Habits helps you notice routines, one day at a time.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "goals", pose: "point", bubble: "Goals turns one big goal into one small step a day on your calendar.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "settings", pose: "point", bubble: "Settings is where reminders and this guide live.", next: "Done ✓", last: true });
+  TOUR.push({ kind: "tour", panel: "settings", section: "profileCard", pose: "welcome", bubble: "This is Settings. Your name and email are at the top.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "accountGroup", pose: "point", bubble: "Account: your name, sign out, and download your data.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setLook", pose: "point", bubble: "Look: pick a colour, a photo, or Cute mode.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setCheckin", pose: "point", bubble: "Check-in: when I ask how you feel, and what you call Bad, Ok and Great.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setNotif", pose: "point", bubble: "Reminders: choose how early each reminder comes. Each task can have its own.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setTasks", pose: "point", bubble: "Tasks: bring a calendar in, or save yours as a file.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setHelp", pose: "celebrate", bubble: "Help is here if you get stuck. Everything in Pace is free.", next: "Done ✓", last: true });
 }
 var guideStep = 0;
 var guideResumeAfterTask = null;
@@ -2319,6 +2329,7 @@ function showGuide(step) {
     else if (s.panel === "progress") target = document.querySelector('.side-item[data-panel="progress"]');
     else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" || s.panel === "goals" ? "more" : s.panel) + '"]');
   }
+  if (s.section && $(s.section)) { target = $(s.section); try { target.scrollIntoView({ block: "start", behavior: "auto" }); } catch (e) {} }
   if (target) target.classList.add("guide-target");
   var ex = $("guideExtra");
   if (s.kind === "name") {
@@ -2408,6 +2419,12 @@ $("guideNext").addEventListener("click", function () {
   else showGuide(guideStep + 1);
 });
 $("guideAgain").addEventListener("click", function () { TOUR = []; buildTour(); showGuide(0); });
+if ($("settingsTour")) $("settingsTour").addEventListener("click", function () {
+  if (!TOUR.length) buildTour();
+  var i = -1;
+  TOUR.forEach(function (x, k) { if (i < 0 && x.section) i = k; });
+  if (i >= 0) { $("guideSheet").hidden = false; showGuide(i); }
+});
 
 /* ---------- the upgrade moment ---------- */
 /* THE LOCKED TAP (the paid/free rules, 19 Oct: paid features release
@@ -2902,7 +2919,18 @@ function freshAccountState() {
   s.updatedAt = 0;
   return s;
 }
+function renderProfileCard() {
+  var card = $("profileCard"); if (!card) return;
+  var sess = FB.session ? FB.session() : null;
+  var nm = (state.settings.profileName || "").trim();
+  var em = (ACTIVE_UID && sess && sess.email) ? sess.email : "";
+  $("pcName").textContent = nm || (em ? em.split("@")[0] : tr("Your account"));
+  $("pcEmail").textContent = em || tr("Not signed in");
+  $("pcAvatar").textContent = ((nm || em || "P").charAt(0) || "P").toUpperCase();
+  try { $("pcSkip").innerHTML = skipSvg("point"); } catch (e) {}
+}
 function renderAccount() {
+  try { renderProfileCard(); } catch (e) {}
   var grp = $("accountGroup");
   if (!grp || !FB.configured) return;
   grp.hidden = false;
@@ -3269,7 +3297,7 @@ window.PaceCtx = { get state() { return state; }, save: save, uid: uid, toast: t
       var open = !g.classList.contains("is-open");
       groups.forEach(function (o) { setOpen(o, false); });
       setOpen(g, open);
-      if (open && g.scrollIntoView) { try { g.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {} }
+      if (open && g.scrollIntoView) { try { g.scrollIntoView({ block: "nearest", behavior: "auto" }); } catch (e) {} }
     };
     h.addEventListener("click", toggle);
     h.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
@@ -3278,4 +3306,12 @@ window.PaceCtx = { get state() { return state; }, save: save, uid: uid, toast: t
   /* Under browser automation (test runners) keep every section open so older
      scripts can reach their buttons; set localStorage paceFold=1 to test folding. */
   if (flat) [].slice.call(document.querySelectorAll("details.task-more")).forEach(function (d) { d.open = true; });
+
+/* Settings: jump chips and Skip's settings tour. */
+document.querySelectorAll("[data-jump]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var el = document.getElementById(b.getAttribute("data-jump"));
+    if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
+  });
+});
 })();
