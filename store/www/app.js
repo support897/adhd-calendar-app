@@ -639,7 +639,16 @@ function renderTicker() {
     })(L.addDays(start, i));
   }
   var sel = el.querySelector('[data-date="' + selected + '"]');
-  if (sel) el.scrollTo({ left: sel.offsetLeft - el.clientWidth / 2 + 26, behavior: tickerBooted ? "smooth" : "auto" });
+  if (sel) {
+    // Centre the selected day, then snap to the nearest whole-cell
+    // boundary so the strip never opens on a half-cut day (build 33:
+    // the centred scroll left the week's first label clipped at the
+    // screen edge — the screenshot class of fault this build fixes).
+    var rawLeft = sel.offsetLeft - el.clientWidth / 2 + 26;
+    var snap = 0;
+    for (var ci = 0; ci < el.children.length; ci++) { if (el.children[ci].offsetLeft >= rawLeft) { snap = el.children[ci].offsetLeft - 2; break; } }
+    el.scrollTo({ left: Math.max(0, snap || rawLeft), behavior: tickerBooted ? "smooth" : "auto" });
+  }
   tickerBooted = true;
 }
 var tickerBooted = false;
@@ -2151,14 +2160,14 @@ if (PaceRemind.available()) {
 }
 
 /* ---------- welcome ---------- */
-if (!state.welcomed) {
+if (!state.welcomed && ACTIVE_UID) {
   // Address the user by their own name when the profile
   // carries one (asked at sign-up; theirs alone).
   var wn = (state.settings.profileName || "").trim().split(/\s+/)[0];
   if (wn) $("welcomeTitle").textContent = tr("Welcome to Pace Calendar, {name}", { name: wn });
   $("welcome").hidden = false;
 }
-$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; });
+$("welcomeSkip").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; maybeGuide(); });
 $("welcomeNotif").addEventListener("click", function () { state.welcomed = true; save(); $("welcome").hidden = true; maybeGuide(); });
 
 /* ---------- Skip the Ferry: the setup guide (Lab spec GUIDE-MASCOTS-001) ----------
@@ -2453,7 +2462,7 @@ $("buyRestore").addEventListener("click", function () {
 });
 
 /* ---------- bring my calendar in (shared module: IMPORT-DESIGN.md) ---------- */
-var DEMO_SESSION = /[?&]demo=1\b/.test(location.search) || !!(state.settings && state.settings.demo);
+var DEMO_SESSION = false; // build 33: the demo road is abolished by the door ruling (29 Oct) — no demo, guest or preview way into the app exists; the flag stays only so its old guards read false.
 var IMPORT_GUIDE = {
   google: "calendar.google.com \u2192 the gear \u2192 Settings \u2192 Import & export \u2192 Export. Inside the download is a file ending .ics. Bring that file here.",
   apple: "In a browser: iCloud.com \u2192 Calendar \u2192 the share icon by a calendar \u2192 Public Calendar. Open the link it gives you \u2014 a file downloads. Bring that file here.",
@@ -2551,8 +2560,13 @@ $("importFile").addEventListener("change", function () {
 });
 /* Signed-in boots defer the tour decision to the reconcile's
    tail — the settled state's guideDone governs, never the
-   pre-adopt read. Guests (no session) decide immediately. */
-if (!ACTIVE_UID && state.welcomed && !state.settings.guideDone) maybeGuide();
+   pre-adopt read. A boot with NO session never reaches the app
+   at all (the door ruling, 29 Oct): the door is the only page —
+   no guest road, no demo, no preview. lockDoor stands the door
+   page up and the stylesheet keeps every piece of app chrome
+   undisplayed while data-door="locked" stands. Signing in
+   reloads (afterSignIn) into a session boot, which never locks. */
+if (!ACTIVE_UID) lockDoor();
 
 /* ---------- accounts (the accounts wave) ----------
    Guest mode is forever: everything below is inert unless the
@@ -2888,6 +2902,18 @@ function nativeAuthPlugin() {
   } catch (e) {}
   return null;
 }
+/* THE DOOR LOCK (the ruling, 29 Oct): with no session the app
+   is the door and only the door. The chrome-hiding half lives
+   in styles.css under html[data-door="locked"]; this half
+   stands the door page up and keeps every inside-the-app
+   sheet (welcome, tour) from ever showing over it. */
+function lockDoor() {
+  if (!FB.configured) return; // no Firebase config: the accounts wave is inert by its own contract, and a lock with no door to stand up would brick the page.
+  document.documentElement.setAttribute("data-door", "locked");
+  var w = $("welcome"); if (w) w.hidden = true;
+  var g = $("guideSheet"); if (g) g.hidden = true;
+  openAuth();
+}
 function openAuth() {
   if (!FB.configured) return;
   $("authMsg").textContent = "";
@@ -2912,7 +2938,6 @@ function bindAccounts() {
     save(); renderAccount(); toast(tr("We'll call you {name} here.", { name: (state.settings.profileName.split(/\s+/)[0] || tr("friend")) }));
   });
   $("accountOpen").addEventListener("click", openAuth);
-  $("authClose").addEventListener("click", function () { $("authSheet").hidden = true; });
   // DOOR-FIRST JOINING (the ruling, 15 Oct): the door is only
   // the door — mark, Google, Apple, email + password, ONE
   // button. One tap signs a returning user in; if no account

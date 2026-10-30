@@ -50,6 +50,116 @@ function parseMilestones(text, category) {
   return (TEMPLATES[category] || TEMPLATES.other).slice();
 }
 
+/* ---------- the analyzer (build 33) ----------
+   The old divider only ever spread a fixed template or the user's own
+   pasted list — it never read the goal itself. The analyzer reads the
+   goal's own words for countable work ("12 chapters", "3,000 words",
+   "$600", "6 rooms") or a list in the title, and the plan is then built
+   from that real work: steps name the actual chunk, sized by how long
+   a unit really takes, grouped week by week. No countable work and no
+   list → the calm category template below stays as the honest fallback. */
+var UNIT_TABLE = [
+  ["chapters?", "chapter", 25, "Read"], ["pages?", "page", 2, "Read"],
+  ["lessons?", "lesson", 20, "Learn"], ["modules?", "module", 30, "Work through"],
+  ["units?", "unit", 20, "Work through"], ["topics?", "topic", 15, "Cover"],
+  ["lectures?", "lecture", 30, "Watch"], ["videos?", "video", 15, "Watch"],
+  ["words?", "word", 0.12, "Write"], ["questions?", "question", 3, "Answer"],
+  ["problems?", "problem", 4, "Solve"], ["exercises?", "exercise", 3, "Do"],
+  ["flashcards?", "flashcard", 0.8, "Learn"], ["cards?", "card", 0.8, "Learn"],
+  ["essays?", "essay", 60, "Write"], ["reports?", "report", 45, "Write"],
+  ["emails?", "email", 4, "Write"], ["invoices?", "invoice", 6, "Send"],
+  ["calls?", "call", 10, "Make"], ["applications?", "application", 20, "Send"],
+  ["rooms?", "room", 20, "Tidy"], ["boxes?", "box", 5, "Pack"],
+  ["bags?", "bag", 5, "Pack"], ["items?", "item", 5, "Sort"],
+  ["songs?", "song", 10, "Practise"], ["verses?", "verse", 3, "Learn"],
+  ["recipes?", "recipe", 25, "Cook"], ["plants?", "plant", 5, "Plant"],
+  ["laps?", "lap", 2, "Swim"], ["km|kilometres?|kilometers?", "km", 8, "Cover"],
+  ["miles?", "mile", 12, "Cover"]
+];
+var LEAD_VERBS = ["read", "write", "learn", "study", "do", "clean", "tidy", "sort", "save", "run", "walk", "practise", "practice", "make", "build", "finish", "complete", "watch", "answer", "solve", "pack", "cook", "plant", "send", "cover", "review", "prepare"];
+function leadVerb(text) {
+  var w = String(text || "").trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, "");
+  return LEAD_VERBS.indexOf(w) >= 0 ? w.charAt(0).toUpperCase() + w.slice(1) : null;
+}
+function analyzeWork(text) {
+  var s = String(text || "");
+  var m = s.match(/\$\s?(\d[\d,]*)/) || s.match(/(\d[\d,]*)\s*dollars/i);
+  if (m) { var dollars = parseInt(m[1].replace(/,/g, ""), 10); if (dollars >= 10) return { kind: "money", total: dollars }; }
+  for (var i = 0; i < UNIT_TABLE.length; i++) {
+    var row = UNIT_TABLE[i];
+    var mm = s.match(new RegExp("(\\d[\\d,]*)[\\s-]*(?:" + row[0] + ")\\b", "i"));
+    if (mm) {
+      var total = parseInt(mm[1].replace(/,/g, ""), 10);
+      if (total >= 2 && total <= 100000) return { kind: "count", total: total, unit: row[1], per: row[2], verb: leadVerb(s) || row[3] };
+    }
+  }
+  return null;
+}
+function analyzeList(title) {
+  var s = String(title || "").trim();
+  if (!/,|\band\b/i.test(s)) return null;
+  var body = s.replace(/^(please\s+)?(read|write|learn|study|do|clean|tidy|sort|save|make|build|finish|complete|prepare|organise|organize)\s+/i, "");
+  var parts = body.split(/\s*,\s*|\s+and\s+/i).map(function (p) { return p.trim().replace(/^the\s+/i, ""); }).filter(function (p) { return p.length >= 3 && p.length <= 40; });
+  if (parts.length < 2 || parts.length > 8) return null;
+  return { kind: "list", items: parts.map(function (p) { return p.charAt(0).toUpperCase() + p.slice(1); }) };
+}
+/* Middle-step verbs that fit the kind of goal (the old set was
+   school-shaped for everything — "Try 5 practice questions" on a
+   money goal). School keeps the original six. */
+var ROTATE_BY_CAT = {
+  school: ROTATE,
+  work: ["Do the next small piece of: ", "Move one step on: ", "Do 20 focused minutes on: ", "Clear the next blocker on: ", "Polish one part of: ", "Do one more small piece of: "],
+  health: ["Do a gentle session of: ", "Keep going with: ", "A short, easy round of: ", "One more small step on: ", "Check in kindly with: ", "Keep it kind: "],
+  money: ["Check the numbers on: ", "Make one small move on: ", "Move a little closer on: ", "Write down progress on: ", "Do the next small step on: ", "Review and adjust: "],
+  home: ["Do the next corner of: ", "Tidy one more bit of: ", "Keep going on: ", "Sort one small part of: ", "One more small piece of: ", "Finish the next bit of: "],
+  personal: ["Do the next small piece of: ", "Keep going with: ", "One small step on: ", "Move one bit further on: ", "Do a little more of: ", "Come back to: "],
+  other: ["Do the next small piece of: ", "Keep going with: ", "One small step on: ", "Move one bit further on: ", "Do a little more of: ", "Come back to: "]
+};
+function mondayOf(k) { var wd = weekdayOf(k); return addDays(k, -((wd + 6) % 7)); }
+/* Build steps from analyzed countable work. Steps run on consecutive
+   plan days from the start; when the work is done the plan is done —
+   the days after stay free (a bigger buffer, said out loud in the
+   preview). Minutes are sized from the unit's real cost, aimed at the
+   user's picked minutes; if the deadline forces chunks bigger than
+   that, the plan says so (tight) instead of pretending. */
+function buildCountSteps(opts, work, workDays) {
+  var target = Math.max(10, Math.min(45, +opts.mins || 20));
+  var steps = [], total = work.total, done = 0, di = 0;
+  var byTime = work.kind === "money" ? Math.max(5, Math.round(total / Math.max(1, workDays.length))) : Math.max(1, Math.round(target / work.per));
+  var needed = Math.ceil(total / Math.max(1, workDays.length));
+  var perDay = Math.max(needed, byTime);
+  var tight = work.kind !== "money" && perDay * work.per > target * 1.5;
+  var weeks = [], weekSeen = {};
+  while (done < total && di < workDays.length) {
+    var n = Math.min(perDay, total - done), from = done + 1; done += n;
+    var date = workDays[di]; di++;
+    var lastWork = done >= total;
+    var mins = work.kind === "money" ? target : Math.max(10, Math.min(60, Math.round(n * work.per)));
+    var text;
+    if (work.kind === "money") text = "Put $" + n + " aside ($" + done + " of $" + total + ")";
+    else if (work.unit === "word") text = work.verb + " " + n + " words";
+    else if (n === 1) text = work.verb + " " + work.unit + " " + from;
+    else text = work.verb + " " + work.unit + "s " + from + "\u2013" + done;
+    var wk = mondayOf(date);
+    if (!weekSeen[wk]) { weekSeen[wk] = { start: wk, from: from, to: done }; weeks.push(weekSeen[wk]); } else weekSeen[wk].to = done;
+    steps.push({ date: date, title: text, durationMin: mins, minVersion: "Just 5 minutes: open it and do the first small bit of this.", chunk: { from: from, to: done }, weekStart: wk });
+  }
+  if (steps.length) {
+    var lastIdx = steps.length - 1;
+    for (var i = 0; i < steps.length; i++) {
+      var review = i !== lastIdx && (i + 1) % 7 === 0;
+      if (review) steps[i].title = "Review: look at how far you have come on " + String(opts.title || "").trim();
+    }
+    steps[lastIdx].title = "Finish: " + String(opts.title || "").trim() + " (final look, then celebrate)";
+  }
+  var unitLabel = work.kind === "money" ? "$" + total + " saved" : total + " " + work.unit + (total === 1 ? "" : "s");
+  var realMins = steps.length ? steps[0].durationMin : target;
+  steps.analysis = { kind: work.kind, total: total, unit: work.unit || "$", verb: work.verb || "Put aside", tight: tight,
+    weeks: weeks.map(function (w) { return work.kind === "money" ? { start: w.start, text: "$" + w.from + "\u2013$" + w.to } : { start: w.start, text: w.from === w.to ? work.unit + " " + w.from : work.unit + "s " + w.from + "\u2013" + w.to }; }),
+    summary: unitLabel + " \u00b7 about " + realMins + " minutes a step" };
+  return steps;
+}
+
 /* Which days are plan days. pace: "daily" | "weekdays" | "three" (Mon/Wed/Fri) */
 function planDays(startKey, endKey, pace) {
   var out = [], span = diffDays(startKey, endKey);
@@ -72,7 +182,10 @@ function buildPlan(opts) {
   if (!days.length) return [];
   var buffer = days.length >= 10 ? Math.floor(days.length * 0.1) : 0;
   var work = days.slice(0, days.length - buffer);
-  var ms = (opts.milestones && opts.milestones.length ? opts.milestones : parseMilestones("", opts.category));
+  var found = analyzeWork(opts.text || title);
+  if (found) return buildCountSteps(opts, found, work);
+  var list = analyzeList(title);
+  var ms = list ? list.items : (opts.milestones && opts.milestones.length ? opts.milestones : parseMilestones("", opts.category));
   var steps = [], i;
   // spread milestones evenly across the working days
   var perM = Math.max(1, Math.floor(work.length / ms.length));
@@ -88,7 +201,7 @@ function buildPlan(opts) {
     else if (p.total === 1) text = m;
     else if (p.idx === 1) text = "Start: " + m;
     else if (p.idx === p.total) text = "Finish this part: " + m;
-    else text = ROTATE[(p.idx - 2) % ROTATE.length] + m;
+    else text = (ROTATE_BY_CAT[opts.category] || ROTATE)[(p.idx - 2) % ROTATE.length] + m;
     steps.push({
       date: work[i], title: text.length > 120 ? text.slice(0, 117) + "…" : text, durationMin: mins,
       minVersion: "Just 5 minutes: open it and do the first small bit of this."
@@ -173,7 +286,7 @@ function habitMessage(s) {
   return "One tick today keeps it going.";
 }
 
-var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan,
+var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeList: analyzeList,
   goalProgress: goalProgress, replan: replan, weekDays: weekDays, habitStats: habitStats, habitMessage: habitMessage, diffDays: diffDays };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.PaceGoals = api;
