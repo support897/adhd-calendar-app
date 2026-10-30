@@ -63,7 +63,6 @@ const topN = await m.evaluate(() => document.getElementById("setNotif").getBound
 check("the Reminders chip scrolls to reminders (top " + Math.round(topN) + ")", topN < 300);
 await m.screenshot({ path: SH + "/settings-jump-390.png" });
 await m.click("#settingsTour"); await m.waitForTimeout(500);
-console.log("ERRS", m.errs);
 check("the settings tour opens with Skip", await m.locator("#guideSheet").isVisible() && (await m.locator("#guideArt svg").count()) >= 1);
 const seen = [];
 for (let i = 0; i < 9; i++) {
@@ -77,6 +76,64 @@ for (let i = 0; i < 9; i++) {
 check("the tour visits every settings section (" + seen.join(",") + ")", ["profileCard","accountGroup","setLook","setCheckin","setNotif","setTasks","setHelp"].every(x => seen.includes(x)));
 check("the tour closes at the end", await m.locator("#guideSheet").isHidden());
 check("settings: no page errors", m.errs.length === 0 || (console.log(m.errs), false));
+
+/* ===== build 35 phase B: wake / wind down times, free-gap line ===== */
+const wk = await mkPhone("wake35@test.dev");
+await wk.click("#addBtn"); await wk.fill("#quickText", "Pay the invoice today at 11:55pm"); await wk.click("#addSave"); await wk.waitForTimeout(500);
+check("up next says how long you are free before the next task", /Free for/.test(await wk.locator("#upNext").textContent().catch(() => "")) || new Date().getHours() >= 23);
+await openSettings(wk);
+await wk.fill("#wakeTime", "06:30"); await wk.fill("#windTime", "21:15");
+await wk.locator("#windTime").dispatchEvent("change"); await wk.waitForTimeout(400);
+const st1 = await wk.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); return JSON.parse(localStorage.getItem(k)).settings; });
+check("wake and wind down times save (" + st1.wakeTime + ", " + st1.windTime + ")", st1.wakeTime === "06:30" && st1.windTime === "21:15");
+await wk.reload({ waitUntil: "networkidle" });
+await openSettings(wk);
+check("wake and wind down times survive a reload", (await wk.inputValue("#wakeTime")) === "06:30" && (await wk.inputValue("#windTime")) === "21:15");
+await wk.evaluate(() => document.querySelector('#bottomTabs [data-tab="calendar"]').click()); await wk.waitForTimeout(600);
+check("the calendar shades the hours outside your day", (await wk.locator(".fc-non-business").count()) >= 1);
+check("phase B: no page errors", wk.errs.length === 0 || (console.log(wk.errs), false));
+
+/* ===== build 35 phase C: whole customer journey + two users, one browser ===== */
+const sA = await mkSess("userA35@test.dev"), sB = await mkSess("userB35@test.dev");
+const jc = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const j = await jc.newPage(); j.errs = []; j.on("pageerror", e => j.errs.push(e.message));
+await j.addInitScript((s) => { if (!localStorage.getItem("pace-auth-v1") && !sessionStorage.getItem("noseed")) localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, sA);
+const dumpTitles = () => j.evaluate(() => { const k = Object.keys(localStorage).filter(x => x.startsWith("calmcal-v1:")); return k.map(x => ({ k: x, t: (JSON.parse(localStorage.getItem(x)).tasks || []).map(t => t.title) })); });
+await j.goto("http://localhost:8919/", { waitUntil: "networkidle" });
+await j.click("#welcomeSkip").catch(() => {}); await j.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+// A: name, task, feeling, tick
+await j.click("#addBtn"); await j.fill("#quickText", "Buy milk today at 11:50pm"); await j.click("#addSave"); await j.waitForTimeout(400);
+await j.click("#addBtn"); await j.fill("#quickText", "Email the landlord tomorrow at 9am"); await j.click("#addSave"); await j.waitForTimeout(400);
+let dA = await dumpTitles();
+check("A has her own two tasks", dA.length === 1 && dA[0].t.includes("Buy milk") && dA[0].t.includes("Email the landlord"));
+await j.evaluate(() => document.querySelector('.side-item[data-panel="settings"]').click()); await j.waitForTimeout(300);
+check("A sees her own email in settings", (await j.locator("#pcEmail").textContent()) === "userA35@test.dev");
+// A signs out: only the door is left
+await j.evaluate(() => sessionStorage.setItem("noseed", "1")); await j.locator("#accountOut").scrollIntoViewIfNeeded(); await j.click("#accountOut"); await j.waitForTimeout(1800);
+check("after sign-out the saved sign-in is gone and A's words are hidden", await j.evaluate(() => !localStorage.getItem("pace-auth-v1") && !document.body.innerText.includes("Buy milk")));
+// B signs in on the same browser
+await j.evaluate((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, sB);
+await j.reload({ waitUntil: "networkidle" });
+await j.click("#welcomeSkip").catch(() => {}); await j.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+const bTitles = await j.evaluate(() => { const b = JSON.parse(localStorage.getItem("pace-auth-v1")); const raw = localStorage.getItem("calmcal-v1:" + b.uid); return raw ? (JSON.parse(raw).tasks || []).map(t => t.title) : []; });
+check("B starts empty: none of A's tasks (" + bTitles.length + ")", bTitles.length === 0);
+const bPage = await j.locator("body").innerText();
+check("B's screen never shows A's words", !/Buy milk|Email the landlord/.test(bPage));
+await j.click("#addBtn"); await j.fill("#quickText", "B secret task today at 11:45pm"); await j.click("#addSave"); await j.waitForTimeout(400);
+// A signs back in: A's things intact, B's absent
+await j.evaluate((s) => { localStorage.setItem("pace-auth-v1", JSON.stringify(s)); }, sA);
+await j.reload({ waitUntil: "networkidle" });
+await j.click("#welcomeSkip").catch(() => {}); await j.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
+const aAgain = await j.evaluate(() => { const b = JSON.parse(localStorage.getItem("pace-auth-v1")); return (JSON.parse(localStorage.getItem("calmcal-v1:" + b.uid)).tasks || []).map(t => t.title); });
+check("A signs back in: her tasks are intact", aAgain.includes("Buy milk") && aAgain.includes("Email the landlord"));
+check("A never sees B's task", !aAgain.includes("B secret task"));
+// server side (mock): B's token cannot read or write A's profile document
+const readAs = async (tok, uid, method = "GET", body) => (await fetch(`http://127.0.0.1:${mock.port}/v1/projects/pace-test/databases/(default)/documents/users/${uid}/data/state`, { method, headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" }, body })).status;
+const srvB = await readAs(sB.idToken, sA.uid);
+const srvA = await readAs(sA.idToken, sA.uid);
+console.log("INFO mock server status: B reading A =", srvB, ", A reading A =", srvA);
+check("mock server: B is refused A's data (" + srvB + ")", srvB === 403 || srvB === 401);
+check("journey: no page errors", j.errs.length === 0 || (console.log(j.errs), false));
 
 check("no page errors (desktop)", errors.length === 0 || (console.log(errors), false));
 console.log("RESULT pass=" + pass + " fail=" + fail);

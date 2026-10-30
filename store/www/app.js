@@ -298,6 +298,8 @@ function durationLabel(task) { return task && task.allDay ? tr("All day") : tr("
 function defaultSettings() {
   return {
     checkinTime: "08:00",
+    wakeTime: "07:00",
+    windTime: "22:00",
     names: { low: "Bad", steady: "Ok", full: "Great" },
     notif: { perm: "off", checkin: true, start: true, setup: 5, digest: true, digestTimes: ["12:30", "16:30"], done: false, doneTime: "20:00" },
     pausedDate: null,
@@ -778,6 +780,11 @@ function moveInstance(t, fromKey, toKey) {
   return t;
 }
 
+/* Structured-style day edges: the calendar shades the hours before you wake and after you wind down. */
+function dayHours() {
+  var st = state.settings || {};
+  return { daysOfWeek: [0, 1, 2, 3, 4, 5, 6], startTime: st.wakeTime || "07:00", endTime: st.windTime || "22:00" };
+}
 /* ---------- up next ---------- */
 function renderUpNext() {
   var el = $("upNext");
@@ -789,13 +796,15 @@ function renderUpNext() {
   var next = timed[0] || ad.visible[0];
   if (!next) { el.hidden = true; return; }
   el.hidden = false;
+  var gapMin = (next.time && L.toMin(next.time) > nowMin) ? L.toMin(next.time) - nowMin : 0;
+  var gapTxt = gapMin >= 30 ? '<span class="un-gap">Free for ' + (gapMin >= 60 ? Math.floor(gapMin / 60) + "h " : "") + (gapMin % 60 ? (gapMin % 60) + "m" : "") + ' before this</span>' : "";
   var firstStep = (next.steps && next.steps.some(function (s) { return !s.done; })) ? L.nextStepText(next) : "";
   // The step sentence reads WHOLE, on its own line (PACE-016:
   // the Start pill used to flow inline inside it and split the
   // sentence around the button). With a step standing, the
   // pill takes its own row under the sentence; without one it
   // keeps its designed spot at the end of the title line.
-  el.innerHTML = '<span class="un-label">' + tr("Up next") + '</span><strong>' + esc(next.displayTitle || next.title) + "</strong> · " + durationLabel(next) +
+  el.innerHTML = '<span class="un-label">' + tr("Up next") + '</span>' + gapTxt + '<strong>' + esc(next.displayTitle || next.title) + "</strong> · " + durationLabel(next) +
     (next.time ? " · " + next.time : "") + (firstStep ? '<span class="un-step">' + esc(firstStep) + "</span>" : "") + '<button data-un="' + next.id + '"' + (firstStep ? ' class="un-start"' : "") + ">" + tr("Start") + '</button>';
   el.querySelector("[data-un]").addEventListener("click", function () {
     var t = baseTask(next.id); if (t) { t.status = "doing"; save(); refreshAll(); toast(tr("Started. One step at a time.")); }
@@ -861,6 +870,7 @@ function initCalendar() {
     headerToolbar: false,
     editable: true,
     dayMaxEvents: 3,
+    businessHours: dayHours(),
     slotMinTime: "06:00:00",
     slotMaxTime: "22:00:00",
     scrollTime: (function () { var h = Math.max(6, new Date().getHours() - 1); return (h < 10 ? "0" : "") + h + ":00:00"; })(),
@@ -1956,6 +1966,7 @@ $("ticker").addEventListener("drop", function (e) {
 function bindSettings() {
   var s = state.settings;
   $("checkinTime").value = s.checkinTime;
+  $("wakeTime").value = s.wakeTime || "07:00"; $("windTime").value = s.windTime || "22:00";
   $("nameLow").value = s.names.low; $("nameSteady").value = s.names.steady; $("nameFull").value = s.names.full;
   $("nCheckin").checked = s.notif.checkin; $("nStart").checked = s.notif.start;
   $("nSetup").value = s.notif.setup; $("nDigest").checked = s.notif.digest;
@@ -1967,6 +1978,8 @@ function bindSettings() {
 function readSettings() {
   var s = state.settings;
   s.checkinTime = $("checkinTime").value || "08:00";
+  s.wakeTime = $("wakeTime").value || "07:00"; s.windTime = $("windTime").value || "22:00";
+  try { if (calendar) calendar.setOption("businessHours", dayHours()); } catch (e) {}
   // The energy levels in your own words is a Plus row: a
   // refused rename keeps the names already in place (the
   // check-in itself, with the factory words, stays free).
@@ -1986,7 +1999,7 @@ function readSettings() {
   $("nDigestTimes").value = s.notif.digestTimes.join(", ");
   save(); renderCheckin();
 }
-["checkinTime", "nameLow", "nameSteady", "nameFull", "nCheckin", "nStart", "nSetup", "nDigest", "nDigestTimes", "nDone", "nDoneTime"].forEach(function (id) {
+["checkinTime", "wakeTime", "windTime", "nameLow", "nameSteady", "nameFull", "nCheckin", "nStart", "nSetup", "nDigest", "nDigestTimes", "nDone", "nDoneTime"].forEach(function (id) {
   $(id).addEventListener("change", readSettings);
 });
 $("clearSamples").addEventListener("click", function () {
