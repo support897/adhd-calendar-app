@@ -1084,10 +1084,14 @@ $("quickText").addEventListener("input", function () {
   var item = L.parseItem(v, selected);
   if (!item) { $("quickPreview").hidden = true; return; }
   $("quickPreview").hidden = false;
-  $("quickPreview").innerHTML = "<strong>" + esc(item.title) + "</strong><br>" +
-    esc(L.parseKey(item.date).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" })) +
-    (item.time ? tr(" at {time}", { time: item.time }) : item.allDay ? "" : tr(" · no time yet")) + " · " + durationLabel(item) +
-    (item.repeat ? " · " + esc(item.repeat) : "") + (item.essential ? " · must not slip" : "");
+  var chip = function (cls, t) { return '<span class="qchip ' + cls + '">' + esc(t) + '</span>'; };
+  var rem = (item.time && !item.allDay) ? chip("qc-rem", "Reminder " + (leadsFor(item)[0] || 10) + " min before") : "";
+  $("quickPreview").innerHTML = "<strong>" + esc(item.title) + "</strong><div class=\"qchips\">" +
+    chip("qc-date", L.parseKey(item.date).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" })) +
+    (item.time ? chip("qc-time", tr("at {time}", { time: item.time })) : item.allDay ? "" : chip("qc-none", tr("no time yet"))) +
+    chip("qc-dur", durationLabel(item)) +
+    (item.repeat ? chip("qc-rep", "Repeats " + item.repeat) : "") + rem +
+    (item.essential ? chip("qc-ess", "must not slip") : "") + "</div>";
 });
 $("addSave").addEventListener("click", function () {
   // A smallest version typed at creation is a teach (Plus);

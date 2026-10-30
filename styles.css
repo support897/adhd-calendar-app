@@ -838,3 +838,5 @@ html[data-door="locked"] #main, html[data-door="locked"] #sidebar, html[data-doo
 .fc .fc-event.ev-resting { opacity: 0.45; border: 1.5px dashed var(--hair) !important; border-left: 3px dashed var(--ev-c, #5b6bd5) !important; background: transparent !important; }
 .fc .fc-event.ev-resting .ev-check { visibility: hidden; }
 .checkin-card .level-btn.is-active { box-shadow: 0 0 0 2px var(--ink); }
+
+.qchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.qchip{background:#fff;border:1px solid var(--line,#e3e0f0);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}.qc-date,.qc-time{background:#efeaff;color:#4b35b8}.qc-rem{background:#e8f6ee;color:#1f6b45}.qc-rep{background:#fff2e0;color:#8a5200}.qc-ess{background:#ffe8e8;color:#a02525}
