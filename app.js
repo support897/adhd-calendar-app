@@ -848,7 +848,7 @@ function fcEvents() {
   function adaptOf(key) { return adaptCache[key] || (adaptCache[key] = (function () { var ad = adaptedFor(key), m = {}; ad.visible.forEach(function (x) { m[x.id] = x; }); return { map: m, level: levelFor(key) }; })()); }
   return instancesInRange(a, b).map(function (t) {
     var ao = adaptOf(t.instanceDate), shown = ao.map[t.id], resting = t.status !== "done" && !shown;
-    if (shown && shown.displayTitle) t = Object.assign({}, t, { title: shown.displayTitle, durationMin: shown.shrunk ? Math.min(t.durationMin, 5) : t.durationMin });
+    if (shown && shown.displayTitle) t = Object.assign({}, t, { title: shown.displayTitle, durationMin: shown.autoVersion ? shown.durationMin : (shown.shrunk ? Math.min(t.durationMin, 5) : t.durationMin) });
     var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
     if (t.time) {
       var startMin = L.toMin(t.time);

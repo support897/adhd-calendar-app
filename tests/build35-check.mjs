@@ -149,6 +149,31 @@ check("the saved task has time 18:00, repeat and priority 3", tk && tk.time === 
 check("the saved task has its own reminder (per task)", tk && Array.isArray(tk.remind) && tk.remind.length >= 1);
 check("quick add: no page errors", qa.errs.length === 0 || (console.log(qa.errs), false));
 
+/* ===== build 37 phase E: the day adapts on its own (no taught light version needed) ===== */
+const mo = await mkPhone("mood37@test.dev");
+for (const t of ["Write the report today at 9am for 1 hour", "Clean the kitchen today at 2pm for 40 minutes", "Plan the launch today at 4pm for 45 minutes", "Water the plants today at 6pm for 5 minutes"]) {
+  await mo.click("#addBtn"); await mo.fill("#quickText", t); await mo.click("#addSave"); await mo.waitForTimeout(350);
+}
+const evTexts = async () => (await mo.locator("#calendar .ev-t").allInnerTexts()).join(" | ");
+await mo.click('.level-btn[data-level="full"]'); await mo.waitForTimeout(500);
+const tFull = await evTexts();
+check("Great day: the full tasks show (" + tFull + ")", /Write the report/.test(tFull) && !/lines only/.test(tFull));
+await mo.click('.level-btn[data-level="steady"]'); await mo.waitForTimeout(500);
+const tOk = await evTexts();
+check("Ok day: long tasks get a medium version by themselves (" + tOk + ")", /Write the report \(half of it\)/.test(tOk) && /Clean the kitchen \(one area\)/.test(tOk));
+check("Ok day: a 5 minute task is left alone", /Water the plants(?! \()/.test(tOk));
+await mo.click('.level-btn[data-level="low"]'); await mo.waitForTimeout(500);
+const tBad = await evTexts();
+check("Bad day: tasks show a light version by themselves (" + tBad + ")", /lines only|5 min tidy|list 3 things/.test(tBad));
+const barLow = await mo.evaluate(() => [...document.querySelectorAll("#calendar .fc-timegrid-event")].filter(e => /lines only|5 min tidy|list 3 things/.test(e.innerText)).map(e => Math.round(e.getBoundingClientRect().height)));
+check("Bad day: light blocks are shorter than the 1 hour block would be (" + barLow.join(",") + ")", barLow.length >= 1 && Math.max(...barLow) < 100);
+await mo.screenshot({ path: SH + "/cal-bad-auto-390.png" });
+const stored1 = await mo.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); return JSON.parse(localStorage.getItem(k)).tasks.map(t => t.title + "/" + t.durationMin); });
+check("the real tasks are never changed (" + stored1.join(", ") + ")", stored1.some(x => x === "Write the report/60") && stored1.every(x => !/lines only|half of it/.test(x)));
+await mo.click('.level-btn[data-level="full"]'); await mo.waitForTimeout(500);
+check("back to Great: the full version returns", /Write the report(?! \()/.test(await evTexts()));
+check("mood: no page errors", mo.errs.length === 0 || (console.log(mo.errs), false));
+
 check("no page errors (desktop)", errors.length === 0 || (console.log(errors), false));
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); mock.close && mock.close(); server.close();
