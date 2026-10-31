@@ -206,6 +206,30 @@ const order = await dr.evaluate(() => { const k = Object.keys(localStorage).find
 check("dragging the grip reorders the To do list (" + order.join(",") + ")", order.join(",") === "Bravo,Alpha,Charlie");
 check("links/drag: no page errors", lk.errs.length === 0 && dr.errs.length === 0 || (console.log(lk.errs, dr.errs), false));
 
+/* ===== build 37 phase G: a habit with a time lives on the calendar, ticks together ===== */
+const hb = await mkPhone("habit37@test.dev");
+await hb.evaluate(() => document.querySelector('.side-item[data-panel="habits"]').click()); await hb.waitForTimeout(400);
+await hb.fill("#habitName", "Stretch"); await hb.fill("#habitTiny", "Touch my toes"); await hb.fill("#habitTime", "20:15");
+await hb.click("#habitAddBtn"); await hb.waitForTimeout(500);
+const hs = await hb.evaluate(() => { const s = JSON.parse(localStorage.getItem(Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")))); return { h: s.habits[0], t: s.tasks.find(t => t.habitId) }; });
+check("a habit with a time makes a daily calendar task with its own reminder", hs.h && hs.t && hs.t.repeat === "every day" && hs.t.time === "20:15" && Array.isArray(hs.t.remind) && hs.h.taskId === hs.t.id);
+check("the habit's tiny version is the task's light version", hs.t && hs.t.minVersion === "Touch my toes");
+check("the habit card says when it happens", /20:15/.test(await hb.locator("#habitList").innerText()));
+await hb.evaluate(() => document.querySelector('#bottomTabs [data-tab="calendar"]').click()); await hb.waitForTimeout(600);
+check("the habit shows on today's calendar", (await hb.locator("#calendar .ev-t", { hasText: "Stretch" }).count()) >= 1);
+await hb.locator("#calendar .ev-row", { hasText: "Stretch" }).first().locator(".ev-check").click(); await hb.waitForTimeout(500);
+const today = await hb.evaluate(() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
+const hs2 = await hb.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")))).habits[0].days);
+check("ticking the calendar block ticks the habit's week (" + JSON.stringify(hs2) + ")", hs2[today] === true);
+await hb.evaluate(() => document.querySelector('.side-item[data-panel="habits"]').click()); await hb.waitForTimeout(300);
+await hb.locator(".hw-day.is-today").first().click(); await hb.waitForTimeout(400);
+const hs3 = await hb.evaluate(() => { const s = JSON.parse(localStorage.getItem(Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")))); return { d: s.habits[0].days, dd: s.tasks.find(t => t.habitId).doneDates }; });
+check("un-ticking the habit un-ticks the calendar task", !hs3.d[today] && hs3.dd.indexOf(today) === -1);
+await hb.evaluate(() => document.querySelector('#bottomTabs [data-tab="calendar"]').click()); await hb.waitForTimeout(400);
+await hb.click('.level-btn[data-level="low"]'); await hb.waitForTimeout(500);
+check("Bad day: the habit shrinks to its tiny version", (await hb.locator("#calendar .ev-t", { hasText: "Touch my toes" }).count()) >= 1);
+check("habits: no page errors", hb.errs.length === 0 || (console.log(hb.errs), false));
+
 check("no page errors (desktop)", errors.length === 0 || (console.log(errors), false));
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); mock.close && mock.close(); server.close();

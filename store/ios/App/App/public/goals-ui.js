@@ -98,6 +98,7 @@ function renderHabits() {
     var main = el("div", "habit-main");
     main.appendChild(el("span", "habit-name", h.name));
     if (h.plan) main.appendChild(el("span", "habit-sub", h.plan));
+    if (h.time) main.appendChild(el("span", "habit-sub", tr("Every day at {time}, on your calendar", { time: h.time })));
     if (h.tiny) main.appendChild(el("span", "habit-sub", tr("Smallest version:") + " " + h.tiny));
     var del = el("button", "habit-del", null, { "aria-label": tr("Delete habit"), type: "button" });
     del.innerHTML = icon("i-trash");
@@ -118,6 +119,7 @@ function renderHabits() {
       b.appendChild(dot);
       b.addEventListener("click", function () {
         if (h.days[d.key]) delete h.days[d.key]; else h.days[d.key] = true;
+        if (h.taskId) { var lt = C.state.tasks.filter(function (x) { return x.id === h.taskId; })[0]; if (lt) { lt.doneDates = lt.doneDates || []; var di = lt.doneDates.indexOf(d.key); if (h.days[d.key] && di === -1) lt.doneDates.push(d.key); if (!h.days[d.key] && di !== -1) lt.doneDates.splice(di, 1); } }
         save(); renderHabits();
         if (h.days[d.key]) { var ns = G.habitStats(h.days, L.todayKey()); toast(tr(G.habitMessage(ns))); }
       });
@@ -135,9 +137,11 @@ function renderHabits() {
 
     del.addEventListener("click", function () {
       var at = C.state.habits.indexOf(h);
+      var lnk = h.taskId ? C.state.tasks.filter(function (x) { return x.id === h.taskId; })[0] : null;
       C.state.habits = C.state.habits.filter(function (x) { return x.id !== h.id; });
-      save(); renderHabits();
-      toast(tr("Habit removed."), function () { restoreAt(C.state.habits, h, at); save(); renderHabits(); toast(tr("Back again.")); });
+      if (lnk) C.state.tasks = C.state.tasks.filter(function (x) { return x !== lnk; });
+      save(); renderHabits(); C.refreshAll();
+      toast(tr("Habit removed."), function () { restoreAt(C.state.habits, h, at); if (lnk) C.state.tasks.push(lnk); save(); renderHabits(); C.refreshAll(); toast(tr("Back again.")); });
     });
     wrap.appendChild(card);
   });
@@ -150,6 +154,9 @@ function ensureHabitForm() {
   var tiny = el("input", null, null, { id: "habitTiny", type: "text", autocomplete: "off", maxlength: "70", placeholder: tr("Smallest version for hard days? e.g. Put my shoes on"), "aria-label": tr("Smallest version") });
   name.parentNode.insertBefore(plan, name.nextSibling);
   name.parentNode.insertBefore(tiny, plan.nextSibling);
+  var tl = el("label", "field habit-time-field", tr("Remind me at (optional): puts it on your calendar every day"));
+  var ti = el("input", null, null, { id: "habitTime", type: "time", "aria-label": tr("Habit time") });
+  tl.appendChild(ti); name.parentNode.insertBefore(tl, tiny.nextSibling);
   [plan, tiny].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") C.submitHabit(); }); });
 }
 function renderWhy() {

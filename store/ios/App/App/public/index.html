@@ -359,6 +359,7 @@ try {
     <div id="quickPreview" class="quick-preview" hidden></div>
     <details class="details-fallback"><summary data-i18n>Or fill in the details</summary>
       <label class="field" data-i18n>Title <input type="text" id="fTitle"></label>
+      <label class="field" data-i18n>Link <input type="url" id="fLink" inputmode="url" placeholder="https://" autocomplete="off"></label>
       <div class="field-row">
         <label class="field" data-i18n>Date <input type="date" id="fDate"></label>
         <label class="field" data-i18n>Time <input type="time" id="fTime"></label>
@@ -413,6 +414,8 @@ try {
     <details class="task-more" id="dNotesWrap"><summary data-i18n>Notes and audio</summary>
       <div class="task-more-body"><section class="task-note-section" aria-labelledby="dNotesHeading">
       <h4 id="dNotesHeading" data-i18n>Notes</h4>
+      <label class="field"><span>Link</span><input type="url" id="dLink" inputmode="url" placeholder="https://" autocomplete="off"></label>
+      <div id="dLinks" class="task-links" aria-live="polite"></div>
       <label class="field"><span data-i18n>Written note</span><textarea id="dNotes" rows="3" maxlength="4000" placeholder="Add a note" data-i18n-ph aria-label="Task note" data-i18n-aria></textarea></label>
       <div class="task-note-actions"><button id="dNotesSpeak" class="soft-btn" type="button"><svg class="ico"><use href="#i-mic"/></svg><span data-i18n>Speak note</span></button><p id="dNotesStatus" role="status" class="hint"></p></div>
     </section>

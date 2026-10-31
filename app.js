@@ -754,6 +754,7 @@ function toggleDone(id, dateKey) {
     t.doneDates = t.doneDates || [];
     var i = t.doneDates.indexOf(dateKey);
     if (i === -1) t.doneDates.push(dateKey); else t.doneDates.splice(i, 1);
+    if (t.habitId) { var hb = (state.habits || []).filter(function (x) { return x.id === t.habitId; })[0]; if (hb) { hb.days = hb.days || {}; if (i === -1) hb.days[dateKey] = true; else delete hb.days[dateKey]; } }
   } else {
     t.status = t.status === "done" ? "todo" : "done";
     // QA NIGHT F2: the payload also carries a done flag (load()
@@ -1932,9 +1933,18 @@ function renderHabits() { if (window.PaceGoalsUI) window.PaceGoalsUI.renderHabit
 function submitHabit() {
   var name = $("habitName").value.trim();
   if (!name) { toast(tr("Give the habit a name first.")); return; }
-  state.habits.push({ id: uid(), name: name, icon: habitPick, days: {}, plan: ($("habitPlan") ? $("habitPlan").value.trim() : ""), tiny: ($("habitTiny") ? $("habitTiny").value.trim() : "") });
-  $("habitName").value = ""; if ($("habitPlan")) $("habitPlan").value = ""; if ($("habitTiny")) $("habitTiny").value = "";
-  save(); renderHabits();
+  var hab = { id: uid(), name: name, icon: habitPick, days: {}, plan: ($("habitPlan") ? $("habitPlan").value.trim() : ""), tiny: ($("habitTiny") ? $("habitTiny").value.trim() : "") };
+  var hTime = $("habitTime") ? $("habitTime").value : "";
+  if (/^\d{2}:\d{2}$/.test(hTime)) {
+    /* A habit with a time lives on the calendar every day, with its own reminder; ticking either one ticks both. */
+    var hc = L.categoryFor(name), ht = { id: uid(), title: name, date: L.todayKey(), time: hTime, durationMin: 10, priority: 0, repeat: "every day", category: hc.id, color: hc.color, status: "todo", source: "habit", habitId: hab.id, skipDates: [], doneDates: [], originalText: name };
+    if (hab.tiny) ht.minVersion = hab.tiny;
+    try { ht.remind = cleanLeads(defaultLeads()); } catch (e) {}
+    state.tasks.push(ht); hab.time = hTime; hab.taskId = ht.id;
+  }
+  state.habits.push(hab);
+  $("habitName").value = ""; if ($("habitTime")) $("habitTime").value = ""; if ($("habitPlan")) $("habitPlan").value = ""; if ($("habitTiny")) $("habitTiny").value = "";
+  save(); renderHabits(); refreshAll();
 }
 $("habitAddBtn").addEventListener("click", submitHabit);
 $("habitName").addEventListener("keydown", function (e) { if (e.key === "Enter") submitHabit(); });

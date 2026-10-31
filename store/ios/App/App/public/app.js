@@ -754,6 +754,7 @@ function toggleDone(id, dateKey) {
     t.doneDates = t.doneDates || [];
     var i = t.doneDates.indexOf(dateKey);
     if (i === -1) t.doneDates.push(dateKey); else t.doneDates.splice(i, 1);
+    if (t.habitId) { var hb = (state.habits || []).filter(function (x) { return x.id === t.habitId; })[0]; if (hb) { hb.days = hb.days || {}; if (i === -1) hb.days[dateKey] = true; else delete hb.days[dateKey]; } }
   } else {
     t.status = t.status === "done" ? "todo" : "done";
     // QA NIGHT F2: the payload also carries a done flag (load()
@@ -848,7 +849,7 @@ function fcEvents() {
   function adaptOf(key) { return adaptCache[key] || (adaptCache[key] = (function () { var ad = adaptedFor(key), m = {}; ad.visible.forEach(function (x) { m[x.id] = x; }); return { map: m, level: levelFor(key) }; })()); }
   return instancesInRange(a, b).map(function (t) {
     var ao = adaptOf(t.instanceDate), shown = ao.map[t.id], resting = t.status !== "done" && !shown;
-    if (shown && shown.displayTitle) t = Object.assign({}, t, { title: shown.displayTitle, durationMin: shown.shrunk ? Math.min(t.durationMin, 5) : t.durationMin });
+    if (shown && shown.displayTitle) t = Object.assign({}, t, { title: shown.displayTitle, durationMin: shown.autoVersion ? shown.durationMin : (shown.shrunk ? Math.min(t.durationMin, 5) : t.durationMin) });
     var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
     if (t.time) {
       var startMin = L.toMin(t.time);
@@ -1076,7 +1077,7 @@ function renderAddRemind() {
 }
 $("addBtn").addEventListener("click", function () {
   addRemind = defaultLeads().slice(); renderAddRemind();
-  $("quickText").value = ""; $("fTitle").value = "";
+  $("quickText").value = ""; $("fTitle").value = ""; $("fLink").value = "";
   $("fDate").value = selected; $("fTime").value = ""; $("fDur").value = 25;
   $("fMin").value = ""; $("fFull").value = ""; $("fEssential").checked = false;
   $("quickPreview").hidden = true;
@@ -1116,17 +1117,19 @@ $("addSave").addEventListener("click", function () {
   // refused, the task still saves — without the taught version.
   var minV = $("fMin").value.trim();
   if (minV && !plusGate("steps")) minV = "";
-  var task = null;
+  var task = null, qLink = "";
   var manualTitle = $("fTitle").value.trim();
   if (manualTitle) {
     var cat = L.categoryFor(manualTitle);
     task = { title: manualTitle, date: $("fDate").value || selected, time: $("fTime").value || null, durationMin: Math.max(5, +$("fDur").value || 25), priority: 0, repeat: null, category: cat.id, color: cat.color, essential: $("fEssential").checked, steps: L.decompose(manualTitle, +$("fDur").value || 25, false), minVersion: minV, fullVersion: $("fFull").value.trim() };
   } else if ($("quickText").value.trim()) {
-    var item = L.parseItem($("quickText").value.trim(), selected);
+    var qs = splitLink($("quickText").value.trim()); qLink = qs.link;
+    var item = L.parseItem(qs.text, selected);
     if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: minV, fullVersion: $("fFull").value.trim() };
   }
   if (!task) { toast(tr("Give it a title first, even a messy one.")); return; }
   if ($("fRepeat").value) task.repeat = $("fRepeat").value;
+  var fl = cleanUrl($("fLink").value) || qLink; if (fl) task.link = fl;
   if (addCat) { task.category = addCat.id; task.color = addCat.color; }
   task.remind = cleanLeads(addRemind); /* its own reminders, not the general setting */
   task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = $("quickText").value.trim(); task.skipDates = []; task.doneDates = [];
@@ -1140,7 +1143,41 @@ $("addSave").addEventListener("click", function () {
   }
 });
 
+/* Links and phone numbers in a task (Structured: "notes, meeting links or phone numbers"). */
+function cleanUrl(u) {
+  u = String(u || "").trim(); if (!u) return "";
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) { if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(u)) u = "https://" + u; else return ""; }
+  return /^https?:\/\//i.test(u) ? u.slice(0, 500) : "";
+}
+function splitLink(text) {
+  var m = String(text || "").match(/https?:\/\/\S+/i);
+  if (!m) return { text: text, link: "" };
+  return { text: String(text).replace(m[0], " ").replace(/\s+/g, " ").trim(), link: cleanUrl(m[0]) };
+}
+function linksOf(t) {
+  var out = [], seen = {};
+  function add(kind, val, label) { if (val && !seen[val]) { seen[val] = 1; out.push({ kind: kind, val: val, label: label }); } }
+  if (t.link) add("url", t.link, t.link.replace(/^https?:\/\/(www\.)?/i, "").slice(0, 40));
+  var notes = String(t.notes || "");
+  (notes.match(/https?:\/\/[^\s<>"]+/gi) || []).forEach(function (u) { var c = cleanUrl(u); add("url", c, c.replace(/^https?:\/\/(www\.)?/i, "").slice(0, 40)); });
+  (notes.match(/\+?\d[\d\s().-]{6,}\d/g) || []).forEach(function (p) { var d = p.replace(/[^\d+]/g, ""); if (d.length >= 7 && d.length <= 15) add("tel", "tel:" + d, p.trim()); });
+  return out;
+}
+function renderTaskLinks(t) {
+  var box = $("dLinks"); if (!box) return;
+  box.innerHTML = "";
+  linksOf(t).forEach(function (l) {
+    var a = document.createElement("a"); a.className = "task-link-chip"; a.href = l.val; a.textContent = (l.kind === "tel" ? "Call " : "Open ") + l.label;
+    if (l.kind === "url") { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+    box.appendChild(a);
+  });
+}
 /* ---------- task sheet ---------- */
+
+["dNotes", "dLink"].forEach(function (id) {
+  var el = $(id); if (!el) return;
+  el.addEventListener("input", function () { var t = baseTask(currentTaskId); if (t) renderTaskLinks({ link: cleanUrl($("dLink").value), notes: $("dNotes").value }); });
+});
 function openTask(id, instanceDate) {
   var t = baseTask(id); if (!t) return;
   currentTaskId = id; currentInstanceDate = instanceDate || t.date;
@@ -1162,6 +1199,7 @@ function openTask(id, instanceDate) {
   $("dMeta").textContent = meta.join(" · ");
   renderSteps(t);
   $("dNotes").value = typeof t.notes === "string" ? t.notes : "";
+  $("dLink").value = t.link || ""; renderTaskLinks(t);
   renderTaskAudio(t);
   $("dMin").value = t.minVersion || "";
   $("dFull").value = t.fullVersion || "";
@@ -1379,6 +1417,7 @@ function persistSheetFields() {
   t.minVersion = taught;
   t.fullVersion = $("dFull").value.trim();
   t.notes = $("dNotes").value.trim();
+  t.link = cleanUrl($("dLink").value);
   t.time = $("dTime").value || null;
   if (t.time) t.allDay = false;
   t.durationMin = Math.max(5, +$("dDur").value || t.durationMin);
@@ -1759,6 +1798,7 @@ function renderTodos() {
   state.todos.forEach(function (item) {
     var row = document.createElement("div");
     row.className = "todo-row" + (item.done ? " is-done" : "");
+    row.setAttribute("data-id", item.id);
     row.draggable = true;
     row.addEventListener("dragstart", function (e) { row.classList.add("dragging"); e.dataTransfer.setData("text/plain", "todo:" + item.id); });
     row.addEventListener("dragend", function () { row.classList.remove("dragging"); });
@@ -1774,11 +1814,35 @@ function renderTodos() {
       save(); renderTodos();
     });
     row.innerHTML =
+      '<button class="todo-grip" data-act="grip" type="button" aria-label="Hold and drag to reorder">&#8942;&#8942;</button>' +
       '<button class="todo-tick" data-act="tick" aria-label="' + tr("Mark done") + '">' + (item.done ? icon("i-check") : "") + "</button>" +
       '<span class="todo-text"></span>' +
       '<button class="todo-cal' + (todoLinked(item) ? " is-on" : "") + '" data-act="cal" aria-label="' + tr("Put on the calendar") + '" title="' + tr("Put on the calendar") + '">' + icon("i-calplus") + "</button>" +
       '<button class="todo-del" data-act="del" aria-label="' + tr("Delete") + '">' + icon("i-trash") + "</button>";
     row.querySelector(".todo-text").textContent = item.text;
+    var grip = row.querySelector(".todo-grip");
+    grip.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      var startY = e.clientY, target = null;
+      try { grip.setPointerCapture(e.pointerId); } catch (x) {}
+      row.classList.add("is-lifted");
+      function mv(ev) {
+        row.style.transform = "translateY(" + (ev.clientY - startY) + "px)"; row.style.pointerEvents = "none";
+        var el = document.elementFromPoint(ev.clientX, ev.clientY), r = el && el.closest ? el.closest(".todo-row") : null;
+        [].slice.call(wrap.querySelectorAll(".drop-target")).forEach(function (n) { n.classList.remove("drop-target"); });
+        target = (r && r !== row) ? r : null; if (target) target.classList.add("drop-target");
+      }
+      function up() {
+        grip.removeEventListener("pointermove", mv); grip.removeEventListener("pointerup", up); grip.removeEventListener("pointercancel", up);
+        row.style.transform = ""; row.style.pointerEvents = ""; row.classList.remove("is-lifted");
+        if (target) {
+          var from = state.todos.indexOf(item), to = state.todos.findIndex(function (t) { return t.id === target.getAttribute("data-id"); });
+          if (from >= 0 && to >= 0 && from !== to) { state.todos.splice(to, 0, state.todos.splice(from, 1)[0]); save(); }
+        }
+        renderTodos();
+      }
+      grip.addEventListener("pointermove", mv); grip.addEventListener("pointerup", up); grip.addEventListener("pointercancel", up);
+    });
     row.querySelectorAll("button").forEach(function (b) {
       b.addEventListener("click", function () {
         var act = b.getAttribute("data-act");
@@ -1869,9 +1933,18 @@ function renderHabits() { if (window.PaceGoalsUI) window.PaceGoalsUI.renderHabit
 function submitHabit() {
   var name = $("habitName").value.trim();
   if (!name) { toast(tr("Give the habit a name first.")); return; }
-  state.habits.push({ id: uid(), name: name, icon: habitPick, days: {}, plan: ($("habitPlan") ? $("habitPlan").value.trim() : ""), tiny: ($("habitTiny") ? $("habitTiny").value.trim() : "") });
-  $("habitName").value = ""; if ($("habitPlan")) $("habitPlan").value = ""; if ($("habitTiny")) $("habitTiny").value = "";
-  save(); renderHabits();
+  var hab = { id: uid(), name: name, icon: habitPick, days: {}, plan: ($("habitPlan") ? $("habitPlan").value.trim() : ""), tiny: ($("habitTiny") ? $("habitTiny").value.trim() : "") };
+  var hTime = $("habitTime") ? $("habitTime").value : "";
+  if (/^\d{2}:\d{2}$/.test(hTime)) {
+    /* A habit with a time lives on the calendar every day, with its own reminder; ticking either one ticks both. */
+    var hc = L.categoryFor(name), ht = { id: uid(), title: name, date: L.todayKey(), time: hTime, durationMin: 10, priority: 0, repeat: "every day", category: hc.id, color: hc.color, status: "todo", source: "habit", habitId: hab.id, skipDates: [], doneDates: [], originalText: name };
+    if (hab.tiny) ht.minVersion = hab.tiny;
+    try { ht.remind = cleanLeads(defaultLeads()); } catch (e) {}
+    state.tasks.push(ht); hab.time = hTime; hab.taskId = ht.id;
+  }
+  state.habits.push(hab);
+  $("habitName").value = ""; if ($("habitTime")) $("habitTime").value = ""; if ($("habitPlan")) $("habitPlan").value = ""; if ($("habitTiny")) $("habitTiny").value = "";
+  save(); renderHabits(); refreshAll();
 }
 $("habitAddBtn").addEventListener("click", submitHabit);
 $("habitName").addEventListener("keydown", function (e) { if (e.key === "Enter") submitHabit(); });
@@ -3333,6 +3406,24 @@ document.querySelectorAll("[data-jump]").forEach(function (b) {
   b.addEventListener("click", function () {
     var el = document.getElementById(b.getAttribute("data-jump"));
     if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
+  });
+});
+
+/* Bottom sheets slide down to close: pull the sheet down from its top edge. */
+document.querySelectorAll(".sheet:not(#guideSheet):not(.door-page) .sheet-card").forEach(function (card) {
+  var y0 = null, dy = 0;
+  card.addEventListener("touchstart", function (e) { if (card.scrollTop <= 0 && e.touches.length === 1) { y0 = e.touches[0].clientY; dy = 0; } else y0 = null; }, { passive: true });
+  card.addEventListener("touchmove", function (e) {
+    if (y0 === null) return; dy = e.touches[0].clientY - y0;
+    if (dy > 0) { card.style.transition = "none"; card.style.transform = "translateY(" + dy + "px)"; } else { card.style.transform = ""; }
+  }, { passive: true });
+  card.addEventListener("touchend", function () {
+    if (y0 === null) return; card.style.transition = ""; card.style.transform = "";
+    if (dy > 110) {
+      var btn = card.querySelector('[id$="Cancel"], [id$="Close"], [data-close]');
+      if (btn) btn.click(); else { var sh = card.closest(".sheet"); if (sh) sh.hidden = true; }
+    }
+    y0 = null; dy = 0;
   });
 });
 })();
