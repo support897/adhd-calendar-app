@@ -174,6 +174,38 @@ await mo.click('.level-btn[data-level="full"]'); await mo.waitForTimeout(500);
 check("back to Great: the full version returns", /Write the report(?! \()/.test(await evTexts()));
 check("mood: no page errors", mo.errs.length === 0 || (console.log(mo.errs), false));
 
+/* ===== build 37 phase F: links, slide-down sections, drag to reorder ===== */
+const lk = await mkPhone("links37@test.dev");
+await lk.click("#addBtn"); await lk.fill("#quickText", "Join standup today at 9:30pm https://meet.example.com/abc"); await lk.click("#addSave"); await lk.waitForTimeout(500);
+const lt = await lk.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); return JSON.parse(localStorage.getItem(k)).tasks.find(t => /standup/i.test(t.title)); });
+check("a link typed in the sentence becomes the task's link, not its title (" + (lt && lt.title) + " | " + (lt && lt.link) + ")", lt && lt.title === "Join standup" && lt.link === "https://meet.example.com/abc");
+await lk.click("#addBtn"); await lk.fill("#quickText", "Pay rent today at 9:45pm"); await lk.evaluate(() => { document.getElementById("fLink").value = "bank.example.com/pay"; });
+await lk.click("#addSave"); await lk.waitForTimeout(400);
+const lt2 = await lk.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); return JSON.parse(localStorage.getItem(k)).tasks.find(t => /Pay rent/.test(t.title)); });
+check("the Link field cleans a bare web address (" + (lt2 && lt2.link) + ")", lt2 && lt2.link === "https://bank.example.com/pay");
+await lk.evaluate(() => { const t = JSON.parse(localStorage.getItem(Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")))).tasks.find(t => /standup/i.test(t.title)); window.__sid = t.id; });
+await lk.locator("#calendar .ev-t", { hasText: "Join standup" }).first().click(); await lk.waitForTimeout(500);
+check("the task sheet shows an Open link chip", (await lk.locator("#dLinks a[href^='https://meet.example.com']").count()) === 1);
+await lk.fill("#dNotes", "Dial in: +61 400 123 456 or see https://docs.example.com/agenda"); await lk.waitForTimeout(300);
+check("phone numbers and links in notes become tappable chips", (await lk.locator("#dLinks a[href^='tel:']").count()) === 1 && (await lk.locator("#dLinks a[href^='https://docs.example.com']").count()) === 1);
+await lk.screenshot({ path: SH + "/task-links-390.png" });
+await lk.evaluate(() => { document.getElementById("dWhen").open = false; });
+await lk.evaluate(() => { document.getElementById("dWhen").open = true; }); await lk.waitForTimeout(60);
+const anim = await lk.evaluate(() => getComputedStyle(document.querySelector("#dWhen > .task-more-body")).animationName);
+check("opening a section slides down (" + anim + ")", anim === "paceSlideDown");
+await lk.evaluate(() => { const b = document.querySelector('#taskSheet .primary-btn, #dSave'); });
+// To do: drag the top row (newest first) onto the bottom row with the grip
+const dr = await mkPhone("drag37@test.dev");
+await dr.evaluate(() => document.querySelector('#bottomTabs [data-tab="todo"]').click()); await dr.waitForTimeout(300);
+for (const w of ["Alpha", "Bravo", "Charlie"]) { await dr.fill("#todoInput", w); await dr.click("#todoAddBtn"); await dr.waitForTimeout(150); }
+const rows = () => dr.locator(".todo-row");
+const gripA = await rows().nth(0).locator(".todo-grip").boundingBox(), rowC = await rows().nth(2).boundingBox();
+await dr.mouse.move(gripA.x + gripA.width / 2, gripA.y + gripA.height / 2); await dr.mouse.down();
+await dr.mouse.move(gripA.x + 10, rowC.y + rowC.height / 2, { steps: 12 }); await dr.mouse.up(); await dr.waitForTimeout(300);
+const order = await dr.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")); return JSON.parse(localStorage.getItem(k)).todos.map(t => t.text); });
+check("dragging the grip reorders the To do list (" + order.join(",") + ")", order.join(",") === "Bravo,Alpha,Charlie");
+check("links/drag: no page errors", lk.errs.length === 0 && dr.errs.length === 0 || (console.log(lk.errs, dr.errs), false));
+
 check("no page errors (desktop)", errors.length === 0 || (console.log(errors), false));
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); mock.close && mock.close(); server.close();
