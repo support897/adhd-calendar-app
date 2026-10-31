@@ -900,6 +900,7 @@ function initCalendar() {
       chk.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); toggleDone(ep.taskId, ep.instanceDate); });
       var body = document.createElement("span"); body.className = "ev-body";
       var t = document.createElement("span"); t.className = "ev-t"; t.textContent = arg.event.title;
+      var emo = taskEmoji(arg.event.title); if (emo) wrap.setAttribute("data-emo", emo);
       body.appendChild(t);
       var bt = baseTask(ep.taskId);
       if (bt && v !== "timeGridWeek") { var m = document.createElement("span"); m.className = "ev-m"; m.textContent = [bt.time, durationLabel(bt)].filter(Boolean).join(" \u00b7 "); body.appendChild(m); }
@@ -1782,10 +1783,38 @@ function addTodo(text) {
 function todoLinked(item) {
   return !!(item.calTaskId && state.tasks.some(function (t) { return t.id === item.calTaskId; }));
 }
+/* Next free slot today: after now (and after wake time), before wind-down, clear of every timed task. */
+function nextFreeSlot(dur, key) {
+  key = key || L.todayKey();
+  var st = state.settings || {}, now = new Date();
+  var from = L.toMin(st.wakeTime || "07:00"), to = L.toMin(st.windTime || "22:00");
+  if (key === L.todayKey()) from = Math.max(from, Math.ceil((now.getHours() * 60 + now.getMinutes() + 5) / 15) * 15);
+  var busy = tasksOn(key).filter(function (t) { return t.time && t.status !== "done"; }).map(function (t) { var b = L.toMin(t.time); return [b, b + (t.durationMin || 25)]; }).sort(function (x, y) { return x[0] - y[0]; });
+  var at = from;
+  for (var i = 0; i < busy.length; i++) { if (busy[i][1] <= at) continue; if (busy[i][0] >= at + dur) break; at = Math.ceil(busy[i][1] / 5) * 5; }
+  if (at + dur > to) return null;
+  return L.pad(Math.floor(at / 60)) + ":" + L.pad(at % 60);
+}
+var ICON_WORDS = [
+  [/\b(call|phone|ring)\b/, "\u260e\ufe0f"], [/\b(email|mail|message|text|reply|dm)\b/, "\u2709\ufe0f"],
+  [/\b(meet|meeting|standup|zoom|interview)\b/, "\ud83d\udc65"], [/\b(gym|workout|run|walk|exercise|yoga|swim|stretch)\b/, "\ud83c\udfcb\ufe0f"],
+  [/\b(eat|lunch|dinner|breakfast|cook|meal|snack)\b/, "\ud83c\udf7d\ufe0f"], [/\b(buy|shop|shopping|groceries|order)\b/, "\ud83d\uded2"],
+  [/\b(study|read|homework|exam|class|learn)\b/, "\ud83d\udcda"], [/\b(write|report|essay|draft|plan|prep)\b/, "\u270f\ufe0f"],
+  [/\b(doctor|dentist|medicine|pills|appointment|therapy)\b/, "\ud83e\ude7a"], [/\b(clean|tidy|laundry|dishes|vacuum)\b/, "\ud83e\uddf9"],
+  [/\b(pay|rent|bill|invoice|tax|bank)\b/, "\ud83d\udcb3"], [/\b(sleep|nap|rest|bed)\b/, "\ud83c\udf19"],
+  [/\b(drive|car|flight|travel|trip|pack)\b/, "\ud83d\ude97"], [/\b(kid|school|pickup|mum|dad|family)\b/, "\ud83c\udfe0"]
+];
+function taskEmoji(title) { var t = String(title || "").toLowerCase(); for (var i = 0; i < ICON_WORDS.length; i++) if (ICON_WORDS[i][0].test(t)) return ICON_WORDS[i][1]; return ""; }
+function planTodosIntoDay() {
+  var n = 0;
+  state.todos.forEach(function (item) { if (item.done || todoLinked(item)) return; if (linkTodo(item)) n++; });
+  return n;
+}
 function linkTodo(item) {
   if (todoLinked(item)) return false;
   var cat = L.categoryFor(item.text);
-  var task = { id: uid(), title: item.text, date: L.todayKey(), time: null, durationMin: 25, priority: 0, repeat: null, category: cat.id, color: cat.color, essential: false, status: "todo", steps: L.decompose(item.text, 25, false), minVersion: "", fullVersion: "", source: "todo", originalText: "", skipDates: [], doneDates: [] };
+  var slotDur = Math.min(L.estimateDuration ? L.estimateDuration(item.text) : 15, 45) || 15; var slotAt = nextFreeSlot(slotDur);
+  var task = { id: uid(), title: item.text, date: L.todayKey(), time: slotAt, durationMin: slotDur, priority: 0, repeat: null, category: cat.id, color: cat.color, essential: false, status: "todo", steps: L.decompose(item.text, 25, false), minVersion: "", fullVersion: "", source: "todo", originalText: "", skipDates: [], doneDates: [] };
   state.tasks.push(task);
   item.calTaskId = task.id;
   markActivated("event");
@@ -1819,7 +1848,7 @@ function renderTodos() {
       '<span class="todo-text"></span>' +
       '<button class="todo-cal' + (todoLinked(item) ? " is-on" : "") + '" data-act="cal" aria-label="' + tr("Put on the calendar") + '" title="' + tr("Put on the calendar") + '">' + icon("i-calplus") + "</button>" +
       '<button class="todo-del" data-act="del" aria-label="' + tr("Delete") + '">' + icon("i-trash") + "</button>";
-    row.querySelector(".todo-text").textContent = item.text;
+    var emoT = taskEmoji(item.text); row.querySelector(".todo-text").textContent = (emoT ? emoT + " " : "") + item.text;
     var grip = row.querySelector(".todo-grip");
     grip.addEventListener("pointerdown", function (e) {
       e.preventDefault();
@@ -1854,13 +1883,17 @@ function renderTodos() {
             state.tasks = state.tasks.filter(function (t) { return t.id !== item.calTaskId; });
             item.calTaskId = null; save(); refreshAll();
             toast(tr("Off the calendar. Still on your list."), linked ? function () { restoreAt(state.tasks, linked, linkedIdx); item.calTaskId = linked.id; save(); refreshAll(); toast(tr("Back again.")); } : undefined);
-          } else if (linkTodo(item)) { save(); refreshAll(); toast(tr("On today's calendar.")); }
+          } else if (linkTodo(item)) { save(); refreshAll(); var lt0 = baseTask(item.calTaskId); toast(lt0 && lt0.time ? tr("On today's calendar at {time}.", { time: lt0.time }) : tr("On today's calendar.")); }
         }
       });
     });
     wrap.appendChild(row);
   });
   $("todoClearDone").hidden = !state.todos.some(function (t) { return t.done; });
+  var pb = $("todoPlanDay");
+  if (!pb) { pb = document.createElement("button"); pb.id = "todoPlanDay"; pb.type = "button"; pb.className = "soft-btn plan-day-btn"; $("todoList").parentNode.insertBefore(pb, $("todoList")); pb.addEventListener("click", function () { var k = planTodosIntoDay(); save(); refreshAll(); renderTodos(); toast(k ? tr("Put {n} on today's calendar, in free spots.", { n: k }) : tr("Nothing left to place.")); }); }
+  var left = state.todos.filter(function (t) { return !t.done && !todoLinked(t); }).length;
+  pb.hidden = !left; pb.textContent = tr("Plan my day: put {n} in free spots", { n: left });
 }
 function submitTodoInput() {
   if (addTodo($("todoInput").value)) { $("todoInput").value = ""; save(); renderTodos(); }

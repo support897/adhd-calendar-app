@@ -230,6 +230,21 @@ await hb.click('.level-btn[data-level="low"]'); await hb.waitForTimeout(500);
 check("Bad day: the habit shrinks to its tiny version", (await hb.locator("#calendar .ev-t", { hasText: "Touch my toes" }).count()) >= 1);
 check("habits: no page errors", hb.errs.length === 0 || (console.log(hb.errs), false));
 
+/* ===== build 38 phase H: next free slot, auto icon, plan my day ===== */
+const ns = await mkPhone("slot38@test.dev");
+await ns.evaluate(() => document.querySelector('#bottomTabs [data-tab="todo"]').click()); await ns.waitForTimeout(300);
+for (const w of ["Call the dentist", "Write the report", "Buy milk"]) { await ns.fill("#todoInput", w); await ns.click("#todoAddBtn"); await ns.waitForTimeout(150); }
+check("To do shows an icon per task (phone for Call)", /\u260e/.test(await ns.locator("#todoList").innerText()));
+check("Plan my day button shows how many", /Plan my day: put 3/.test(await ns.locator("#todoPlanDay").innerText()));
+await ns.click("#todoPlanDay"); await ns.waitForTimeout(500);
+const ps = await ns.evaluate(() => { const s = JSON.parse(localStorage.getItem(Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")))); return s.tasks.filter(t => s.todos.some(o => o.calTaskId === t.id)).map(t => [t.time, t.durationMin]); });
+const toMin = h => +h.split(":")[0] * 60 + +h.split(":")[1];
+const times = ps.filter(p => p[0]).sort((a, b) => toMin(a[0]) - toMin(b[0]));
+let clear = times.length >= 1; for (let i = 1; i < times.length; i++) if (toMin(times[i][0]) < toMin(times[i - 1][0]) + times[i - 1][1]) clear = false;
+check("Plan my day gives each a time and none overlap (" + JSON.stringify(times) + ")", clear && times.every(p => toMin(p[0]) % 5 === 0));
+check("the Plan button hides when all are placed", await ns.locator("#todoPlanDay").isHidden());
+check("slot: no page errors", ns.errs.length === 0 || (console.log(ns.errs), false));
+
 check("no page errors (desktop)", errors.length === 0 || (console.log(errors), false));
 console.log("RESULT pass=" + pass + " fail=" + fail);
 await browser.close(); mock.close && mock.close(); server.close();
