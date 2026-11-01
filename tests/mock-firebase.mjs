@@ -49,19 +49,109 @@ export function startMock() {
     if (seg[0] === "reviews" || seg[0] === "outreach" || seg[0] === "groups") return ownerUids.includes(uid);
     if (seg[0] === "aggSignups" || seg[0] === "aggImports" || seg[0] === "aggSubs") return ownerUids.includes(uid);
     if (seg[0] === "subscriptions") return uid === seg[1];
+    // Shared goals (build 39): a signed-in holder of the doc id
+    // may read the GOAL doc; a STEP doc reads for members only
+    // (v2.6 — membership from the parent doc).
+    if (seg[0] === "sharedGoals" && seg[1]) {
+      if (seg.length === 4 && seg[2] === "steps") {
+        const parent = docs.get("sharedGoals/" + seg[1]);
+        return !!parent && !!parent.members && !!parent.members[uid];
+      }
+      return true;
+    }
     return false;
   };
-  const mayWrite = (uid, path) => {
+  const mayWrite = (uid, path, incoming) => {
     if (!uid) return false;
     const seg = path.split("/");
+    // v2.6 (build 39, Security's F-P39-1 cure ruling): the goal
+    // doc carries NO steps (a write carrying the key is denied,
+    // the closed key set) and gains stepCount — pinned in the
+    // join arm, unpinned in the member arm by design
+    // (Addendum 2: display-only, never trusted). Members map
+    // fences as v2.5 (R1/R2). STEP docs (…/steps/{sid}) fence
+    // per doc: create = member, createdBy == caller, born open,
+    // assignee null or a standing member; update = createdBy
+    // immutable + the status triple moves only for the STORED
+    // assignee with doneBy == caller (owner included) +
+    // assignee moves apart (owner any member/pool · grab
+    // pooled · return own) + plan fields owner-or-createdBy.
+    if (seg[0] === "sharedGoals" && seg[1] && seg[2] === "steps" && seg[3]) {
+      const parent = docs.get("sharedGoals/" + seg[1]);
+      if (!parent || !parent.members || !parent.members[uid]) return false;
+      const isOwner = parent.ownerUid === uid;
+      const cur = docs.get(path);
+      if (!incoming || typeof incoming !== "object") return false;
+      if (!cur) {
+        return incoming.createdBy === uid && incoming.status === "todo"
+          && (incoming.doneBy === null || incoming.doneBy === undefined)
+          && (incoming.doneAt === null || incoming.doneAt === undefined)
+          && (incoming.assignee == null || !!parent.members[incoming.assignee]);
+      }
+      if (incoming.createdBy !== cur.createdBy) return false;
+      const tripleSame = incoming.status === cur.status && (incoming.doneBy ?? null) === (cur.doneBy ?? null) && (incoming.doneAt ?? null) === (cur.doneAt ?? null);
+      const cure = cur.assignee === uid && ((cur.status === "todo" && incoming.status === "done" && incoming.doneBy === uid && typeof incoming.doneAt === "number")
+        || (cur.status === "done" && incoming.status === "todo" && (incoming.doneBy == null) && (incoming.doneAt == null)));
+      if (!tripleSame && !cure) return false;
+      const assigneeOk = incoming.assignee === cur.assignee
+        || (isOwner && (incoming.assignee == null || !!parent.members[incoming.assignee]))
+        || (cur.assignee == null && incoming.assignee === uid)
+        || (cur.assignee === uid && incoming.assignee == null);
+      if (!assigneeOk) return false;
+      const planSame = ["title", "date", "time", "durationMin", "minVersion"].every((k) => JSON.stringify(incoming[k] ?? null) === JSON.stringify(cur[k] ?? null));
+      return planSame || isOwner || cur.createdBy === uid;
+    }
+    // v2.5 (build 39, Security ruling R1/R2): sharedGoals —
+    // members is a uid-keyed MAP. Create: owner + sole member
+    // with a sane own entry. Owner arm: ownerUid + createdAt
+    // immutable, everything else open. Member arm: own entry
+    // only (+ stepCount unpinned by design), proven by
+    // members.remove(caller) equality. Join arm: that same
+    // equality + own sane entry + all else (stepCount too)
+    // unchanged + the goal is open (closed == false).
+    if (seg[0] === "sharedGoals" && seg[1]) {
+      const cur = docs.get(path);
+      const saneEntry = (e) => !!e && typeof e === "object" && Object.keys(e).every((k) => k === "name" || k === "focus")
+        && typeof e.name === "string" && e.name.length <= 100 && typeof e.focus === "string" && e.focus.length <= 200;
+      if (!incoming || typeof incoming !== "object") return false;
+      if ("steps" in incoming) return false;
+      if (!cur) {
+        const keys = Object.keys(incoming.members || {});
+        return incoming.ownerUid === uid && keys.length === 1 && keys[0] === uid && saneEntry(incoming.members[uid]);
+      }
+      if (incoming.ownerUid !== cur.ownerUid || incoming.createdAt !== cur.createdAt) return false;
+      const curM = cur.members || {}, inM = incoming.members || {};
+      const strip = (m) => { const o = {}; for (const k of Object.keys(m)) if (k !== uid) o[k] = m[k]; return JSON.stringify(o); };
+      const stripEqual = strip(inM) === strip(curM);
+      const restEqual = (except) => { const keys = new Set([...Object.keys(cur), ...Object.keys(incoming)]); for (const k of keys) { if (except.includes(k)) continue; if (JSON.stringify(cur[k]) !== JSON.stringify(incoming[k])) return false; } return true; };
+      if (cur.ownerUid === uid) return true;
+      if (curM[uid]) {
+        if (!stripEqual) return false;
+        if (inM[uid] && !saneEntry(inM[uid])) return false;
+        return restEqual(["members", "updatedAt", "stepCount"]);
+      }
+      if (!inM[uid] || !saneEntry(inM[uid])) return false;
+      if (cur.closed !== false) return false;
+      return stripEqual && restEqual(["members", "updatedAt"]);
+    }
     return (seg[0] === "users" && seg[1] === uid) || (seg[0] === "aggSignups" && seg[1] === uid) || (seg[0] === "aggImports" && seg[1] === uid);
   };
   // v2.4: subscriptions/{uid} stays write-sealed for clients, but the
   // owner may DELETE their own record (the deletion-promise fold).
   const mayDelete = (uid, path) => {
-    if (mayWrite(uid, path)) return true;
     if (!uid) return false;
     const seg = path.split("/");
+    // v2.6 (build 39): a STEP doc is deleted by the goal owner
+    // or the step's createdBy; the GOAL doc by its owner alone.
+    if (seg[0] === "sharedGoals" && seg[1] && seg[2] === "steps" && seg[3]) {
+      const parent = docs.get("sharedGoals/" + seg[1]);
+      const cur = docs.get(path);
+      // C-1 (Security's clearance change): the creator branch
+      // binds membership — a departed member keeps no delete.
+      return !!parent && !!cur && (parent.ownerUid === uid || (!!parent.members && !!parent.members[uid] && cur.createdBy === uid));
+    }
+    if (seg[0] === "sharedGoals" && seg[1]) { const cur = docs.get(path); return !!cur && cur.ownerUid === uid; }
+    if (mayWrite(uid, path)) return true;
     return seg[0] === "subscriptions" && seg[1] === uid;
   };
   const server = http.createServer((req, res) => {
@@ -130,6 +220,14 @@ export function startMock() {
           for (const [p, doc] of docs) if (p.startsWith(path + "/") && p.split("/").length === 2) { const fields = {}; for (const k of Object.keys(doc)) fields[k] = enc(doc[k]); documents.push({ name: "projects/x/databases/(default)/documents/" + p, fields }); }
           return send(200, { documents });
         }
+        if (req.method === "GET" && (() => { const s = path.split("/"); return s.length === 3 && s[0] === "sharedGoals" && s[2] === "steps"; })()) {
+          // v2.6: listing a goal's steps is members-only.
+          const parent = docs.get("sharedGoals/" + path.split("/")[1]);
+          if (!uid || !parent || !parent.members || !parent.members[uid]) return send(403, { error: { message: "PERMISSION_DENIED" } });
+          const documents = [];
+          for (const [p, doc] of docs) if (p.startsWith(path + "/") && p.split("/").length === 4) { const fields = {}; for (const k of Object.keys(doc)) fields[k] = enc(doc[k]); documents.push({ name: "projects/x/databases/(default)/documents/" + p, fields }); }
+          return send(200, { documents });
+        }
         if (req.method === "GET") {
           if (!mayRead(uid, path)) return send(403, { error: { message: "PERMISSION_DENIED" } });
           const doc = docs.get(path);
@@ -138,9 +236,9 @@ export function startMock() {
           return send(200, { name: "projects/x/databases/(default)/documents/" + path, fields });
         }
         if (req.method === "PATCH") {
-          if (!mayWrite(uid, path)) return send(403, { error: { message: "PERMISSION_DENIED" } });
           const b = jbody();
           const incoming = {}; for (const k of Object.keys(b.fields || {})) incoming[k] = dec(b.fields[k]);
+          if (!mayWrite(uid, path, incoming)) return send(403, { error: { message: "PERMISSION_DENIED" } });
           const mask = url.searchParams.getAll("updateMask.fieldPaths");
           if (mask.length) { const cur = docs.get(path) || {}; for (const f of mask) if (f in incoming) cur[f] = incoming[f]; docs.set(path, cur); }
           else docs.set(path, incoming);
