@@ -345,6 +345,7 @@ function load(fromKey) {
       else s.dayOrder[day] = s.dayOrder[day].filter(function (id) { return typeof id === "string"; }).slice(0, 5000);
     });
     if (!isObj(s.feelings)) s.feelings = {};
+    if (!isObj(s.spreads)) s.spreads = {};
     if (!isObj(s.sent)) s.sent = {};
     if (typeof s.todos === "string" && s.todos) s.todos = [{ text: s.todos }];
     if (!Array.isArray(s.todos)) s.todos = [];
@@ -815,6 +816,13 @@ function renderUpNext() {
   });
 }
 
+/* The small red "now" line: says the time and which part of the day you are in. */
+function paceDayPart(d) { var h = d.getHours(); return h < 5 ? tr("Night") : h < 12 ? tr("Morning") : h < 17 ? tr("Afternoon") : h < 21 ? tr("Evening") : tr("Night"); }
+function paceNowText() { var d = new Date(); return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " \u00b7 " + paceDayPart(d); }
+function paceScrollToNow() { var l = document.querySelector(".fc-timegrid-now-indicator-line"); if (l && l.scrollIntoView) { try { l.scrollIntoView({ block: "center" }); } catch (e) { l.scrollIntoView(); } } }
+function paceNowLabel(el, isAxis) { if (el && !isAxis) el.setAttribute("data-now", paceNowText()); }
+setInterval(function () { document.querySelectorAll(".fc-timegrid-now-indicator-line").forEach(function (e) { e.setAttribute("data-now", paceNowText()); }); }, 20000);
+
 /* ---------- check-in ---------- */
 function renderCheckin() {
   var level = state.feelings[selected];
@@ -830,12 +838,78 @@ function renderCheckin() {
   if (subEl && state.feelings[selected]) subEl.textContent = adc.parked.length ? tr("Showing {a} of {b}. {c} resting until you feel up to it. You can change this any time.", { a: adc.visible.length, b: tot, c: adc.parked.length }) : tr("Showing everything for today. You can change this any time.");
   $("checkinQ").textContent = selected === L.todayKey() ? tr("How are you feeling today?") : tr("How does this day feel?");
 }
+/* ---------- Bad day: big things become small steps over the next days ----------
+   Researched shape (Goblin Tools / Tiimo / Sunsama): when energy is low, do not
+   just hide work or pile it onto tomorrow. Cut each movable thing into small
+   steps and lay one step per day on the lightest coming days. Things that cannot
+   move (marked must-do, repeating, imported appointments, anything already
+   started or done) stay exactly where they are. Choosing a better feeling, or
+   tapping Undo, puts every task back whole. */
+function canMoveTask(t, key) {
+  return !!t && !t.essential && !t.repeat && t.source !== "import" && t.status === "todo" && t.date === key && !t.spreadOf;
+}
+function spreadLowDay(key) {
+  if (!isObj(state.spreads)) state.spreads = {};
+  if (state.spreads[key]) return 0;
+  var ad = L.adaptDay(tasksOn(key), "low", []), moved = [];
+  var load = {};
+  function count(day) { return (load[day] != null ? load[day] : (load[day] = tasksOn(day).length)); }
+  ad.parked.forEach(function (p) {
+    var base = baseTask(p.id);
+    if (!canMoveTask(base, key)) return;
+    var steps = (base.steps || []).filter(function (x) { return x && x.text && !x.done; }).map(function (x) { return x.text; });
+    if (steps.length < 2) steps = L.decompose(base.title, base.durationMin, true).map(function (x) { return x.text; });
+    var n = Math.min(3, steps.length), groups = [], per = Math.ceil(steps.length / n), i;
+    for (i = 0; i < steps.length; i += per) groups.push(steps.slice(i, i + per));
+    n = groups.length;
+    var chunkMin = Math.max(5, Math.min(25, Math.round((base.durationMin || 30) / n / 5) * 5));
+    var prev = key, ids = [], baseIdx = state.tasks.indexOf(base);
+    groups.forEach(function (g, gi) {
+      var day = null, best = 1e9, d;
+      for (d = 1; d <= 7; d++) {
+        var cand = L.addDays(prev, d);
+        if (levelFor(cand) === "low" && d < 7) continue;
+        var c = count(cand);
+        if (c < best) { best = c; day = cand; }
+        if (c === 0) break;
+      }
+      day = day || L.addDays(prev, 1);
+      load[day] = count(day) + 1; prev = day;
+      var chunk = { id: uid(), title: base.title + " (" + (gi + 1) + " of " + n + ")", date: day, time: null, durationMin: chunkMin, priority: base.priority || 0, repeat: null,
+        category: base.category, color: base.color, icon: base.icon, essential: false, status: "todo",
+        steps: g.map(function (x) { return { text: x, done: false }; }), minVersion: "", fullVersion: "",
+        source: base.source || "manual", originalText: base.originalText || "", skipDates: [], doneDates: [], spreadOf: base.id, spreadFrom: key };
+      state.tasks.push(chunk); ids.push(chunk.id);
+    });
+    state.tasks.splice(state.tasks.indexOf(base), 1);
+    moved.push({ orig: base, at: baseIdx, ids: ids });
+  });
+  if (moved.length) state.spreads[key] = moved;
+  return moved.length;
+}
+function restoreSpread(key) {
+  if (!isObj(state.spreads) || !state.spreads[key]) return 0;
+  var back = 0;
+  state.spreads[key].forEach(function (rec) {
+    var parts = state.tasks.filter(function (t) { return t.spreadOf === rec.orig.id; });
+    if (parts.some(function (t) { return t.status !== "todo"; })) return; /* already begun: leave it */
+    state.tasks = state.tasks.filter(function (t) { return t.spreadOf !== rec.orig.id; });
+    state.tasks.splice(Math.min(rec.at, state.tasks.length), 0, rec.orig); back++;
+  });
+  delete state.spreads[key];
+  return back;
+}
 document.querySelectorAll(".level-btn").forEach(function (b) {
   b.addEventListener("click", function () {
     var level = b.getAttribute("data-level");
-    state.feelings[selected] = level; save();
+    var wasLow = state.feelings[selected] === "low", moved = 0;
+    state.feelings[selected] = level;
+    if (level !== "low" && wasLow) restoreSpread(selected);
+    if (level === "low" && !wasLow) moved = spreadLowDay(selected);
+    save();
     markActivated("check-in");
-    if (level === "low") toast(tr("Bad day. Small list — the rest is parked, safe."));
+    if (level === "low" && moved) { var dayK = selected; toast(tr("Bad day. {n} bigger things are now small steps over the next days. Must-dos stay put.", { n: moved }), function () { state.feelings[dayK] = "steady"; restoreSpread(dayK); save(); refreshAll(); }); }
+    else if (level === "low") toast(tr("Bad day. Small list — the rest is parked, safe."));
     else if (level === "full") toast(tr("Great day. A little more is on the table."));
     else toast(tr("Ok day. A small, capped list."));
     refreshAll();
@@ -877,6 +951,8 @@ function initCalendar() {
     businessHours: dayHours(),
     slotMinTime: "06:00:00",
     slotMaxTime: "22:00:00",
+    nowIndicator: true,
+    nowIndicatorDidMount: function (info) { paceNowLabel(info.el, info.isAxis); },
     scrollTime: (function () { var h = Math.max(6, new Date().getHours() - 1); return (h < 10 ? "0" : "") + h + ":00:00"; })(),
     eventDidMount: function (info) {
       var c = info.event.backgroundColor || "#5b6bd5";
@@ -971,7 +1047,7 @@ document.querySelectorAll(".segmented button").forEach(function (b) {
     b.classList.add("is-active");
     var v = b.getAttribute("data-view");
     currentView = v;
-    setBottomTab(v === "timeGridDay" && selected === L.todayKey() ? "today" : "calendar");
+    setBottomTab("calendar");
     if (v === "year") { $("calendar").hidden = true; $("yearView").hidden = false; renderYear(); }
     else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, selected); }
   });
@@ -1015,7 +1091,7 @@ document.querySelectorAll(".side-item").forEach(function (b) {
     b.classList.add("is-active");
     var panelName = b.getAttribute("data-panel");
     $("panel-" + panelName).classList.add("is-active");
-    setBottomTab(panelName === "calendar" ? (selected === L.todayKey() && currentView === "timeGridDay" ? "today" : "calendar") : (panelName === "todo" || panelName === "capture" ? panelName : "more"));
+    setBottomTab(panelName === "calendar" || panelName === "goals" || panelName === "todo" || panelName === "capture" ? panelName : "more");
     if (panelName === "progress") renderProgress();
     // Opening Goals always re-renders it (build 39): shared
     // goals arrive async, so the section must draw on arrival
@@ -1052,12 +1128,9 @@ function showPanel(name) { document.querySelector('.side-item[data-panel="' + na
 document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
   b.addEventListener("click", function () {
     var tab = b.getAttribute("data-tab");
-    if (tab === "today") {
-      var day = document.querySelector('.segmented button[data-view="timeGridDay"]');
-      if (day && currentView !== "timeGridDay") day.click();
-      selectDate(L.todayKey(), true);
-      showPanel("calendar");
-      setBottomTab("today");
+    if (tab === "calendar" && document.querySelector("#panel-calendar.is-active")) {
+      /* tapping Calendar while on it jumps back to today */
+      selectDate(L.todayKey(), true); setBottomTab("calendar"); setTimeout(paceScrollToNow, 250);
     } else if (tab === "more") {
       var collapsed = document.documentElement.getAttribute("data-sb") === "collapsed";
       (collapsed ? $("sbExpand") : $("sbCollapse")).click();
@@ -2140,6 +2213,27 @@ $("clearSamples").addEventListener("click", function () {
    Every save replans (cancel the old set, schedule the new), so a
    check-in, a pause, or a settings change rewrites the plan at once.
    A failure here must never break a save: every call is fenced. */
+/* Reminder wording, like Apple / Google Calendar: the TITLE is the task,
+   the line under it says when ("Now", "In 5 minutes", "In 1 hour") plus
+   the clock time. A first step rides on a second line only when the task
+   really has steps. */
+function leadWhen(lead) {
+  if (lead <= 0) return tr("Now");
+  if (lead < 60) return lead === 1 ? tr("In 1 minute") : tr("In {n} minutes", { n: lead });
+  if (lead % 60 === 0) return lead === 60 ? tr("In 1 hour") : tr("In {n} hours", { n: lead / 60 });
+  return tr("In {n} minutes", { n: lead });
+}
+function clockLabel(hhmm) {
+  var p = String(hhmm || "").split(":"), h = +p[0], m = +p[1];
+  if (isNaN(h) || isNaN(m)) return String(hhmm || "");
+  try { return new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); } catch (e) { return hhmm; }
+}
+function startNote(t, lead) {
+  var shown = t.displayTitle || t.title;
+  var hasSteps = Array.isArray(t.steps) && t.steps.some(function (x) { return x && !x.done; });
+  var body = leadWhen(lead) + " \u00b7 " + clockLabel(t.time) + (hasSteps ? "\n" + tr("First step: {step}", { step: L.nextStepText(t) }) : "");
+  return { title: shown, body: body };
+}
 var PaceRemind = (function () {
   var timer = null;
   function plugin() {
@@ -2170,9 +2264,7 @@ var PaceRemind = (function () {
       leadsFor(t).forEach(function (lead) {
         var at = atMs(dayKey, t.time) - lead * 60000;
         if (at <= floor) return;
-        var shown = t.displayTitle || t.title;
-        var head = lead === 0 ? tr("Starting now: {title}", { title: shown }) : lead >= 60 ? tr("Coming up: {title}", { title: shown }) : tr("Time to start: {title}", { title: shown });
-        var body = lead >= 60 ? tr("Starts at {time}. First step: {step}", { time: t.time, step: L.nextStepText(t) }) : tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin });
+        var sn = startNote(t, lead), head = sn.title, body = sn.body;
         out.push({ id: nid("start", String(t.id) + "@" + lead, dayKey), title: head, body: body, at: at, extra: { paceKind: "start", paceTask: String(t.id), paceDate: dayKey } });
       });
     });
@@ -2313,9 +2405,7 @@ function checkNotifications() {
         var base = new Date(+p[0], +p[1] - 1, +p[2], +tt[0], +tt[1], 0, 0).getTime();
         leadsFor(t).forEach(function (lead) {
           if (Math.floor((base - lead * 60000) / 60000) !== nowMin) return;
-          var shown = t.displayTitle || t.title;
-          var head = lead === 0 ? tr("Starting now: {title}", { title: shown }) : lead >= 60 ? tr("Coming up: {title}", { title: shown }) : tr("Time to start: {title}", { title: shown });
-          var body = lead >= 60 ? tr("Starts at {time}. First step: {step}", { time: t.time, step: L.nextStepText(t) }) : tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin });
+          var sn = startNote(t, lead), head = sn.title, body = sn.body;
           notify(head, body, "start-" + t.id + "-" + day + "-" + lead, { task: String(t.id), date: day });
         });
       });
@@ -2405,8 +2495,7 @@ function buildTour() {
   GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); });
   TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar if you want. The file is copied; it is never changed.", next: "Next" });
   TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders are optional. Choose if you want a gentle prompt.", next: "Next", panel: "settings" });
-  TOUR.push({ kind: "tour", panel: "today", pose: "welcome", bubble: "Today is for the day in front of you.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar lets you switch Day, Week, Month, Year, and Agenda.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar is your day. A small red line shows where you are right now. Tap it again any time to jump back to today.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Talk to it turns a sentence into tasks. Speaking is optional.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "todo", pose: "point", bubble: "To do keeps loose tasks beside the calendar.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress, Habits, Goals, and Settings.", next: "Next" });
@@ -2429,15 +2518,11 @@ function showGuide(step) {
   var s = TOUR[step];
   if (!s) return;
   if (s.kind === "tour") {
-    if (s.panel === "today") {
-      var dayBtn = document.querySelector('.segmented button[data-view="timeGridDay"]');
-      if (dayBtn && currentView !== "timeGridDay") dayBtn.click();
-      showPanel("calendar"); selectDate(L.todayKey(), true); setBottomTab("today");
-    } else if (s.panel === "calendar") { showPanel("calendar"); setBottomTab("calendar"); }
+    if (s.panel === "calendar") { showPanel("calendar"); setBottomTab("calendar"); }
     else if (s.panel === "capture") { showPanel("capture"); setBottomTab("capture"); }
     else if (s.panel === "todo") { showPanel("todo"); setBottomTab("todo"); }
     else if (s.panel === "habits") { showPanel("habits"); setBottomTab("more"); }
-    else if (s.panel === "goals") { showPanel("goals"); setBottomTab("more"); }
+    else if (s.panel === "goals") { showPanel("goals"); setBottomTab("goals"); }
     else if (s.panel === "settings") { showPanel("settings"); setBottomTab("more"); }
     else if (s.panel === "more" || s.panel === "progress") { setBottomTab("more"); }
   } else if (s.kind === "reminders") { showPanel("settings"); setBottomTab("more"); }
@@ -2461,7 +2546,7 @@ function showGuide(step) {
   if (s.kind === "tour") {
     if (s.panel === "more") target = $("sbExpand");
     else if (s.panel === "progress") target = document.querySelector('.side-item[data-panel="progress"]');
-    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" || s.panel === "goals" ? "more" : s.panel) + '"]');
+    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" ? "more" : s.panel) + '"]');
   }
   if (s.section && $(s.section)) { target = $(s.section); try { target.scrollIntoView({ block: "start", behavior: "auto" }); } catch (e) {} }
   if (target) target.classList.add("guide-target");
@@ -3045,7 +3130,7 @@ function resolvePot(bring) {
 }
 function freshAccountState() {
   var s = seed();
-  s.tasks = []; s.todos = []; s.habits = []; s.goals = []; s.feelings = {}; s.imports = [];
+  s.tasks = []; s.todos = []; s.habits = []; s.goals = []; s.feelings = {}; s.spreads = {}; s.imports = [];
   // A born state has NO content, so it claims NO content time:
   // updatedAt 0 keeps its birth save() from outranking the
   // account's real server content at the reconcile (QA F1).
@@ -3393,7 +3478,7 @@ function bindAccounts() {
 /* ---------- boot ---------- */
 function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
 applyI18n();
-initCalendar();
+initCalendar(); setTimeout(paceScrollToNow, 1200);
 applyAppearance();
 applySidebar();
 bindSettings();
@@ -3406,7 +3491,7 @@ bindAccounts();
 if (!ACTIVE_UID && window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(null, null, null); } catch (e) {} }
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
 /* Bridge for goals-ui.js (the Goals screen and the Habits week view live there). */
-window.PaceCtx = { get state() { return state; }, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
+window.PaceCtx = { get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
 })();
 
 
