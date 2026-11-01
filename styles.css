@@ -885,3 +885,14 @@ details[open] > :not(summary){animation:paceSlideDown .26s ease}
 .ev-row[data-emo]::after { content: attr(data-emo); position: absolute; right: 4px; top: 2px; font-size: 13px; line-height: 1; opacity: .9; pointer-events: none; }
 .ev-row { position: relative; }
 .ev-row[data-emo] .ev-body { padding-right: 18px; }
+
+/* Shared goals (build 39) */
+.sg-goal { font-weight: 700; font-size: 18px; margin: 4px 0 8px; }
+.sg-linkrow { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.sg-linkrow input { flex: 1; min-width: 0; border: 1px solid var(--hair); border-radius: 8px; padding: 8px 10px; font-size: 14px; background: var(--card); color: var(--ink); }
+.sg-member { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.sg-name { font-weight: 600; }
+.sg-member input { border: 1px solid var(--hair); border-radius: 8px; padding: 8px 10px; font-size: 15px; background: var(--card); color: var(--ink); }
+.sg-planline { margin: 4px 0; }
+#shareSheet .gf-label { display: block; margin-top: 14px; }
+.gs-tick-off { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; color: var(--pine, #21392E); font-weight: 700; flex: none; }

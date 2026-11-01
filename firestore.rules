@@ -1,5 +1,14 @@
 rules_version = '2';
-// Pace Calendar — Security Rules of record, v2.4 (accounts
+// Pace Calendar — Security Rules of record, v2.6 (v2.5 plus
+// the F-P39-1 cure: shared-goal steps become per-step docs in
+// a subcollection behind per-doc fences — the status triple
+// moves only for a step's stored assignee, credit bound to
+// the caller, owner included; the goal doc drops 'steps' and
+// gains stepCount — Security clearance of 1 Nov 2026 on the
+// re-filed block (one change, C-1, taken); v2.5 text
+// untouched elsewhere; v2.5 = the sharedGoals block:
+// link-shared goals, uid-keyed member map, owner/member/join
+// arms; accounts
 // wave; Security desk send-back of 15 Oct applied in full;
 // v2.4 = subscriptions/{uid} folds INTO the deletion promise
 // (HQ ruling 23 Oct, on Security's gap of record): the record
@@ -144,6 +153,183 @@ service cloud.firestore {
     match /groups/{id} {
       allow get, list: if isOwner();
       allow write: if false;
+    }
+
+
+    // Shared goals (v2.5, Ilse's commission 1 Nov 2026; v2.6
+    // cure for F-P39-1, 1 Nov 2026): a goal shared by link with
+    // other signed-in users. The doc id is a long random string
+    // and IS the link's secret: any signed-in holder of the id
+    // may read the goal doc (a removed member keeps that read;
+    // the owner's revoke is delete + recreate). Membership is
+    // a uid-keyed map, so one diff fence — the affected keys
+    // are only the caller's own — proves join, leave and
+    // own-entry edits, and makes rewriting another member in
+    // the same write impossible. Steps are NOT in this doc:
+    // v2.5 kept them in a list here, and a list cannot fence
+    // one element's write against its own old fields (QA
+    // finding F-P39-1: a member ticked another member's step
+    // and credited it to anyone). Each step is its own doc in
+    // the steps subcollection below, behind per-doc fences.
+    match /sharedGoals/{id} {
+      function saneEntry(e) {
+        return e.keys().hasOnly(['name', 'focus'])
+          && e.name is string && e.name.size() <= 100
+          && e.focus is string && e.focus.size() <= 200;
+      }
+      function saneShared(d) {
+        return d.keys().hasOnly(['title', 'category', 'end', 'ownerUid', 'ownerName', 'members', 'splitMode', 'closed', 'stepCount', 'createdAt', 'updatedAt'])
+          && d.ownerUid is string
+          && d.ownerName is string && d.ownerName.size() <= 100
+          && d.title is string && d.title.size() <= 200
+          && d.category is string
+          && (d.end is string || d.end == null)
+          && d.members is map && d.members.size() <= 12
+          && d.splitMode in ['even', 'strengths']
+          && d.closed is bool
+          && d.stepCount is number && d.stepCount >= 0 && d.stepCount <= 400
+          && d.createdAt is number && d.updatedAt is number;
+      }
+      function isSharedMember() {
+        return notAnon() && request.auth.uid in resource.data.members;
+      }
+      function onlyMyKeyMoved() {
+        return request.resource.data.members.diff(resource.data.members)
+          .affectedKeys().hasOnly([request.auth.uid]);
+      }
+      function ownerFieldsUnchanged() {
+        return request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.title == resource.data.title
+          && request.resource.data.ownerName == resource.data.ownerName
+          && request.resource.data.category == resource.data.category
+          && request.resource.data.end == resource.data.end
+          && request.resource.data.splitMode == resource.data.splitMode
+          && request.resource.data.closed == resource.data.closed;
+      }
+      function myEntrySane() {
+        return !(request.auth.uid in request.resource.data.members)
+          || saneEntry(request.resource.data.members[request.auth.uid]);
+      }
+      allow get: if notAnon();
+      allow list: if false;
+      allow create: if notAnon() && saneShared(request.resource.data)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.members.keys().hasOnly([request.auth.uid])
+        && saneEntry(request.resource.data.members[request.auth.uid]);
+      // Owner arm: everything sane; identity fields immutable.
+      allow update: if notAnon() && saneShared(request.resource.data)
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt;
+      // Member arm: the caller's own entry only (steps live in
+      // their own docs below). stepCount is NOT pinned here by
+      // design (ruling Addendum 2): display-only, never
+      // trusted; a member-created step may restamp it.
+      allow update: if notAnon() && saneShared(request.resource.data)
+        && isSharedMember()
+        && ownerFieldsUnchanged()
+        && onlyMyKeyMoved()
+        && myEntrySane();
+      // Join arm: a non-member adds exactly their own sane
+      // entry to an OPEN goal; every other field (stepCount
+      // included) stands unchanged, nobody else's entry moves.
+      allow update: if notAnon() && saneShared(request.resource.data)
+        && !(request.auth.uid in resource.data.members)
+        && request.auth.uid in request.resource.data.members
+        && saneEntry(request.resource.data.members[request.auth.uid])
+        && resource.data.closed == false
+        && ownerFieldsUnchanged()
+        && request.resource.data.stepCount == resource.data.stepCount
+        && onlyMyKeyMoved();
+      allow delete: if notAnon() && resource.data.ownerUid == request.auth.uid;
+
+      // One step of a shared goal (v2.6). Membership and
+      // ownership are read from the parent goal doc by get();
+      // a missing parent denies everything. The status triple
+      // (status, doneBy, doneAt) is the cure: it stands
+      // unchanged, or the step's STORED assignee moves it and
+      // credit binds to the caller — for every writer, the
+      // owner included.
+      match /steps/{sid} {
+        function goalData() {
+          return get(/databases/$(database)/documents/sharedGoals/$(id)).data;
+        }
+        function goalExists() {
+          return exists(/databases/$(database)/documents/sharedGoals/$(id));
+        }
+        function isMember() {
+          return notAnon() && goalExists()
+            && request.auth.uid in goalData().members;
+        }
+        function isOwner() {
+          return notAnon() && goalExists()
+            && goalData().ownerUid == request.auth.uid;
+        }
+        function saneStep(d) {
+          return d.keys().hasOnly(['title', 'date', 'time', 'durationMin', 'minVersion', 'assignee', 'status', 'doneBy', 'doneAt', 'createdBy'])
+            && d.title is string && d.title.size() <= 200
+            && d.date is string
+            && (d.time is string || d.time == null)
+            && d.durationMin is number
+            && (d.minVersion is string && d.minVersion.size() <= 1000 || d.minVersion == null)
+            && (d.assignee is string || d.assignee == null)
+            && d.status in ['todo', 'done']
+            && (d.doneBy is string || d.doneBy == null)
+            && (d.doneAt is number || d.doneAt == null)
+            && d.createdBy is string;
+        }
+        function statusTripleUnchanged() {
+          return request.resource.data.status == resource.data.status
+            && request.resource.data.doneBy == resource.data.doneBy
+            && request.resource.data.doneAt == resource.data.doneAt;
+        }
+        function statusCure() {
+          return resource.data.assignee == request.auth.uid
+            && ((resource.data.status == 'todo' && request.resource.data.status == 'done'
+                  && request.resource.data.doneBy == request.auth.uid
+                  && request.resource.data.doneAt is number)
+              || (resource.data.status == 'done' && request.resource.data.status == 'todo'
+                  && request.resource.data.doneBy == null
+                  && request.resource.data.doneAt == null));
+        }
+        function assigneeMoveOk() {
+          return request.resource.data.assignee == resource.data.assignee
+            || (isOwner()
+                && (request.resource.data.assignee == null
+                    || request.resource.data.assignee in goalData().members))
+            || (resource.data.assignee == null
+                && request.resource.data.assignee == request.auth.uid)
+            || (resource.data.assignee == request.auth.uid
+                && request.resource.data.assignee == null);
+        }
+        function planFieldsUnchanged() {
+          return request.resource.data.title == resource.data.title
+            && request.resource.data.date == resource.data.date
+            && request.resource.data.time == resource.data.time
+            && request.resource.data.durationMin == resource.data.durationMin
+            && request.resource.data.minVersion == resource.data.minVersion;
+        }
+        allow get, list: if isMember();
+        allow create: if isMember() && saneStep(request.resource.data)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.status == 'todo'
+          && request.resource.data.doneBy == null
+          && request.resource.data.doneAt == null
+          && (request.resource.data.assignee == null
+              || request.resource.data.assignee in goalData().members);
+        // createdBy stands immutable in EVERY arm (ruling
+        // Addendum 2): it is its own conjunct here, never part
+        // of the plan-fields disjunction below.
+        allow update: if isMember() && saneStep(request.resource.data)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && (statusTripleUnchanged() || statusCure())
+          && assigneeMoveOk()
+          && (planFieldsUnchanged() || isOwner()
+              || resource.data.createdBy == request.auth.uid);
+        allow delete: if isOwner()
+          || (isMember() && resource.data.createdBy == request.auth.uid);
+      }
     }
 
     // The wall is complete: everything else is denied, in writing.
