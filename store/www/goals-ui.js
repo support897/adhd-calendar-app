@@ -203,6 +203,8 @@ function renderGoals(force) {
 
   if (!goals.length && !showForm) root.appendChild(el("div", "empty-note", tr("No goals yet. A semester goal, a certificate, a tidy home: start with one.")));
   goals.forEach(function (g) { root.appendChild(goalCard(g, today)); });
+  // Shared goals (build 39): goals other people shared with me.
+  if (window.PaceShareUI) window.PaceShareUI.renderSharedSection(root);
   var why = el("details", "why-box");
   why.appendChild(el("summary", null, tr("Why small steps")));
   [
@@ -428,6 +430,12 @@ function goalCard(g, today) {
   }
   var seeBtn = el("button", "soft-btn", tr("See steps"), { type: "button", "aria-expanded": "false" });
   var del = el("button", "soft-btn danger", tr("Delete goal"), { type: "button" });
+  // Shared goals (build 39): the share entry lives on the goal card.
+  if (window.PaceShareUI) {
+    var shBtn = el("button", "soft-btn", tr(g.sharedGoalId ? "Shared goal" : "Share this goal"), { type: "button" });
+    shBtn.addEventListener("click", function () { window.PaceShareUI.openShare(g); });
+    acts.appendChild(shBtn);
+  }
   acts.appendChild(seeBtn); acts.appendChild(del);
   card.appendChild(acts);
   var stepsBox = el("div", "goal-steps"); stepsBox.hidden = true; card.appendChild(stepsBox);

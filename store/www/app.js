@@ -765,6 +765,9 @@ function toggleDone(id, dateKey) {
     if (t.status === "done") toast(tr("Done. That counts."));
   }
   save(); refreshAll();
+  // Shared goals (build 39): a tick on a shared step writes
+  // through to the shared doc, so the whole team sees it.
+  if (!t.repeat && window.PaceShareUI) window.PaceShareUI.onLocalTick(t);
 }
 /* Move one occurrence of a (possibly repeating) task to another date. */
 function moveInstance(t, fromKey, toKey) {
@@ -1014,6 +1017,10 @@ document.querySelectorAll(".side-item").forEach(function (b) {
     $("panel-" + panelName).classList.add("is-active");
     setBottomTab(panelName === "calendar" ? (selected === L.todayKey() && currentView === "timeGridDay" ? "today" : "calendar") : (panelName === "todo" || panelName === "capture" ? panelName : "more"));
     if (panelName === "progress") renderProgress();
+    // Opening Goals always re-renders it (build 39): shared
+    // goals arrive async, so the section must draw on arrival
+    // at the panel, not only on data events.
+    if (panelName === "goals" && window.PaceGoalsUI) window.PaceGoalsUI.renderGoals();
     // FullCalendar sizes itself while visible. Returning from a
     // hidden panel must re-measure after the calendar has its width.
     if (panelName === "calendar" && calendar) {
@@ -3369,7 +3376,10 @@ function bindAccounts() {
         .then(function () { return FB.fsDelete(spinePath()); })
         .then(function () { return FB.fsDelete("aggSignups/" + sess.uid); })
         .then(function () { return FB.fsDelete("aggImports/" + sess.uid); })
-        .then(function () { return FB.fsDelete("subscriptions/" + sess.uid); });
+        .then(function () { return FB.fsDelete("subscriptions/" + sess.uid); })
+        // Shared goals (build 39, rules v2.5): owned shared
+        // goals die with the account, memberships are left.
+        .then(function () { return window.PaceShareUI ? window.PaceShareUI.leaveAllShared() : null; });
     }).then(function () { return FB.deleteAccount(); })
       .then(function () {
         try { localStorage.removeItem(storeKey()); localStorage.removeItem("pace-last-uid"); } catch (e) {}
