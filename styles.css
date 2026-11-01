@@ -896,3 +896,19 @@ details[open] > :not(summary){animation:paceSlideDown .26s ease}
 .sg-planline { margin: 4px 0; }
 #shareSheet .gf-label { display: block; margin-top: 14px; }
 .gs-tick-off { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; color: var(--pine, #21392E); font-weight: 700; flex: none; }
+
+/* the small red "now" line (build 40): thin red line + tiny label saying the time and part of day */
+.fc { --fc-now-indicator-color: #e5484d; }
+.fc .fc-timegrid-now-indicator-line { border-width: 1.5px 0 0; }
+.fc .fc-timegrid-now-indicator-line::after { content: attr(data-now); position: absolute; right: 4px; top: -15px; font-size: 10px; font-weight: 700; line-height: 1; color: #e5484d; background: var(--card, #fff); padding: 2px 5px; border-radius: 999px; pointer-events: none; }
+.fc .fc-timegrid-now-indicator-arrow { border-width: 4px 0 4px 6px; margin-top: -4px; }
+
+/* goals page (build 40): today's steps are tickable right here; quick-start chips */
+.goal-today { padding: 12px 12px 8px; }
+.goal-today-h { font-weight: 700; margin-bottom: 6px; }
+.goal-today-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 8px 6px; border: 0; background: transparent; text-align: left; font: inherit; color: var(--ink); cursor: pointer; border-top: 1px solid var(--hair); }
+.goal-today-row .gt-check { flex: 0 0 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); display: grid; place-items: center; font-size: 15px; color: #fff; }
+.goal-today-row.is-done .gt-check { background: var(--accent); }
+.goal-today-row.is-done .gt-text { text-decoration: line-through; opacity: .6; }
+.gf-templates { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
+.gf-tpl { min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--hair); background: var(--card); font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; }
