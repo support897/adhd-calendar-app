@@ -342,32 +342,65 @@ try {
 
 <!-- QUICK ADD -->
 <div id="addSheet" class="sheet" hidden>
-  <div class="sheet-card">
-    <h3 data-i18n>Add a task</h3>
-    <label class="field">
-      <input type="text" id="quickText" data-i18n-ph placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes" aria-label="Say it in one sentence">
-    </label>
-    <div id="quickSuggest" class="qsuggest" role="group" aria-label="Quick add">
-      <button type="button" data-add="today">Today</button>
-      <button type="button" data-add="tomorrow">Tomorrow</button>
-      <button type="button" data-add="at 9am">Morning</button>
-      <button type="button" data-add="at 6pm">Evening</button>
-      <button type="button" data-add="every day">Every day</button>
-      <button type="button" data-add="for 30 minutes">30 min</button>
-      <button type="button" data-add="!!!">Important</button>
+  <div class="sheet-card add-wiz" role="dialog" aria-modal="true" aria-label="Add a task" data-i18n-aria>
+    <div id="awHead" class="aw-head">
+      <button type="button" id="addCancel" class="aw-x" aria-label="Close" data-i18n-aria>&#215;</button>
+      <button type="button" id="awIcon" class="aw-icon" aria-label="Change the icon" data-i18n-aria>&#128204;</button>
+      <div class="aw-headtxt"><span id="awWhen" class="aw-when"></span><strong id="awTitle" data-i18n>New task</strong></div>
     </div>
-    <div id="quickPreview" class="quick-preview" hidden></div>
-    <details class="details-fallback"><summary data-i18n>Or fill in the details</summary>
-      <label class="field" data-i18n>Title <input type="text" id="fTitle"></label>
-      <label class="field" data-i18n>Link <input type="url" id="fLink" inputmode="url" placeholder="https://" autocomplete="off"></label>
-      <div class="field-row">
-        <label class="field" data-i18n>Date <input type="date" id="fDate"></label>
-        <label class="field" data-i18n>Time <input type="time" id="fTime"></label>
-        <label class="field" data-i18n>Minutes <input type="number" id="fDur" value="25" min="5" step="5"></label>
+    <div id="awDots" class="aw-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+    <section class="aw-step" data-aw="1">
+      <h3 data-i18n>What do you want to do?</h3>
+      <label class="field"><input type="text" id="quickText" data-i18n-ph placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes" aria-label="Say it in one sentence" data-i18n-aria autocomplete="off"></label>
+      <div id="quickSuggest" class="qsuggest" role="group" aria-label="Quick add">
+        <button type="button" data-add="today">Today</button>
+        <button type="button" data-add="tomorrow">Tomorrow</button>
+        <button type="button" data-add="at 9am">Morning</button>
+        <button type="button" data-add="at 6pm">Evening</button>
+        <button type="button" data-add="every day">Every day</button>
+        <button type="button" data-add="for 30 minutes">30 min</button>
+        <button type="button" data-add="!!!">Important</button>
       </div>
-      <label class="field" data-i18n>Smallest version (for low days) <input type="text" id="fMin" data-i18n-ph placeholder="e.g. Just ring and rebook"></label>
-      <label class="field" data-i18n>Biggest version (for full days) <input type="text" id="fFull" data-i18n-ph placeholder="e.g. The whole deep clean"></label>
-      <label class="field" data-i18n>Repeat <select id="fRepeat">
+      <div id="awSmart" class="aw-smart" hidden>
+        <p class="aw-smart-h" data-i18n>Pace read it like this. Tap to change anything.</p>
+        <button type="button" id="awTag" class="aw-tag"><span class="aw-tag-dot"></span><span id="awTagTxt"></span><span class="aw-tag-edit" data-i18n>Change</span></button>
+        <p id="awWhy" class="aw-why"></p>
+        <button type="button" id="awGoalChip" class="aw-goalchip" hidden></button>
+        <div id="awGoalHint" class="aw-goalhint" hidden><span data-i18n>This sounds like a big goal, not one task.</span> <button type="button" id="awMakeGoal" class="soft-btn" data-i18n>Make it a goal</button></div>
+      </div>
+      <div id="awCatBox" class="aw-pick" hidden>
+        <p class="task-look-label" data-i18n>What is this? The colour follows it.</p>
+        <div id="fCatChips" class="chip-row" role="group" aria-label="Category" data-i18n-aria></div>
+      </div>
+      <div id="awIconBox" class="aw-pick" hidden>
+        <input type="search" id="awIconSearch" data-i18n-ph placeholder="Search icons (run, bill, dog…)" aria-label="Search icons" data-i18n-aria autocomplete="off">
+        <div id="awIconGrid" class="aw-icongrid"></div>
+      </div>
+      <div id="quickPreview" class="quick-preview" hidden></div>
+    </section>
+
+    <section class="aw-step" data-aw="2" hidden>
+      <h3 data-i18n>When?</h3>
+      <p class="task-look-label" data-i18n>Day</p>
+      <div id="awDayChips" class="chip-row"></div>
+      <input type="date" id="fDate" aria-label="Date" data-i18n-aria>
+      <p class="task-look-label" data-i18n>Time</p>
+      <div id="awTimeChips" class="chip-row"></div>
+      <input type="time" id="fTime" aria-label="Time" data-i18n-aria>
+      <p class="task-look-label" data-i18n>How long?</p>
+      <div id="awDurChips" class="chip-row"></div>
+      <input type="number" id="fDur" value="15" min="5" step="5" aria-label="Minutes" data-i18n-aria>
+    </section>
+
+    <section class="aw-step" data-aw="3" hidden>
+      <h3 data-i18n>Remind and repeat</h3>
+      <div class="field"><span class="gf-label" data-i18n>Remind me for this task</span>
+        <div id="fRemChips" class="chip-row" role="group" aria-label="Reminders for this task" data-i18n-aria></div>
+        <span class="hint" data-i18n>Reminders need a time. Each task keeps its own.</span></div>
+      <p class="task-look-label" data-i18n>Repeat</p>
+      <div id="awRepChips" class="chip-row"></div>
+      <select id="fRepeat" hidden>
         <option value="">Does not repeat</option>
         <option value="every day">Every day</option>
         <option value="every weekday">Every weekday</option>
@@ -376,17 +409,30 @@ try {
         <option value="every 2 weeks">Every 2 weeks</option>
         <option value="every month">Every month</option>
         <option value="every year">Every year</option>
-      </select></label>
-      <p class="task-look-label" data-i18n>Category (Auto picks one from the words)</p>
-      <div id="fCatChips" class="chip-row" role="group" aria-label="Category"></div>
+      </select>
       <label class="row check" data-i18n><input type="checkbox" id="fEssential"> This one must not slip</label>
-    </details>
-    <div class="field"><span class="gf-label" data-i18n>Remind me for this task</span>
-      <div id="fRemChips" class="chip-row" role="group" aria-label="Reminders for this task" data-i18n-aria></div>
-      <span class="hint" data-i18n>Reminders need a time. Each task keeps its own.</span></div>
-    <div class="sheet-actions">
-      <button id="addCancel" class="soft-btn" data-i18n>Cancel</button>
-      <button id="addSave" class="primary-btn" data-i18n>Add task</button>
+    </section>
+
+    <section class="aw-step" data-aw="4" hidden>
+      <h3 data-i18n>Make it easy to start</h3>
+      <p class="task-look-label" data-i18n>Small steps (optional)</p>
+      <div id="awSteps" class="aw-steps"></div>
+      <div class="aw-addstep"><input type="text" id="awStepIn" data-i18n-ph placeholder="Add a small step" aria-label="Add a small step" data-i18n-aria autocomplete="off"><button type="button" id="awStepAdd" class="soft-btn" data-i18n>Add</button></div>
+      <button type="button" id="awSuggestSteps" class="soft-btn" data-i18n>Suggest steps for me</button>
+      <textarea id="fNotes" rows="3" data-i18n-ph placeholder="Notes, meeting links or phone numbers" aria-label="Notes" data-i18n-aria></textarea>
+      <input type="url" id="fLink" inputmode="url" placeholder="https://" autocomplete="off" aria-label="Link">
+      <details class="details-fallback"><summary data-i18n>For low days</summary>
+        <label class="field" data-i18n>Smallest version (for low days) <input type="text" id="fMin" data-i18n-ph placeholder="e.g. Just ring and rebook"></label>
+        <label class="field" data-i18n>Biggest version (for full days) <input type="text" id="fFull" data-i18n-ph placeholder="e.g. The whole deep clean"></label>
+      </details>
+      <div id="awSummary" class="quick-preview"></div>
+    </section>
+
+    <p id="awErr" class="gf-err" role="alert"></p>
+    <div class="sheet-actions aw-actions">
+      <button type="button" id="awBack" class="soft-btn" data-i18n>Back</button>
+      <button type="button" id="awNext" class="primary-btn" data-i18n>Next</button>
+      <button type="button" id="addSave" class="primary-btn" data-i18n hidden>Create task</button>
     </div>
   </div>
 </div>
