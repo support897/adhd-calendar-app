@@ -671,23 +671,15 @@ function displayLevelName(k) { var n = state.settings.names[k]; return n === FAC
 
 /* ---------- day list (the adapted plan) ---------- */
 function renderDayList() {
-  var key = selected;
-  var ad = adaptedFor(key);
-  var score = L.dayScore(ad);
-  var d = L.parseKey(key);
-  var level = levelFor(key);
-  var carry = key === L.todayKey() ? carryoverTasks(key) : [];
-  var html = "<h3>" + d.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }) +
-    '<span class="dl-score">' + tr("{done} of {total} done at your {name} pace", { done: score.done, total: score.total, name: displayLevelName(level) }) + "</span></h3>";
-  html += '<div class="dl-progress"><i style="width:' + score.pct + '%"></i></div>';
-  if (carry.length) html += '<div class="carryover-card"><p>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</p><button class="soft-btn" data-act="carry-over">' + tr("Bring them to today") + '</button></div>';
-  if (!ad.visible.length && !ad.done.length && !carry.length) html += '<div class="empty-note dock-note"><span class="dock-skip">' + skipSvg("goodbye") + '</span><span>' + tr("Nothing today. Empty is allowed.") + '</span><button class="soft-btn" data-act="add-first">' + tr("Add one task") + '</button></div>';
-  ad.visible.forEach(function (t, i) { html += rowHtml(t, false, i === 0, i === ad.visible.length - 1); });
-  ad.done.forEach(function (t, i) { html += rowHtml(t, true, i === 0, i === ad.done.length - 1); });
-  if (ad.stretch) html += '<div class="stretch-note">' + tr("One more from tomorrow:") + ' <strong>' + esc(ad.stretch.title) + '</strong><button data-act="stretch" data-id="' + ad.stretch.id + '">' + tr("Bring it to today") + '</button></div>';
-  if (ad.parked.length) html += '<p class="parked-note">' + tr(ad.parked.length === 1 ? "{n} thing parked. Parked, not dropped. Raise the level to bring them back." : "{n} things parked. Parked, not dropped. Raise the level to bring them back.", { n: ad.parked.length }) + "</p>";
-  $("dayList").innerHTML = html;
-  bindRows($("dayList"));
+  /* Build 42: the list under the calendar is gone. Everything lives on the
+     calendar itself; unfinished tasks from earlier days get one small note. */
+  $("dayList").innerHTML = "";
+  var box = $("tsCarry"); if (!box) return;
+  var carry = selected === L.todayKey() ? carryoverTasks(selected) : [];
+  if (!carry.length) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = '<span>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</span><button class="soft-btn" type="button" data-act="carry-over">' + tr("Bring them to today") + '</button>';
+  box.querySelector("button").addEventListener("click", function () { carryOverTasks(selected); });
 }
 function carryoverTasks(key) {
   return state.tasks.filter(function (t) {
@@ -820,6 +812,9 @@ function renderUpNext() {
   // keeps its designed spot at the end of the title line.
   el.innerHTML = '<span class="un-label">' + tr("Up next") + '</span>' + gapTxt + '<strong>' + esc(next.displayTitle || next.title) + "</strong> · " + durationLabel(next) +
     (next.time ? " · " + next.time : "") + (firstStep ? '<span class="un-step">' + esc(firstStep) + "</span>" : "") + '<button data-un="' + next.id + '"' + (firstStep ? ' class="un-start"' : "") + ">" + tr("Start") + '</button>';
+  var fb = document.createElement("button"); fb.type = "button"; fb.className = "un-focus"; fb.textContent = tr("Focus");
+  fb.addEventListener("click", function () { startFocus(next.id, next.instanceDate || today); });
+  el.appendChild(fb);
   el.querySelector("[data-un]").addEventListener("click", function () {
     var t = baseTask(next.id); if (t) { t.status = "doing"; save(); refreshAll(); toast(tr("Started. One step at a time.")); }
   });
@@ -936,7 +931,7 @@ function fcEvents() {
   return instancesInRange(a, b).map(function (t) {
     var ao = adaptOf(t.instanceDate), shown = ao.map[t.id], resting = t.status !== "done" && !shown;
     if (shown && shown.displayTitle) t = Object.assign({}, t, { title: shown.displayTitle, durationMin: shown.autoVersion ? shown.durationMin : (shown.shrunk ? Math.min(t.durationMin, 5) : t.durationMin) });
-    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
+    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { emoji: t.icon || "", plainTitle: t.title, taskId: t.id, instanceDate: t.instanceDate } };
     if (t.time) {
       var startMin = L.toMin(t.time);
       ev.start = t.instanceDate + "T" + t.time + ":00";
@@ -951,12 +946,38 @@ function fcEvents() {
 function initCalendar() {
   calendar = new FullCalendar.Calendar($("calendar"), {
     initialView: "timeGridDay",
+    initialDate: L.addDays(selected, -1),
     locale: PACE_LANG === "es" ? "es" : "en",
     height: "auto",
     firstDay: 1,
     headerToolbar: false,
     editable: true,
     dayMaxEvents: 3,
+    allDayText: tr("To do"),
+    slotDuration: "00:30:00",
+    snapDuration: "00:15:00",
+    slotLabelInterval: "01:00",
+    slotLabelFormat: { hour: "numeric", minute: "2-digit", omitZeroMinute: true, meridiem: "short" },
+    eventDragMinDistance: 5,
+    dragRevertDuration: 0,
+    views: {
+      timeGridDay: {
+        /* Build 42: the day shows yesterday, today and tomorrow side by side,
+           so a task can be dragged to the next day (or back) in one move. */
+        duration: { days: 3 },
+        dayHeaderFormat: { weekday: "short", day: "numeric" }
+      }
+    },
+    dayHeaderDidMount: function (info) {
+      info.el.style.cursor = "pointer";
+      info.el.addEventListener("click", function () { var k = L.toKey(info.date); if (k !== selected) selectDate(k, true); });
+    },
+    eventDragStart: function () { document.body.classList.add("is-dragging-task"); $("fab").classList.add("is-trash"); },
+    eventDragStop: function (info) {
+      document.body.classList.remove("is-dragging-task"); $("fab").classList.remove("is-trash");
+      var ep = info.event.extendedProps || {};
+      dropOutside(ep.taskId, ep.instanceDate, info.jsEvent);
+    },
     businessHours: dayHours(),
     slotMinTime: "06:00:00",
     slotMaxTime: "22:00:00",
@@ -968,8 +989,8 @@ function initCalendar() {
       info.el.classList.add("ev-calm");
       info.el.style.setProperty("--ev-c", c);
       if (info.el.classList.contains("fc-daygrid-event") || info.el.classList.contains("fc-timegrid-event")) {
-        info.el.style.background = "color-mix(in srgb, " + c + " 15%, var(--card))";
-        info.el.style.borderLeft = "3px solid " + c;
+        info.el.style.background = "color-mix(in srgb, " + c + " 24%, var(--card))";
+        info.el.style.borderLeft = "0";
         info.el.style.color = "var(--ink)";
       }
     },
@@ -982,16 +1003,27 @@ function initCalendar() {
       if (v === "dayGridMonth") return;
       var ep = arg.event.extendedProps || {}, isDone = (arg.event.classNames || []).indexOf("ev-done") >= 0 || (arg.el && arg.el.classList.contains("ev-done"));
       var wrap = document.createElement("div"); wrap.className = "ev-row";
-      var chk = document.createElement("button"); chk.type = "button"; chk.className = "ev-check" + (isDone ? " is-on" : "");
-      chk.setAttribute("aria-label", tr("Mark done")); chk.setAttribute("aria-pressed", String(!!isDone)); chk.innerHTML = isDone ? icon("i-check") : "";
+      var chk = document.createElement("button"); chk.type = "button"; chk.className = "ev-ico" + (isDone ? " is-on" : "");
+      chk.setAttribute("aria-label", tr("Mark done")); chk.setAttribute("aria-pressed", String(!!isDone));
+      chk.innerHTML = '<span class="ev-emo">' + esc(ep.emoji || "") + '</span><span class="ev-tick">' + icon("i-check") + '</span>';
+      if (!ep.emoji) chk.classList.add("no-emo");
       ["mousedown", "touchstart", "pointerdown"].forEach(function (n) { chk.addEventListener(n, function (e) { e.stopPropagation(); }); });
       chk.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); toggleDone(ep.taskId, ep.instanceDate); });
       var body = document.createElement("span"); body.className = "ev-body";
-      var t = document.createElement("span"); t.className = "ev-t"; t.textContent = arg.event.title;
-      var emo = taskEmoji(arg.event.title); if (emo) wrap.setAttribute("data-emo", emo);
+      var t = document.createElement("span"); t.className = "ev-t"; t.textContent = ep.plainTitle || arg.event.title;
       body.appendChild(t);
-      var bt = baseTask(ep.taskId);
-      if (bt && v !== "timeGridWeek") { var m = document.createElement("span"); m.className = "ev-m"; m.textContent = [bt.time, durationLabel(bt)].filter(Boolean).join(" \u00b7 "); body.appendChild(m); }
+      if (v !== "timeGridWeek") {
+        var m = document.createElement("span"); m.className = "ev-m";
+        var st = arg.event.start, en = arg.event.end;
+        if (arg.event.allDay || !st) m.textContent = tr("To do");
+        else {
+          var bt = baseTask(ep.taskId), dur = bt ? bt.durationMin : 15;
+          var s1 = L.pad(st.getHours()) + ":" + L.pad(st.getMinutes());
+          var e1 = en ? L.pad(en.getHours()) + ":" + L.pad(en.getMinutes()) : L.toHHMM(L.toMin(s1) + dur);
+          m.textContent = clockLabel(s1) + "\u2013" + clockLabel(e1) + " \u00b7 " + tr("{n} min", { n: dur });
+        }
+        body.appendChild(m);
+      }
       wrap.appendChild(chk); wrap.appendChild(body);
       return { domNodes: [wrap] };
     },
@@ -1010,12 +1042,15 @@ function initCalendar() {
       var fromKey = info.event.extendedProps.instanceDate;
       var newStart = info.event.start;
       var newKey = L.toKey(newStart);
+      var toTodo = !!info.event.allDay;
       if (t.repeat || fromKey !== t.date) {
         var copy = moveInstance(t, fromKey, newKey);
-        if (info.event.allDay === false && newStart.getHours() !== undefined) copy.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
+        if (toTodo) copy.time = null;
+        else copy.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
       } else {
         t.date = newKey;
-        if (!info.event.allDay) t.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
+        if (toTodo) t.time = null;
+        else t.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
       }
       save(); refreshAll(); toast(tr("Moved. The day re-shaped itself."));
     },
@@ -1024,7 +1059,7 @@ function initCalendar() {
       var mins = Math.max(5, Math.round((info.event.end - info.event.start) / 60000));
       t.durationMin = mins; save(); refreshAll();
     },
-    datesSet: function () { renderTitle(); }
+    datesSet: function () { renderTitle(); markSelectedCols(); }
   });
   calendar.render();
   var style = document.createElement("style");
@@ -1032,7 +1067,7 @@ function initCalendar() {
   document.head.appendChild(style);
 }
 function renderTitle() {
-  var d = calendar ? calendar.getDate() : L.parseKey(selected);
+  var d = L.parseKey(selected);
   $("monthTitle").textContent = d.toLocaleDateString(LOCALE, { month: "long", year: "numeric" });
 }
 function refreshCalendar() {
@@ -1040,10 +1075,12 @@ function refreshCalendar() {
   calendar.removeAllEvents();
   fcEvents().forEach(function (e) { calendar.addEvent(e); });
 }
+/* The day view is three columns wide (yesterday, today, tomorrow): the picked day sits in the middle. */
+function calGoto(key) { calendar.gotoDate(calendar.view.type === "timeGridDay" ? L.addDays(key, -1) : key); }
 function selectDate(key, jumpCalendar) {
   selected = key;
-  if (calendar && jumpCalendar) calendar.gotoDate(key);
-  renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderYear();
+  if (calendar && jumpCalendar) calGoto(key);
+  renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderYear(); renderTray(); markSelectedCols();
 }
 $("goalBtn").addEventListener("click", function () {
   var side = document.querySelector('.side-item[data-panel="goals"]'); if (side) side.click();
@@ -1056,9 +1093,10 @@ document.querySelectorAll(".segmented button").forEach(function (b) {
     b.classList.add("is-active");
     var v = b.getAttribute("data-view");
     currentView = v;
+    setTimeout(renderTray, 0);
     setBottomTab("calendar");
     if (v === "year") { $("calendar").hidden = true; $("yearView").hidden = false; renderYear(); }
-    else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, selected); }
+    else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, v === "timeGridDay" ? L.addDays(selected, -1) : selected); }
   });
 });
 function renderYear() {
@@ -1431,6 +1469,7 @@ function openTask(id, instanceDate) {
   $("dTime").value = t.time || "";
   $("dDur").value = t.durationMin;
   $("dEssential").checked = !!t.essential;
+  $("dFocusAuto").checked = t.focus === true || (t.focus !== false && !!fcCfg().auto);
   if (t.originalText) { $("dOriginalWrap").hidden = false; $("dOriginal").textContent = t.originalText; }
   else $("dOriginalWrap").hidden = true;
   $("taskSheet").hidden = false;
@@ -2311,6 +2350,7 @@ function bindSettings() {
   $("nDone").checked = s.notif.done; $("nDoneTime").value = s.notif.doneTime;
   renderLeadChips();
   renderNotifStatus();
+  renderFocusSettings();
 }
 function readSettings() {
   var s = state.settings;
@@ -3619,7 +3659,7 @@ function bindAccounts() {
 }
 
 /* ---------- boot ---------- */
-function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
+function refreshAll() { renderTray(); renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
 applyI18n();
 initCalendar(); setTimeout(paceScrollToNow, 1200);
 applyAppearance();
@@ -3634,7 +3674,249 @@ bindAccounts();
 if (!ACTIVE_UID && window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(null, null, null); } catch (e) {} }
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
 /* Bridge for goals-ui.js (the Goals screen and the Habits week view live there). */
-window.PaceCtx = { get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
+
+/* ---------- build 42: new-task button, to-do bar, drag anywhere, focus ---------- */
+function markSelectedCols() {
+  try {
+    document.querySelectorAll("#calendar [data-date]").forEach(function (el) {
+      el.classList.toggle("pc-sel", (el.getAttribute("data-date") || "").slice(0, 10) === selected);
+    });
+  } catch (e) {}
+}
+$("fab").addEventListener("click", function () { if ($("fab").classList.contains("is-trash")) return; $("addBtn").click(); });
+
+function submitTsTodo() {
+  var v = $("tsInput").value.trim();
+  if (!v) { toast(tr("Type the thing first, then tap +.")); return; }
+  var qs = splitLink(v), item = L.parseItem(qs.text, selected) || {};
+  var title = (item.title || qs.text).slice(0, 160), an = L.analyzeTask(title, state.goals || [], TASK_ICONS), c = an.category;
+  var task = { id: uid(), title: title, date: item.date || selected, time: null, durationMin: 15, priority: item.priority || 0, repeat: null,
+    category: c.id, color: c.color, icon: an.icon || "", essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "",
+    source: "manual", originalText: v, skipDates: [], doneDates: [], remind: [] };
+  if (an.goal) task.goalId = an.goal.id;
+  state.tasks.push(task); save(); markActivated("event");
+  $("tsInput").value = "";
+  if (task.date !== selected) selectDate(task.date, true);
+  refreshAll();
+  toast(tr("On your to-do for the day. Drag it onto a time whenever you like."));
+}
+$("tsForm").addEventListener("submit", function (e) { e.preventDefault(); submitTsTodo(); });
+
+function deleteInstance(id, key) {
+  var t = baseTask(id); if (!t) return;
+  if (t.repeat) {
+    t.skipDates = t.skipDates || [];
+    if (t.skipDates.indexOf(key) === -1) t.skipDates.push(key);
+    save(); refreshAll();
+    toast(tr("Removed for this day. The rest of the series stays."), function () {
+      t.skipDates = t.skipDates.filter(function (d) { return d !== key; }); save(); refreshAll(); toast(tr("Back again."));
+    });
+  } else {
+    var idx = state.tasks.indexOf(t);
+    state.tasks = state.tasks.filter(function (x) { return x.id !== id; });
+    save(); refreshAll();
+    toast(tr("Deleted."), function () { restoreAt(state.tasks, t, idx); save(); refreshAll(); toast(tr("Back again.")); });
+  }
+}
+/* One hit test for every drop that happens outside the calendar grid:
+   the day strip (move to that day), the year grid (same), the new-task button (delete). */
+function dropOutside(id, fromKey, ev, fromTray) {
+  if (!id || !ev) return false;
+  var p = (ev.changedTouches && ev.changedTouches[0]) || ev;
+  /* the dragged card itself sits under the finger, so look through everything stacked there */
+  var stack = (document.elementsFromPoint ? document.elementsFromPoint(p.clientX, p.clientY) : [document.elementFromPoint(p.clientX, p.clientY)]).filter(function (n) { return n && n.closest; });
+  var onFab = stack.some(function (n) { return n.closest("#fab"); });
+  if (onFab) { deleteInstance(id, fromKey); return true; }
+  var SEL = fromTray ? "#ticker [data-date], [data-ydate], #calendar .fc-daygrid-day[data-date]" : "#ticker [data-date], [data-ydate]";
+  var hit = stack.filter(function (n) { return n.closest(SEL); })[0];
+  var cell = hit && hit.closest(SEL);
+  if (cell) {
+    var to = cell.getAttribute("data-date") || cell.getAttribute("data-ydate"), t = baseTask(id);
+    if (!t || !to || to === fromKey) return false;
+    moveInstance(t, fromKey, to);
+    save(); refreshAll(); toast(tr("Moved. The day re-shaped itself."));
+    return true;
+  }
+  return false;
+}
+/* The tray (Year and Agenda views): hold a task, drag it onto a day. */
+function renderTray() {
+  var box = $("dragTray"); if (!box) return;
+  var on = currentView === "year" || currentView === "listWeek" || currentView === "dayGridMonth";
+  box.hidden = !on; if (!on) { box.innerHTML = ""; return; }
+  var items = tasksOn(selected);
+  var head = '<p class="tray-hint">' + tr("Hold a task and drag it onto a day. Drop it on the + to delete.") + '</p>';
+  if (!items.length) { box.innerHTML = head + '<p class="tray-empty">' + tr("Nothing on this day.") + '</p>'; return; }
+  box.innerHTML = head + '<div class="tray-row">' + items.map(function (t) {
+    return '<div class="tray-chip" data-id="' + esc(t.id) + '" data-date="' + esc(t.instanceDate) + '" style="--c:' + esc(t.color) + '"><span class="tc-emo">' + esc(t.icon || "") + '</span><span class="tc-t">' + esc(t.title) + '</span></div>';
+  }).join("") + '</div>';
+  box.querySelectorAll(".tray-chip").forEach(function (chip) {
+    chip.addEventListener("pointerdown", function (e) {
+      var sx = e.clientX, sy = e.clientY, ghost = null, started = false, timer = null, touch = e.pointerType === "touch";
+      var id = chip.getAttribute("data-id"), key = chip.getAttribute("data-date");
+      function begin() {
+        started = true; ghost = chip.cloneNode(true); ghost.classList.add("tray-ghost");
+        document.body.appendChild(ghost); document.body.classList.add("is-dragging-task"); $("fab").classList.add("is-trash");
+        try { chip.setPointerCapture(e.pointerId); } catch (x) {}
+      }
+      function mv(ev) {
+        if (!started) {
+          if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 6) { if (touch) { cleanup(); return; } begin(); } else return;
+        }
+        ev.preventDefault();
+        ghost.style.left = ev.clientX + "px"; ghost.style.top = ev.clientY + "px";
+      }
+      function cleanup() { clearTimeout(timer); chip.removeEventListener("pointermove", mv); chip.removeEventListener("pointerup", up); chip.removeEventListener("pointercancel", up); }
+      function up(ev) {
+        cleanup();
+        if (ghost) { ghost.remove(); document.body.classList.remove("is-dragging-task"); $("fab").classList.remove("is-trash"); }
+        if (started) { ghost = null; if (!dropOutside(id, key, ev, true)) toast(tr("Drop it on a day, or on the + to delete.")); }
+        else if (ev.type === "pointerup") openTask(id, key);
+      }
+      chip.addEventListener("pointermove", mv); chip.addEventListener("pointerup", up); chip.addEventListener("pointercancel", up);
+      if (touch) timer = setTimeout(function () { begin(); if (ghost) { ghost.style.left = sx + "px"; ghost.style.top = sy + "px"; } }, 250);
+    });
+  });
+}
+
+/* ---------- focus: one task, one calm timer ---------- */
+var FOCUS = null, FOCUS_ASKED = {}, FOCUS_TICK = null;
+function focusApps() { return ["Instagram", "TikTok", "YouTube", "Facebook", "X", "Snapchat", "Reddit", "WhatsApp", "Netflix", "Games"]; }
+function fcCfg() { var s = state.settings; s.focus = Object.assign({ auto: false, block: false, apps: [] }, s.focus || {}); return s.focus; }
+function fcClock(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + L.pad(s % 60); }
+function fcLocal() { try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null; } catch (e) { return null; } }
+function startFocus(id, dateKey) {
+  var t = baseTask(id); if (!t) return;
+  var key = dateKey || t.date, inst = instanceOf(t, key), mins = Math.max(5, +inst.durationMin || 25), ms = mins * 60000;
+  if (FOCUS_TICK) clearInterval(FOCUS_TICK);
+  FOCUS = { id: id, date: key, total: ms, endsAt: Date.now() + ms, left: ms, paused: false, over: false, hiddenAt: 0, awayMs: 0 };
+  $("focusAsk").hidden = true;
+  $("fsTitle").textContent = inst.title;
+  $("fsIcon").textContent = inst.icon || "\u23f1";
+  $("fsIcon").style.background = inst.color || "#7A8699";
+  $("focusScreen").style.setProperty("--fs-c", inst.color || "#7A8699");
+  $("fsAway").hidden = true;
+  $("fsPause").textContent = tr("Pause");
+  $("fsDone").textContent = tr("Done");
+  $("focusScreen").hidden = false;
+  document.body.classList.add("focus-on");
+  fcSteps(); fcPaint();
+  FOCUS_TICK = setInterval(fcPaint, 500);
+  if (t.status !== "done" && t.status !== "doing" && !t.repeat) { t.status = "doing"; save(); }
+}
+function fcSteps() {
+  var t = FOCUS && baseTask(FOCUS.id), box = $("fsSteps"); box.innerHTML = "";
+  if (!t || !(t.steps || []).length) return;
+  t.steps.forEach(function (s, i) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "fs-step" + (s.done ? " is-on" : "");
+    b.innerHTML = '<span class="fs-box">' + (s.done ? icon("i-check") : "") + '</span><span></span>';
+    b.lastChild.textContent = s.text;
+    b.addEventListener("click", function () { s.done = !s.done; save(); fcSteps(); });
+    box.appendChild(b);
+  });
+}
+function fcPaint() {
+  if (!FOCUS) return;
+  var left = FOCUS.paused ? FOCUS.left : FOCUS.endsAt - Date.now();
+  if (left <= 0 && !FOCUS.over) {
+    FOCUS.over = true; left = 0;
+    $("fsSub").textContent = tr("Time is up. Mark it done, or take five more.");
+    $("fsPause").hidden = true;
+    toast(tr("Focus time is up."));
+    try { notify(tr("Focus time is up"), $("fsTitle").textContent, "focus-" + FOCUS.id + "-" + Date.now(), { taskId: FOCUS.id }); } catch (e) {}
+  }
+  $("fsTime").textContent = fcClock(left);
+  var C = 2 * Math.PI * 54, fr = FOCUS.total ? Math.max(0, Math.min(1, left / FOCUS.total)) : 0;
+  var fg = $("fsFg"); fg.style.strokeDasharray = C.toFixed(1); fg.style.strokeDashoffset = (C * (1 - fr)).toFixed(1);
+  if (!FOCUS.over) $("fsSub").textContent = FOCUS.paused ? tr("Paused. Breathe. Come back when you are ready.") : tr("One thing. Nothing else counts right now.");
+}
+function endFocus() {
+  if (FOCUS_TICK) clearInterval(FOCUS_TICK); FOCUS_TICK = null; FOCUS = null;
+  $("focusScreen").hidden = true; document.body.classList.remove("focus-on");
+  var p = fcLocal(); if (p) { try { p.cancel({ notifications: [{ id: 424242 }] }); } catch (e) {} }
+}
+$("fsClose").addEventListener("click", endFocus);
+$("fsPause").addEventListener("click", function () {
+  if (!FOCUS || FOCUS.over) return;
+  if (FOCUS.paused) { FOCUS.paused = false; FOCUS.endsAt = Date.now() + FOCUS.left; $("fsPause").textContent = tr("Pause"); }
+  else { FOCUS.left = Math.max(0, FOCUS.endsAt - Date.now()); FOCUS.paused = true; $("fsPause").textContent = tr("Resume"); }
+  fcPaint();
+});
+$("fsMore").addEventListener("click", function () {
+  if (!FOCUS) return;
+  var add = 5 * 60000; FOCUS.total += add;
+  if (FOCUS.over) { FOCUS.over = false; FOCUS.paused = false; FOCUS.endsAt = Date.now() + add; $("fsPause").hidden = false; $("fsPause").textContent = tr("Pause"); }
+  else if (FOCUS.paused) FOCUS.left += add; else FOCUS.endsAt += add;
+  fcPaint();
+});
+$("fsDone").addEventListener("click", function () {
+  if (!FOCUS) return;
+  var t = baseTask(FOCUS.id), key = FOCUS.date;
+  var isDone = t && (t.repeat ? (t.doneDates || []).indexOf(key) !== -1 : t.status === "done");
+  if (t && !isDone) toggleDone(FOCUS.id, key);
+  endFocus();
+});
+$("dFocus").addEventListener("click", function () {
+  var id = currentTaskId, key = currentInstanceDate; persistSheetFields(); $("taskSheet").hidden = true; refreshAll(); startFocus(id, key);
+});
+$("dFocusAuto").addEventListener("change", function () { var t = baseTask(currentTaskId); if (t) { t.focus = $("dFocusAuto").checked; save(); } });
+document.addEventListener("visibilitychange", function () {
+  if (!FOCUS) return;
+  var cfg = fcCfg(), p = fcLocal();
+  if (document.hidden) {
+    FOCUS.hiddenAt = Date.now();
+    if (cfg.block && p && !FOCUS.paused && !FOCUS.over) {
+      try {
+        p.schedule({ notifications: [{ id: 424242, title: tr("Back to {task}", { task: $("fsTitle").textContent }), body: tr("Your focus is still running."),
+          schedule: { at: new Date(Date.now() + 20000) } }] });
+      } catch (e) {}
+    }
+  } else {
+    if (p) { try { p.cancel({ notifications: [{ id: 424242 }] }); } catch (e) {} }
+    if (FOCUS.hiddenAt) {
+      var away = Date.now() - FOCUS.hiddenAt; FOCUS.hiddenAt = 0; FOCUS.awayMs += away;
+      if (away > 15000) { $("fsAway").hidden = false; $("fsAway").textContent = tr("Welcome back. You were away {n} min. No judgement.", { n: Math.max(1, Math.round(away / 60000)) }); }
+    }
+  }
+});
+/* Settings: focus options */
+function renderFocusSettings() {
+  var cfg = fcCfg();
+  $("fcAuto").checked = !!cfg.auto; $("fcBlock").checked = !!cfg.block; $("fcAppsWrap").hidden = !cfg.block;
+  var box = $("fcApps"); box.innerHTML = "";
+  focusApps().forEach(function (name) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "chip" + (cfg.apps.indexOf(name) !== -1 ? " is-on" : ""); b.textContent = name;
+    b.setAttribute("aria-pressed", String(cfg.apps.indexOf(name) !== -1));
+    b.addEventListener("click", function () {
+      var i = cfg.apps.indexOf(name); if (i === -1) cfg.apps.push(name); else cfg.apps.splice(i, 1);
+      save(); renderFocusSettings();
+    });
+    box.appendChild(b);
+  });
+}
+$("fcAuto").addEventListener("change", function () { fcCfg().auto = $("fcAuto").checked; save(); });
+$("fcBlock").addEventListener("change", function () { fcCfg().block = $("fcBlock").checked; save(); renderFocusSettings(); });
+/* Offer focus when a timed task starts (only if the user opted in: globally or on that task). */
+function focusWatch() {
+  if (FOCUS || !state || !state.tasks) return;
+  var now = new Date(), key = L.todayKey(), hhmm = L.pad(now.getHours()) + ":" + L.pad(now.getMinutes()), cfg = fcCfg();
+  tasksOn(key).forEach(function (t) {
+    if (!t.time || t.status === "done" || (t.doneDates || []).indexOf(key) !== -1) return;
+    var base = baseTask(t.id) || t, want = base.focus === true || (base.focus !== false && cfg.auto);
+    var ak = t.id + "@" + key;
+    if (!want || FOCUS_ASKED[ak]) return;
+    var diff = L.toMin(hhmm) - L.toMin(t.time);
+    if (diff < 0 || diff > 1) return;
+    FOCUS_ASKED[ak] = 1;
+    $("faText").textContent = tr("Time for {task}. Start a focus?", { task: t.title });
+    $("focusAsk").hidden = false; $("focusAsk").setAttribute("data-id", t.id); $("focusAsk").setAttribute("data-date", key);
+  });
+}
+$("faStart").addEventListener("click", function () { startFocus($("focusAsk").getAttribute("data-id"), $("focusAsk").getAttribute("data-date")); });
+$("faNo").addEventListener("click", function () { $("focusAsk").hidden = true; });
+setInterval(focusWatch, 15000);
+
+window.PaceCtx = { startFocus: startFocus, focusWatch: focusWatch, get focus() { return FOCUS; }, dropOutside: dropOutside, renderFocusSettings: renderFocusSettings, deleteInstance: deleteInstance,  get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
 })();
 
 

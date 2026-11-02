@@ -141,12 +141,20 @@ try {
 
       <div id="upNext" class="up-next" hidden></div>
 
+      <form id="tsForm" class="ts-bar" autocomplete="off">
+        <span class="ts-label" data-i18n>To do</span>
+        <input id="tsInput" type="text" placeholder="Add a to-do. No time needed" data-i18n-ph aria-label="Add a to-do with no time" data-i18n-aria maxlength="160">
+        <button type="submit" id="tsAdd" class="ts-add" aria-label="Add to-do" data-i18n-aria><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+      </form>
+      <div id="tsCarry" class="ts-carry" hidden></div>
+      <div id="dragTray" class="drag-tray" hidden></div>
+
       <div id="calendarWrap">
         <div id="calendar"></div>
         <div id="yearView" hidden></div>
       </div>
 
-      <div id="dayList" class="day-list"></div>
+      <div id="dayList" class="day-list" hidden></div>
     </section>
 
     <!-- CAPTURE PANEL -->
@@ -286,6 +294,16 @@ try {
         <label class="row" data-i18n>Ok day is called <input type="text" id="nameSteady" value="Ok" maxlength="14"></label>
         <label class="row" data-i18n>Great day is called <input type="text" id="nameFull" value="Great" maxlength="14"></label>
       </div>
+      <div class="settings-group" id="setFocus">
+        <h3 data-i18n>Focus</h3>
+        <p class="hint" data-i18n>A calm timer for one task. Optional, always.</p>
+        <label class="row check" data-i18n><input type="checkbox" id="fcAuto"> Offer focus at the start of each timed task</label>
+        <label class="row check" data-i18n><input type="checkbox" id="fcBlock"> Keep me off these apps while I focus</label>
+        <div id="fcAppsWrap" hidden>
+          <div id="fcApps" class="chip-row" role="group" aria-label="Apps to keep away from" data-i18n-aria></div>
+          <p class="hint" id="fcNote" data-i18n>Your picks are saved. Pace nudges you back if you leave during a focus. Full blocking needs Apple's Screen Time permission, which Pace will ask for when Apple approves it.</p>
+        </div>
+      </div>
       <div class="settings-group" id="setNotif">
         <h3 data-i18n>Notifications</h3>
         <p class="hint" id="notifStatus" data-i18n>Notifications are off.</p>
@@ -341,6 +359,20 @@ try {
 </div>
 
 <!-- QUICK ADD -->
+<button id="fab" class="fab" type="button" aria-label="New task" data-i18n-aria title="New task"><svg class="ico fab-plus" aria-hidden="true"><use href="#i-plus"/></svg><svg class="ico fab-bin" aria-hidden="true"><use href="#i-trash"/></svg></button>
+
+<div id="focusAsk" class="focus-ask" hidden role="alert"><span id="faText"></span><button id="faStart" class="primary-btn" type="button" data-i18n>Start focus</button><button id="faNo" class="soft-btn" type="button" data-i18n>Not now</button></div>
+<div id="focusScreen" class="focus-screen" hidden role="dialog" aria-modal="true" aria-label="Focus" data-i18n-aria>
+  <button id="fsClose" class="fs-x" type="button" aria-label="Close focus" data-i18n-aria><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+  <div class="fs-icon" id="fsIcon" aria-hidden="true"></div>
+  <h2 id="fsTitle"></h2>
+  <div class="fs-ring" aria-live="off"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="fs-bg" cx="60" cy="60" r="54"/><circle class="fs-fg" id="fsFg" cx="60" cy="60" r="54"/></svg><div id="fsTime" role="timer">25:00</div></div>
+  <p id="fsSub" class="fs-sub" role="status"></p>
+  <div id="fsSteps" class="fs-steps"></div>
+  <div class="fs-actions"><button id="fsPause" class="soft-btn" type="button" data-i18n>Pause</button><button id="fsMore" class="soft-btn" type="button" data-i18n>5 more minutes</button><button id="fsDone" class="primary-btn" type="button" data-i18n>Done</button></div>
+  <p id="fsAway" class="hint" hidden></p>
+</div>
+
 <div id="addSheet" class="sheet" hidden>
   <div class="sheet-card add-wiz" role="dialog" aria-modal="true" aria-label="Add a task" data-i18n-aria>
     <div id="awHead" class="aw-head">
@@ -446,6 +478,7 @@ try {
     <button id="dBreak" class="soft-btn" data-i18n>Break this into small steps</button>
     <div class="sheet-actions wrap task-main-actions">
       <button id="dDone" class="primary-btn" data-i18n><svg class="ico"><use href="#i-check"/></svg>Done</button>
+      <button id="dFocus" class="soft-btn" data-i18n><svg class="ico"><use href="#i-play"/></svg>Focus</button>
       <button id="dDoing" class="soft-btn" data-i18n><svg class="ico"><use href="#i-play"/></svg>Doing</button>
       <button id="dNotToday" class="soft-btn" data-i18n><svg class="ico"><use href="#i-h-moon"/></svg>Not today</button>
     </div>
@@ -455,7 +488,8 @@ try {
       <label class="field" data-i18n>Time <input type="time" id="dTime"></label>
       <label class="field" data-i18n>Minutes <input type="number" id="dDur" min="5" step="5"></label>
     </div>
-      <label class="row check" data-i18n><input type="checkbox" id="dEssential"> This one must not slip</label></div>
+      <label class="row check" data-i18n><input type="checkbox" id="dEssential"> This one must not slip</label>
+      <label class="row check" data-i18n><input type="checkbox" id="dFocusAuto"> Offer focus when this starts</label></div>
     </details>
     <details class="task-more" id="dNotesWrap"><summary data-i18n>Notes and audio</summary>
       <div class="task-more-body"><section class="task-note-section" aria-labelledby="dNotesHeading">
