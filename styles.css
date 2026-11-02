@@ -912,3 +912,40 @@ details[open] > :not(summary){animation:paceSlideDown .26s ease}
 .goal-today-row.is-done .gt-text { text-decoration: line-through; opacity: .6; }
 .gf-templates { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
 .gf-tpl { min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--hair); background: var(--card); font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; }
+
+/* add-a-task wizard (build 41): coloured header like Structured, four calm steps */
+.add-wiz { padding: 0 0 calc(18px + var(--sab)); }
+.add-wiz > section, .add-wiz > .aw-actions, .add-wiz > #awErr, .add-wiz > .aw-dots { margin-left: 22px; margin-right: 22px; }
+.aw-head { --aw-c: #7A8699; position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 22px 20px; background: color-mix(in srgb, var(--aw-c) 78%, #fff); color: #fff; border-radius: 22px 22px 0 0; min-height: 112px; transition: background .25s; }
+.aw-x { position: absolute; top: 10px; left: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.28); color: #fff; font-size: 26px; line-height: 1; cursor: pointer; }
+.aw-icon { flex: 0 0 58px; width: 58px; height: 84px; margin-top: 34px; border-radius: 30px; border: 3px solid #fff; background: rgba(0,0,0,.28); font-size: 28px; cursor: pointer; }
+.aw-headtxt { display: flex; flex-direction: column; margin-top: 34px; min-width: 0; }
+.aw-headtxt strong { font-size: 22px; line-height: 1.2; overflow-wrap: anywhere; }
+.aw-when { font-size: 13px; opacity: .9; }
+.aw-dots { display: flex; gap: 6px; margin-top: 14px; margin-bottom: 4px; }
+.aw-dots i { flex: 1; height: 4px; border-radius: 4px; background: var(--hair); }
+.aw-dots i.is-on { background: var(--accent); }
+.aw-step h3 { margin: 14px 0 10px; }
+.aw-step[hidden] { display: none; }
+.aw-smart { margin-top: 14px; padding: 12px; border-radius: 14px; background: var(--ground-2); }
+.aw-smart-h { margin: 0 0 8px; font-size: 13px; color: var(--ink-2); }
+.aw-tag { --tag-c: #7A8699; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--tag-c); background: color-mix(in srgb, var(--tag-c) 14%, var(--card)); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.aw-tag-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--tag-c); }
+.aw-tag-edit { font-weight: 500; font-size: 13px; opacity: .7; margin-left: 4px; }
+.aw-why { margin: 8px 2px 0; font-size: 13px; color: var(--ink-2); }
+.aw-goalchip { margin-top: 8px; min-height: 40px; padding: 6px 12px; border-radius: 12px; border: 1px dashed var(--accent); background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.aw-goalhint { margin-top: 10px; font-size: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.aw-pick { margin-top: 12px; }
+.aw-icongrid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; max-height: 190px; overflow-y: auto; }
+#awIconSearch, .add-wiz input[type=date], .add-wiz input[type=time], .add-wiz input[type=number], #fNotes, #fLink, #awStepIn { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--hair); background: var(--card); color: var(--ink); font: inherit; margin-top: 6px; }
+.aw-step-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 4px 6px 12px; border-radius: 10px; background: var(--ground-2); margin-bottom: 6px; }
+.aw-step-x { width: 40px; height: 40px; border: 0; background: transparent; font-size: 22px; color: var(--ink-2); cursor: pointer; }
+.aw-addstep { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+#awSummary { margin-top: 12px; }
+.aw-actions { justify-content: space-between; }
+.aw-actions [hidden] { display: none !important; }
+.aw-actions .primary-btn { margin-left: auto; }
+.add-wiz .aw-actions { position: sticky; bottom: 0; background: var(--card); padding: 12px 0 calc(6px + var(--sab)); margin-top: 10px; z-index: 2; border-top: 1px solid var(--hair); }
+.aw-head { min-height: 96px; padding-bottom: 14px; }
+.aw-icon { height: 72px; margin-top: 30px; }
+.aw-headtxt { margin-top: 30px; }

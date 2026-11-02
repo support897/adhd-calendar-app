@@ -260,7 +260,16 @@ var TASK_ICONS = [
   { icon: "🍀", name: "Luck / Trébol", keywords: "luck clover suerte trebol" },
   { icon: "🪁", name: "Kite / Cometa", keywords: "kite play cometa jugar" },
   { icon: "🧘‍♀️", name: "Meditate / Meditar", keywords: "meditate calm meditar" },
-  { icon: "🥳", name: "Treat / Premio", keywords: "treat reward premio recompensa" }
+  { icon: "🥳", name: "Treat / Premio", keywords: "treat reward premio recompensa" },
+  { icon: "🖥️", name: "Computer", keywords: "computer desk laptop computadora" },
+  { icon: "🧒", name: "Kids", keywords: "kids child school run nino" },
+  { icon: "🍻", name: "Drinks", keywords: "drinks pub bar beer" },
+  { icon: "👯", name: "Friends", keywords: "friends catch up amigos" },
+  { icon: "🐶", name: "Dog", keywords: "dog puppy walk perro" },
+  { icon: "🐱", name: "Cat", keywords: "cat kitten gato" },
+  { icon: "🏨", name: "Hotel", keywords: "hotel stay airbnb hospedaje" },
+  { icon: "🛂", name: "Passport / Visa", keywords: "passport visa id pasaporte" },
+  { icon: "📄", name: "Paperwork", keywords: "paperwork forms documents papeleo" },
 ];
 var TASK_COLORS = [
   { hex: "#7A8699", name: "Slate / Pizarra" }, { hex: "#C9920E", name: "Amber / Ámbar" },
@@ -990,9 +999,9 @@ function initCalendar() {
       selectDate(info.dateStr.slice(0, 10), false);
       if (!info.allDay && info.dateStr.length > 10 && /timeGrid/.test(info.view.type)) {
         $("addBtn").click();
-        $("fDate").value = info.dateStr.slice(0, 10);
-        $("fTime").value = info.dateStr.slice(11, 16);
-        var dt = document.querySelector("#addSheet details"); if (dt) dt.open = true; var ft = $("fTitle"); if (ft) ft.focus();
+        $("fDate").value = info.dateStr.slice(0, 10); AW.touched.date = true;
+        $("fTime").value = info.dateStr.slice(11, 16); AW.touched.time = true;
+        awRender();
       }
     },
     eventClick: function (info) { openTask(info.event.extendedProps.taskId, info.event.extendedProps.instanceDate); },
@@ -1142,13 +1151,24 @@ document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
   });
 });
 
-/* ---------- quick add ---------- */
-var addCat = null;
-function pickAddCat(c) { addCat = c; renderCatChips($("fCatChips"), c ? c.id : null, pickAddCat, true); }
+/* ---------- add a task: the step-by-step wizard (build 41) ----------
+   Modelled on Structured's task editor (coloured header with icon + title, icon
+   suggested from the title, then date / time / duration / alert / subtasks / notes),
+   cut into four calm steps so nobody sees every field at once. Pace reads the words:
+   it picks the icon, a category with a colour tag that SAYS what it is (and why),
+   and links the task to a goal when the words match one. Everything it picks can
+   be changed with one tap. */
+var AW = null;
 var addRemind = [];
+function awEmpty() { return { step: 1, cat: null, icon: null, goalOff: false, touched: {}, steps: [], an: null, item: null }; }
+function awCat() { var c = AW.cat || (AW.an && AW.an.category) || { id: "general", label: "Other", color: "#7A8699" }; if (!AW.cat && AW.an && AW.an.goal && c.id === "general") return { id: "goal", label: "Goal", color: L.GOAL_COLOR }; return c; }
+function awIconNow() { return AW.icon != null ? AW.icon : (AW.an ? AW.an.icon : "\ud83d\udccc"); }
+function awGoal() { return !AW.goalOff && AW.an && AW.an.goal ? AW.an.goal : null; }
+function awTitleText() { var it = AW.item; return (it && it.title) || $("quickText").value.trim(); }
 function renderAddRemind() {
   var box = $("fRemChips"); if (!box) return;
   box.innerHTML = "";
+  if (!$("fTime").value) { var p = document.createElement("span"); p.className = "hint"; p.textContent = tr("Pick a time on the last step to get reminders."); box.appendChild(p); return; }
   REMIND_MINS.forEach(function (m) {
     box.appendChild(chipButton(remindLabel(m), addRemind.indexOf(m) !== -1, function () {
       var i = addRemind.indexOf(m); if (i === -1) addRemind.push(m); else addRemind.splice(i, 1);
@@ -1156,24 +1176,150 @@ function renderAddRemind() {
     }));
   });
 }
-$("addBtn").addEventListener("click", function () {
-  addRemind = defaultLeads().slice(); renderAddRemind();
-  $("quickText").value = ""; $("fTitle").value = ""; $("fLink").value = "";
-  $("fDate").value = selected; $("fTime").value = ""; $("fDur").value = 25;
-  $("fMin").value = ""; $("fFull").value = ""; $("fEssential").checked = false;
-  $("quickPreview").hidden = true;
-  $("fRepeat").value = ""; addCat = null; renderCatChips($("fCatChips"), null, pickAddCat, true);
+function pickAddCat(c) { AW.cat = c; renderCatChips($("fCatChips"), c ? c.id : null, pickAddCat, true); awRender(); }
+function awClock(hhmm) { return hhmm ? clockLabel(hhmm) : ""; }
+function awRender() {
+  var c = awCat(), title = awTitleText();
+  $("awHead").style.setProperty("--aw-c", c.color);
+  $("awIcon").textContent = awIconNow() || "\ud83d\udccc";
+  $("awTitle").textContent = title || tr("New task");
+  var d = $("fDate").value || selected, t = $("fTime").value, dur = +$("fDur").value || 15;
+  $("awWhen").textContent = (t ? awClock(t) + " \u00b7 " : "") + dur + " " + tr("min") + " \u00b7 " + L.parseKey(d).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" });
+  var has = !!$("quickText").value.trim();
+  $("awSmart").hidden = !has;
+  if (has && AW.an) {
+    $("awTagTxt").textContent = tr(c.label);
+    $("awTag").style.setProperty("--tag-c", c.color);
+    $("awWhy").textContent = AW.cat ? tr("You chose this.") : AW.an.why ? tr("Because you wrote \u201c{w}\u201d", { w: AW.an.why }) : AW.an.goal ? tr("Matches your goal.") : tr("No clear word. Tap Change to pick what fits.");
+    var g = awGoal(), gc = $("awGoalChip");
+    gc.hidden = !g;
+    if (g) gc.textContent = "\ud83c\udfaf " + tr("Counts toward your goal: {g}", { g: g.title }) + "  \u00d7";
+    $("awGoalHint").hidden = !(AW.an.looksLikeGoal && !g);
+  }
+}
+function awAnalyse() {
+  var raw = $("quickText").value.trim();
+  AW.item = raw ? L.parseItem(splitLink(raw).text, selected) : null;
+  AW.an = raw ? L.analyzeTask(AW.item ? AW.item.title : raw, state.goals || [], TASK_ICONS) : null;
+  var it = AW.item, T = AW.touched;
+  if (it) {
+    if (!T.date) $("fDate").value = it.date || selected;
+    if (!T.time) $("fTime").value = it.time || "";
+    if (!T.dur) $("fDur").value = it.durationMin || 15;
+    if (!T.rep) { var ok = [].some.call($("fRepeat").options, function (o) { return o.value === it.repeat; }); $("fRepeat").value = ok ? (it.repeat || "") : ""; }
+    if (!T.ess) $("fEssential").checked = !!it.essential;
+  }
+  awRender();
+}
+function awOpen() {
+  AW = awEmpty();
+  addRemind = defaultLeads().slice();
+  ["quickText", "fLink", "fMin", "fFull", "fNotes", "awStepIn", "awIconSearch"].forEach(function (id) { if ($(id)) $(id).value = ""; });
+  $("fDate").value = selected; $("fTime").value = ""; $("fDur").value = 15; $("fRepeat").value = ""; $("fEssential").checked = false;
+  $("quickPreview").hidden = true; $("awCatBox").hidden = true; $("awIconBox").hidden = true; $("awErr").textContent = "";
+  renderCatChips($("fCatChips"), null, pickAddCat, true);
+  awShow(1); awRender();
   $("addSheet").hidden = false;
   setTimeout(function () { $("quickText").focus(); }, 50);
-});
+}
+function awShow(n) {
+  AW.step = n;
+  document.querySelectorAll("#addSheet [data-aw]").forEach(function (sec) { sec.hidden = +sec.getAttribute("data-aw") !== n; });
+  document.querySelectorAll("#awDots i").forEach(function (d, i) { d.classList.toggle("is-on", i < n); });
+  $("awBack").hidden = n === 1; $("awNext").hidden = n === 4; $("addSave").hidden = n !== 4;
+  $("awErr").textContent = "";
+  if (n === 2) awChips2();
+  if (n === 3) { renderAddRemind(); awChips3(); }
+  if (n === 4) { awRenderSteps(); awSummary(); }
+}
+function awDayKey(off) { return L.addDays(L.todayKey(), off); }
+function awChips2() {
+  var dv = $("fDate").value || selected, box = $("awDayChips"); box.innerHTML = "";
+  [[tr("Today"), 0], [tr("Tomorrow"), 1], [tr("In 2 days"), 2], [tr("Next week"), 7]].forEach(function (x) {
+    box.appendChild(chipButton(x[0], dv === awDayKey(x[1]), function () { $("fDate").value = awDayKey(x[1]); AW.touched.date = true; awChips2(); awRender(); }));
+  });
+  var tv = $("fTime").value, tb = $("awTimeChips"); tb.innerHTML = "";
+  tb.appendChild(chipButton(tr("No set time"), !tv, function () { $("fTime").value = ""; AW.touched.time = true; awChips2(); awRender(); }));
+  [[tr("Morning"), "09:00"], [tr("Midday"), "12:00"], [tr("Afternoon"), "15:00"], [tr("Evening"), "18:00"]].forEach(function (x) {
+    tb.appendChild(chipButton(x[0] + " " + awClock(x[1]), tv === x[1], function () { $("fTime").value = x[1]; AW.touched.time = true; awChips2(); awRender(); }));
+  });
+  var dv2 = +$("fDur").value || 15, db = $("awDurChips"); db.innerHTML = "";
+  [5, 10, 15, 30, 45, 60, 90].forEach(function (m) {
+    db.appendChild(chipButton(m >= 60 ? (m / 60) + " h" : m + " min", dv2 === m, function () { $("fDur").value = m; AW.touched.dur = true; awChips2(); awRender(); }));
+  });
+}
+function awChips3() {
+  var box = $("awRepChips"), cur = $("fRepeat").value; box.innerHTML = "";
+  [].forEach.call($("fRepeat").options, function (o) {
+    box.appendChild(chipButton(tr(o.textContent), cur === o.value, function () { $("fRepeat").value = o.value; AW.touched.rep = true; awChips3(); }));
+  });
+}
+function awRenderSteps() {
+  var box = $("awSteps"); box.innerHTML = "";
+  AW.steps.forEach(function (txt, i) {
+    var row = document.createElement("div"); row.className = "aw-step-row";
+    var sp = document.createElement("span"); sp.textContent = txt;
+    var x = document.createElement("button"); x.type = "button"; x.className = "aw-step-x"; x.setAttribute("aria-label", tr("Remove")); x.textContent = "\u00d7";
+    x.addEventListener("click", function () { AW.steps.splice(i, 1); awRenderSteps(); awSummary(); });
+    row.appendChild(sp); row.appendChild(x); box.appendChild(row);
+  });
+}
+function awSummary() {
+  var c = awCat(), g = awGoal(), t = $("fTime").value, parts = [awIconNow() + " " + awTitleText(), tr(c.label)];
+  parts.push(L.parseKey($("fDate").value || selected).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" }));
+  parts.push(t ? awClock(t) : tr("no set time")); parts.push((+$("fDur").value || 15) + " " + tr("min"));
+  if ($("fRepeat").value) parts.push(tr("repeats {repeat}", { repeat: repeatLabel($("fRepeat").value) }));
+  if (t && addRemind.length) parts.push(tr("reminder") + ": " + remindLabel(addRemind[0]).toLowerCase());
+  if (g) parts.push("\ud83c\udfaf " + g.title);
+  $("awSummary").textContent = parts.join(" \u00b7 ");
+}
+function awRenderIcons() {
+  var q = ($("awIconSearch").value || "").trim().toLowerCase(), grid = $("awIconGrid"); grid.innerHTML = "";
+  var list = (!q && AW.an && AW.an.icons.length ? TASK_ICONS.filter(function (i) { return AW.an.icons.indexOf(i.icon) !== -1; }) : []).concat(TASK_ICONS.filter(function (i) {
+    return i.icon && (!q || (i.name + " " + i.keywords).toLowerCase().indexOf(q) !== -1);
+  })).filter(function (i, k, arr) { return arr.findIndex(function (z) { return z.icon === i.icon; }) === k; }).slice(0, 90);
+  list.forEach(function (it) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "task-icon-option" + (awIconNow() === it.icon ? " is-on" : "");
+    b.textContent = it.icon; b.setAttribute("aria-label", it.name);
+    b.addEventListener("click", function () { AW.icon = it.icon; awRenderIcons(); awRender(); });
+    grid.appendChild(b);
+  });
+}
+$("addBtn").addEventListener("click", awOpen);
 $("addCancel").addEventListener("click", function () {
   $("addSheet").hidden = true;
   if (guideResumeAfterTask !== null) { guideResumeAfterTask = null; showGuide(guideStep); }
 });
+$("awIcon").addEventListener("click", function () { var box = $("awIconBox"); box.hidden = !box.hidden; if (!box.hidden) { $("awCatBox").hidden = true; awRenderIcons(); } });
+$("awIconSearch").addEventListener("input", awRenderIcons);
+$("awTag").addEventListener("click", function () { var box = $("awCatBox"); box.hidden = !box.hidden; if (!box.hidden) { $("awIconBox").hidden = true; renderCatChips($("fCatChips"), AW.cat ? AW.cat.id : null, pickAddCat, true); } });
+$("awGoalChip").addEventListener("click", function () { AW.goalOff = true; awRender(); });
+$("awMakeGoal").addEventListener("click", function () {
+  var txt = $("quickText").value.trim(); $("addSheet").hidden = true;
+  showPanel("goals"); setBottomTab("goals");
+  setTimeout(function () { var nb = $("goalNewBtn"); if (nb) nb.click(); var gt = $("goalTitle"); if (gt) { gt.value = txt; gt.focus(); } }, 120);
+});
+["fDate", "fTime", "fDur"].forEach(function (id) {
+  $(id).addEventListener("input", function () { AW.touched[id === "fDate" ? "date" : id === "fTime" ? "time" : "dur"] = true; if (AW.step === 2) awChips2(); awRender(); });
+});
+$("fEssential").addEventListener("change", function () { AW.touched.ess = true; });
+$("awStepAdd").addEventListener("click", awAddStep);
+$("awStepIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); awAddStep(); } });
+function awAddStep() { var v = $("awStepIn").value.trim(); if (!v) return; AW.steps.push(v.slice(0, 120)); $("awStepIn").value = ""; awRenderSteps(); awSummary(); }
+$("awSuggestSteps").addEventListener("click", function () {
+  var steps = L.decompose(awTitleText(), +$("fDur").value || 25, true).map(function (x) { return x.text; });
+  steps.forEach(function (x) { if (AW.steps.indexOf(x) === -1) AW.steps.push(x); }); awRenderSteps(); awSummary();
+});
+$("awNext").addEventListener("click", function () {
+  if (AW.step === 1 && !$("quickText").value.trim()) { $("awErr").textContent = tr("Give it a title first, even a messy one."); $("quickText").focus(); return; }
+  awShow(Math.min(4, AW.step + 1));
+});
+$("awBack").addEventListener("click", function () { awShow(Math.max(1, AW.step - 1)); });
+$("quickText").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("awNext").click(); } });
 $("quickText").addEventListener("input", function () {
+  awAnalyse();
   var v = $("quickText").value.trim();
-  if (!v) { $("quickPreview").hidden = true; return; }
-  var item = L.parseItem(v, selected);
+  var item = v ? AW.item : null;
   if (!item) { $("quickPreview").hidden = true; return; }
   $("quickPreview").hidden = false;
   var chip = function (cls, t) { return '<span class="qchip ' + cls + '">' + esc(t) + '</span>'; };
@@ -1194,30 +1340,27 @@ document.querySelectorAll("#quickSuggest [data-add]").forEach(function (b) {
   });
 });
 $("addSave").addEventListener("click", function () {
-  // A smallest version typed at creation is a teach (Plus);
-  // refused, the task still saves — without the taught version.
+  var raw = $("quickText").value.trim();
+  if (!raw) { awShow(1); $("awErr").textContent = tr("Give it a title first, even a messy one."); return; }
+  if (!AW.an) awAnalyse();
+  var qs = splitLink(raw), item = AW.item || L.parseItem(qs.text, selected);
   var minV = $("fMin").value.trim();
   if (minV && !plusGate("steps")) minV = "";
-  var task = null, qLink = "";
-  var manualTitle = $("fTitle").value.trim();
-  if (manualTitle) {
-    var cat = L.categoryFor(manualTitle);
-    task = { title: manualTitle, date: $("fDate").value || selected, time: $("fTime").value || null, durationMin: Math.max(5, +$("fDur").value || 25), priority: 0, repeat: null, category: cat.id, color: cat.color, essential: $("fEssential").checked, steps: L.decompose(manualTitle, +$("fDur").value || 25, false), minVersion: minV, fullVersion: $("fFull").value.trim() };
-  } else if ($("quickText").value.trim()) {
-    var qs = splitLink($("quickText").value.trim()); qLink = qs.link;
-    var item = L.parseItem(qs.text, selected);
-    if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: minV, fullVersion: $("fFull").value.trim() };
-  }
-  if (!task) { toast(tr("Give it a title first, even a messy one.")); return; }
-  if ($("fRepeat").value) task.repeat = $("fRepeat").value;
-  var fl = cleanUrl($("fLink").value) || qLink; if (fl) task.link = fl;
-  if (addCat) { task.category = addCat.id; task.color = addCat.color; }
-  task.remind = cleanLeads(addRemind); /* its own reminders, not the general setting */
-  task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = $("quickText").value.trim(); task.skipDates = []; task.doneDates = [];
+  var c = awCat(), g = awGoal();
+  var task = { title: (item && item.title) || qs.text, date: $("fDate").value || selected, time: $("fTime").value || null,
+    durationMin: Math.max(5, +$("fDur").value || 15), priority: (item && item.priority) || 0, repeat: $("fRepeat").value || null,
+    category: c.id, color: c.color, icon: awIconNow() === "\ud83d\udccc" && !AW.icon && c.id === "general" ? "" : awIconNow(),
+    essential: $("fEssential").checked, steps: AW.steps.length ? AW.steps.map(function (x) { return { text: x, done: false }; }) : ((item && item.steps) || []),
+    minVersion: minV, fullVersion: $("fFull").value.trim() };
+  if (g) task.goalId = g.id;
+  var notes = $("fNotes").value.trim(); if (notes) task.notes = notes.slice(0, 4000);
+  var fl = cleanUrl($("fLink").value) || qs.link; if (fl) task.link = fl;
+  task.remind = task.time ? cleanLeads(addRemind) : [];
+  task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = raw; task.skipDates = []; task.doneDates = [];
   state.tasks.push(task); save(); markActivated("event");
   $("addSheet").hidden = true;
   selectDate(task.date, true); refreshAll();
-  toast(tr("Added. Small and clear."));
+  toast(g ? tr("Added, and it counts toward your goal.") : tr("Added. Small and clear."));
   if (guideResumeAfterTask !== null) {
     var nextGuideStep = guideResumeAfterTask; guideResumeAfterTask = null;
     setTimeout(function () { showGuide(nextGuideStep); }, 80);
