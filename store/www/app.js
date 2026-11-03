@@ -670,16 +670,76 @@ var FACTORY_NAMES = { low: "Bad", steady: "Ok", full: "Great" };
 function displayLevelName(k) { var n = state.settings.names[k]; return n === FACTORY_NAMES[k] ? tr(n) : n; }
 
 /* ---------- day list (the adapted plan) ---------- */
+var agendaKey = "", agendaDays = 3;
+function agendaDayLabel(key) {
+  var d = L.parseKey(key);
+  var t = L.todayKey();
+  var name = key === t ? tr("Today") : key === L.addDays(t, 1) ? tr("Tomorrow") : key === L.addDays(t, -1) ? tr("Yesterday") : d.toLocaleDateString(LOCALE, { weekday: "long" });
+  return { name: name, date: d.toLocaleDateString(LOCALE, { day: "numeric", month: "short" }) };
+}
+function agendaCard(t, resting) {
+  var row = document.createElement("div");
+  row.className = "ag-card" + (t.status === "done" ? " is-done" : "") + (resting ? " is-resting" : "");
+  row.style.setProperty("--ev-c", t.color || "#5b6bd5");
+  row.setAttribute("data-id", t.id); row.setAttribute("data-date", t.instanceDate);
+  var chk = document.createElement("button"); chk.type = "button";
+  chk.className = "ag-ico" + (t.status === "done" ? " is-on" : "") + (t.icon ? "" : " no-emo");
+  chk.setAttribute("aria-label", tr("Mark done")); chk.setAttribute("aria-pressed", String(t.status === "done"));
+  chk.innerHTML = '<span class="ev-emo">' + esc(t.icon || "") + '</span><span class="ev-tick">' + icon("i-check") + '</span>';
+  chk.addEventListener("click", function (e) { e.stopPropagation(); toggleDone(t.id, t.instanceDate); });
+  var body = document.createElement("div"); body.className = "ag-body";
+  var ti = document.createElement("div"); ti.className = "ag-t"; ti.textContent = t.title; if (t.displayTitle && t.displayTitle !== t.title) { var tg = document.createElement("span"); tg.className = "ag-tag"; tg.textContent = tr("small version today"); ti.appendChild(tg); }
+  var m = document.createElement("div"); m.className = "ag-m";
+  if (!t.time) m.textContent = tr("To do");
+  else { var s1 = t.time, e1 = L.toHHMM(L.toMin(s1) + (t.durationMin || 15)); m.textContent = clockLabel(s1) + "\u2013" + clockLabel(e1) + " \u00b7 " + tr("{n} min", { n: t.durationMin || 15 }); }
+  body.appendChild(ti); body.appendChild(m);
+  row.appendChild(chk); row.appendChild(body);
+  row.addEventListener("click", function () { openTask(t.id, t.instanceDate); });
+  return row;
+}
 function renderDayList() {
-  /* Build 42: the list under the calendar is gone. Everything lives on the
-     calendar itself; unfinished tasks from earlier days get one small note. */
-  $("dayList").innerHTML = "";
-  var box = $("tsCarry"); if (!box) return;
-  var carry = selected === L.todayKey() ? carryoverTasks(selected) : [];
-  if (!carry.length) { box.hidden = true; box.innerHTML = ""; return; }
-  box.hidden = false;
-  box.innerHTML = '<span>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</span><button class="soft-btn" type="button" data-act="carry-over">' + tr("Bring them to today") + '</button>';
-  box.querySelector("button").addEventListener("click", function () { carryOverTasks(selected); });
+  /* Build 43: the scrollable agenda is back, under the calendar: one block
+     per day, to-dos first then timed tasks, with a Next day button. */
+  var box = $("tsCarry");
+  if (box) {
+    var carry = selected === L.todayKey() ? carryoverTasks(selected) : [];
+    if (!carry.length) { box.hidden = true; box.innerHTML = ""; }
+    else {
+      box.hidden = false;
+      box.innerHTML = '<span>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</span><button class="soft-btn" type="button" data-act="carry-over">' + tr("Bring them to today") + '</button>';
+      box.querySelector("button").addEventListener("click", function () { carryOverTasks(selected); });
+    }
+  }
+  var host = $("dayList"); if (!host) return;
+  if (agendaKey !== selected) { agendaKey = selected; agendaDays = 3; }
+  host.style.minHeight = host.offsetHeight + "px"; /* keep page height so a tick never jumps the scroll */
+  host.innerHTML = "";
+  var head = document.createElement("div"); head.className = "ag-head";
+  head.innerHTML = '<h3>' + tr("Coming up") + '</h3>';
+  host.appendChild(head);
+  for (var i = 0; i < agendaDays; i++) {
+    var key = L.addDays(selected, i);
+    var ad = adaptedFor(key);
+    var items = ad.visible.concat(ad.done), rest = ad.parked || [];
+    var all = items.map(function (t) { return { t: t, r: false }; }).concat(rest.map(function (t) { return { t: t, r: true }; }));
+    all.sort(function (x, y) { var xa = x.t.time ? L.toMin(x.t.time) : -1, ya = y.t.time ? L.toMin(y.t.time) : -1; return xa - ya; });
+    var sec = document.createElement("section"); sec.className = "ag-day"; sec.setAttribute("data-day", key);
+    var lb = agendaDayLabel(key);
+    var hd = document.createElement("button"); hd.type = "button"; hd.className = "ag-dayhead";
+    hd.innerHTML = '<span class="ag-dn">' + esc(lb.name) + '</span><span class="ag-dd">' + esc(lb.date) + '</span><span class="ag-cnt">' + (all.length ? tr("{n} items", { n: all.length }) : "") + '</span>';
+    hd.addEventListener("click", function (k) { return function () { selectDate(k, true); }; }(key));
+    sec.appendChild(hd);
+    if (!all.length) { var em = document.createElement("div"); em.className = "ag-empty"; em.textContent = tr("Nothing planned. A free day."); sec.appendChild(em); }
+    all.forEach(function (x) { sec.appendChild(agendaCard(x.t, x.r)); });
+    host.appendChild(sec);
+  }
+  var more = document.createElement("div"); more.className = "ag-more";
+  var b1 = document.createElement("button"); b1.type = "button"; b1.className = "soft-btn"; b1.id = "agNext"; b1.textContent = tr("Next day");
+  b1.addEventListener("click", function () { agendaDays += 1; renderDayList(); });
+  var b2 = document.createElement("button"); b2.type = "button"; b2.className = "soft-btn"; b2.id = "agWeek"; b2.textContent = tr("Next 7 days");
+  b2.addEventListener("click", function () { agendaDays += 7; renderDayList(); });
+  more.appendChild(b1); more.appendChild(b2); host.appendChild(more);
+  host.style.minHeight = "";
 }
 function carryoverTasks(key) {
   return state.tasks.filter(function (t) {
