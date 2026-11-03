@@ -2741,7 +2741,7 @@ function buildTour() {
   TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar is your day. A small red line shows where you are right now. Tap it again any time to jump back to today.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Talk to it turns a sentence into tasks. Speaking is optional.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "todo", pose: "point", bubble: "To do keeps loose tasks beside the calendar.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress, Habits, Goals, and Settings.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress and Settings.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Progress groups tasks by status. If it is locked, Pace will say so.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "habits", pose: "point", bubble: "Habits helps you notice routines, one day at a time.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "goals", pose: "point", bubble: "Goals turns one big goal into one small step a day on your calendar.", next: "Next" });
@@ -2764,7 +2764,7 @@ function showGuide(step) {
     if (s.panel === "calendar") { showPanel("calendar"); setBottomTab("calendar"); }
     else if (s.panel === "capture") { showPanel("capture"); setBottomTab("capture"); }
     else if (s.panel === "todo") { showPanel("todo"); setBottomTab("todo"); }
-    else if (s.panel === "habits") { showPanel("habits"); setBottomTab("more"); }
+    else if (s.panel === "habits") { showPanel("habits"); setBottomTab("habits"); }
     else if (s.panel === "goals") { showPanel("goals"); setBottomTab("goals"); }
     else if (s.panel === "settings") { showPanel("settings"); setBottomTab("more"); }
     else if (s.panel === "more" || s.panel === "progress") { setBottomTab("more"); }
@@ -2789,7 +2789,7 @@ function showGuide(step) {
   if (s.kind === "tour") {
     if (s.panel === "more") target = $("sbExpand");
     else if (s.panel === "progress") target = document.querySelector('.side-item[data-panel="progress"]');
-    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" ? "more" : s.panel) + '"]');
+    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" ? "more" : s.panel) + '"]');
   }
   if (s.section && $(s.section)) { target = $(s.section); try { target.scrollIntoView({ block: "start", behavior: "auto" }); } catch (e) {} }
   if (target) target.classList.add("guide-target");
