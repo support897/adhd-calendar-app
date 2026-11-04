@@ -826,6 +826,7 @@ function toggleDone(id, dateKey) {
     t.done = t.status === "done";
     if (t.status === "done") toast(tr("Done. That counts."));
   }
+  try { if (window.PaceUI) window.PaceUI.onToggle(t, dateKey); } catch (e) { console.error(e); }
   save(); refreshAll();
   // Shared goals (build 39): a tick on a shared step writes
   // through to the shared doc, so the whole team sees it.
@@ -1792,8 +1793,8 @@ $("dDelete").addEventListener("click", function () {
 
 /* ---------- capture ---------- */
 $("parseBtn").addEventListener("click", function () {
-  if (!plusGate("talk")) return;
   var text = $("dumpText").value;
+  if (window.PaceUI) { window.PaceUI.capture(text); return; }
   drafts = L.parseDump(text, L.todayKey());
   if (!drafts.length) { $("captureMsg").textContent = tr("Nothing I could sort yet. Try one thing per line, like: call the dentist tomorrow at 3pm."); return; }
   $("captureMsg").textContent = "";
@@ -1962,12 +1963,12 @@ window.addEventListener("beforeunload", function () { if (taskAudioSession) task
 
 var voiceSession = null;
 function voiceErrorText(code) {
-  if (code === "not-allowed" || code === "service-not-allowed") return tr("The microphone is blocked. Allow the mic for Pace, then tap Speak again. Typing works the same.");
+  if (code === "not-allowed" || code === "service-not-allowed") return tr("Your microphone permission is off. Allow the mic for Pace, then tap Speak again. Your notes are safe. Typing works the same.");
   if (code === "audio-capture") return tr("No microphone could be found. Typing works the same.");
-  if (code === "no-speech") return tr("I did not hear anything. Try again, a little closer. Typing works the same.");
-  if (code === "network") return tr("Voice typing needs the internet on this device. Typing works the same.");
+  if (code === "no-speech") return tr("I couldn't hear anything. Try again, a little closer, or type. Your notes are safe.");
+  if (code === "network") return tr("Voice recognition isn't available right now (it needs the internet on this device). Your notes are safe. You can try again or type.");
   if (code === "aborted") return "";
-  return tr("Voice did not come through. Typing works the same.");
+  return tr("I couldn't transcribe this recording. Your notes are safe. You can try again or type.");
 }
 function nativeSpeech() {
   try {
@@ -1997,7 +1998,7 @@ function toggleVoice(hooks) {
     var stopped = false;
     voiceSession = { stop: function () { stopped = true; try { nat.stop(); } catch (e) {} done(); } };
     if (span) span.textContent = tr("Stop");
-    hooks.msg("Listening… talk away, then tap Stop.");
+    hooks.msg("I'm listening. Take your time, then tap Stop.");
     nat.requestPermissions().then(function (perm) {
       if (perm && perm.speechRecognition && perm.speechRecognition !== "granted") { hooks.msg(voiceErrorText("not-allowed")); done(); return null; }
       var partialH = null;
@@ -2020,7 +2021,7 @@ function toggleVoice(hooks) {
   var heardFinal = false;
   voiceSession = { stop: function () { try { rec.stop(); } catch (e) {} } };
   if (span) span.textContent = tr("Stop");
-  hooks.msg("Listening… talk away, then tap Stop.");
+  hooks.msg("I'm listening. Take your time, then tap Stop.");
   rec.onresult = function (ev) {
     var interim = "";
     for (var i = ev.resultIndex; i < ev.results.length; i++) {
@@ -2043,7 +2044,7 @@ $("voiceBtn").addEventListener("click", function () {
     msg: function (t) { $("captureMsg").textContent = t; },
     final: function (said) {
       $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + said;
-      $("captureMsg").textContent = tr("Got it. Check the words, then tap Make my list.");
+      $("captureMsg").textContent = tr("Ready to review. Check what Pace heard before creating tasks.");
     }
   });
 });
@@ -2074,24 +2075,27 @@ var OCR_OPTIONS = {
   cacheMethod: "none",
   gzip: !OCR_IN_APP
 };
-function ocrPhoto(f, msgEl, onText) {
+function ocrPhoto(f, msgEl, onText, onFail) {
   msgEl.textContent = tr("Reading your photo. This can take a little while the first time.");
   if (!window.Tesseract) {
     msgEl.textContent = tr("The reading tool did not load. Typing or speaking works the same.");
+    if (onFail) onFail();
     return;
   }
   window.Tesseract.recognize(f, "eng", OCR_OPTIONS).then(function (res) {
     var text = (res && res.data && res.data.text || "").trim();
     if (text) onText(text);
-    else msgEl.textContent = tr("I could not read words in that photo. Typing or speaking works the same.");
-  }).catch(function () { msgEl.textContent = tr("Reading the photo did not work this time. Typing or speaking works the same."); });
+    else { msgEl.textContent = tr("I could not read words in that photo. Typing or speaking works the same."); if (onFail) onFail(); }
+  }).catch(function () { msgEl.textContent = tr("Reading the photo did not work this time. Your photo is safe. Typing or speaking works the same."); if (onFail) onFail(); });
 }
 $("photoFile").addEventListener("change", function (e) {
   var f = e.target.files[0]; if (!f) return;
+  var procId = window.PaceUI ? window.PaceUI.processing(tr("Photo of notes")) : null;
   ocrPhoto(f, $("captureMsg"), function (text) {
+    if (window.PaceUI) window.PaceUI.processingDone(procId);
     $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + text;
-    $("captureMsg").textContent = tr("Here is what I could read. Fix any words, then tap Make my list.");
-  });
+    $("captureMsg").textContent = tr("Text extracted. Check the words, then tap Make my list. Nothing is added until you say so.");
+  }, function () { if (window.PaceUI) window.PaceUI.processingDone(procId); });
 });
 
 /* ---------- to do: a fast list that lives happily beside the calendar ---------- */
@@ -2735,7 +2739,7 @@ var TOUR = [];
 function buildTour() {
   TOUR = [];
   if (tourNeedsName()) TOUR.push({ kind: "name", pose: "welcome", bubble: "Ahoy! I'm Skip. Welcome aboard! What's your name?", next: "Next" });
-  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); });
+  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); if (step.action === "energy") { TOUR.push({ kind: "tour", pose: "point", bubble: "Low keeps only what matters and one small step. Steady is a balanced day. Full fits a bit more, and breaks stay protected. Pace shows you every change first.", next: "Next", action: "demo" }); TOUR.push({ kind: "tour", pose: "point", bubble: "Talk to it. Tell it what is on your mind. It sorts it into tasks, notes and goals, and you check everything before it is added.", next: "Next", action: "try" }); } });
   TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar if you want. The file is copied; it is never changed.", next: "Next" });
   TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders are optional. Choose if you want a gentle prompt.", next: "Next", panel: "settings" });
   TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar is your day. A small red line shows where you are right now. Tap it again any time to jump back to today.", next: "Next" });
@@ -2751,7 +2755,8 @@ function buildTour() {
   TOUR.push({ kind: "tour", panel: "settings", section: "setCheckin", pose: "point", bubble: "Check-in: when I ask how you feel, and what you call Bad, Ok and Great.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "setNotif", pose: "point", bubble: "Reminders: choose how early each reminder comes. Each task can have its own.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "setTasks", pose: "point", bubble: "Tasks: bring a calendar in, or save yours as a file.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "settings", section: "setHelp", pose: "celebrate", bubble: "Help is here if you get stuck. Everything in Pace is free.", next: "Done ✓", last: true });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setHelp", pose: "celebrate", bubble: "Help is here if you get stuck. Everything in Pace is free.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "calendar", pose: "celebrate", bubble: "What would you like to work on first?", next: "Done ✓", last: true, action: "first" });
 }
 var guideStep = 0;
 var guideResumeAfterTask = null;
@@ -2808,6 +2813,17 @@ function showGuide(step) {
         ex.querySelectorAll("[data-energy]").forEach(function (choice) { choice.setAttribute("aria-pressed", String(choice === button)); });
       });
     });
+  } else if (s.action === "demo") {
+    ex.innerHTML = '<div class="guide-demo"><div><b>' + esc(state.settings.names.low) + '</b> 1 priority, 1 tiny step</div><div><b>' + esc(state.settings.names.steady) + '</b> up to 3 priorities, breaks kept</div><div><b>' + esc(state.settings.names.full) + '</b> a bit more, never to the brim</div></div>';
+  } else if (s.action === "try") {
+    ex.innerHTML = '<button type="button" class="primary-btn guide-action" id="guideTry">' + tr("Try it") + '</button>';
+    $("guideTry").addEventListener("click", function () { $("guideSheet").hidden = true; showPanel("capture"); setBottomTab("capture"); $("dumpText").value = "I need to finish my website and send some emails"; if (window.PaceUI) window.PaceUI.capture($("dumpText").value, { demo: true }); });
+  } else if (s.action === "first") {
+    ex.innerHTML = '<div class="guide-first"><button type="button" class="soft-btn" data-first="task">' + tr("Add a task") + '</button><button type="button" class="soft-btn" data-first="goal">' + tr("Create a goal") + '</button><button type="button" class="soft-btn" data-first="import">' + tr("Import my calendar") + '</button><button type="button" class="soft-btn" data-first="empty">' + tr("Start with an empty day") + '</button></div>';
+    ex.querySelectorAll("[data-first]").forEach(function (b) { b.addEventListener("click", function () {
+      var w = b.getAttribute("data-first"); $("guideSheet").hidden = true;
+      if (w === "task") $("addBtn").click(); else if (w === "goal") { showPanel("goals"); setBottomTab("goals"); var gb = $("goalNewBtn"); if (gb) gb.click(); } else if (w === "import") { showPanel("settings"); setBottomTab("more"); var ib = $("setTasks"); if (ib && ib.scrollIntoView) ib.scrollIntoView(); } else { showPanel("calendar"); setBottomTab("calendar"); }
+    }); });
   } else if (s.action === "task") {
     var hasOwnTask = (state.tasks || []).some(function (task) { return task && task.source !== "sample"; });
     ex.innerHTML = hasOwnTask ? '' : '<button type="button" id="guideTaskOpen" class="primary-btn guide-action">' + tr("Add a task now") + '</button>';
@@ -2955,8 +2971,8 @@ function renderPlans() {
   var st = $("planState"); if (!st) return;
   var holds = $("planHolds");
   if (holds) holds.textContent = on
-    ? tr("Plus holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.")
-    : tr("When Plus arrives, it holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.");
+    ? tr("Plus holds: all six Looks and Cute mode · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.")
+    : tr("When Plus arrives, it holds: all six Looks and Cute mode · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.");
   if (!on) { st.textContent = tr("Not on sale yet. Nothing to pay today."); return; }
   var s = PaceBilling.state();
   if (PaceBilling.plusActive() && s.owned) st.textContent = tr("Plus is yours. Everything is open.");
@@ -3719,7 +3735,7 @@ function bindAccounts() {
 }
 
 /* ---------- boot ---------- */
-function refreshAll() { renderTray(); renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
+function refreshAll() { renderTray(); renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if (window.PaceUI) window.PaceUI.render(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
 applyI18n();
 initCalendar(); setTimeout(paceScrollToNow, 1200);
 applyAppearance();
@@ -3913,7 +3929,7 @@ $("fsDone").addEventListener("click", function () {
   if (!FOCUS) return;
   var t = baseTask(FOCUS.id), key = FOCUS.date;
   var isDone = t && (t.repeat ? (t.doneDates || []).indexOf(key) !== -1 : t.status === "done");
-  if (t && !isDone) toggleDone(FOCUS.id, key);
+  if (t && !isDone) { try { var spent = Math.round((FOCUS.paused ? FOCUS.total - FOCUS.left : FOCUS.total - Math.max(0, FOCUS.endsAt - Date.now())) / 60000); if (spent >= 1 && !t.repeat) t.actualMin = spent; } catch (e) {} toggleDone(FOCUS.id, key); }
   endFocus();
 });
 $("dFocus").addEventListener("click", function () {
@@ -3976,7 +3992,7 @@ $("faStart").addEventListener("click", function () { startFocus($("focusAsk").ge
 $("faNo").addEventListener("click", function () { $("focusAsk").hidden = true; });
 setInterval(focusWatch, 15000);
 
-window.PaceCtx = { startFocus: startFocus, focusWatch: focusWatch, get focus() { return FOCUS; }, dropOutside: dropOutside, renderFocusSettings: renderFocusSettings, deleteInstance: deleteInstance,  get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
+window.PaceCtx = { get selected() { return selected; }, levelFor: levelFor, esc: esc, skipSvg: skipSvg, showPanel: showPanel, setBottomTab: setBottomTab, selectDate: selectDate, baseTask: baseTask, markActivated: markActivated, openQuickAdd: function () { $("addBtn").click(); }, startFocus: startFocus, focusWatch: focusWatch, get focus() { return FOCUS; }, dropOutside: dropOutside, renderFocusSettings: renderFocusSettings, deleteInstance: deleteInstance,  get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
 })();
 
 
