@@ -74,6 +74,8 @@ await m.waitForTimeout(300);
 await m.fill("#goalTitle", "Build my business and reach 5000 revenue this month");
 const endD = await m.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
 await m.fill("#goalEnd", endD);
+await m.evaluate(() => { var g = document.querySelectorAll(".goal-form .pstep").length; document.querySelector(".goal-form .pstep-next").click; });
+await m.evaluate(() => { const st = [...document.querySelectorAll(".goal-form .pstep")]; st.forEach((x, i) => x.hidden = i !== st.length - 1); const f = document.querySelector(".goal-form .pstep-finish"); if (f) f.hidden = false; });
 await m.click("#goalPlanBtn");
 await m.waitForTimeout(300);
 check("follow-up questions appear for a revenue goal", (await m.locator("#goalsRoot [data-q]").count()) === 3);

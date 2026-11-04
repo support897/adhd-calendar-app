@@ -209,7 +209,7 @@ check("links/drag: no page errors", lk.errs.length === 0 && dr.errs.length === 0
 /* ===== build 37 phase G: a habit with a time lives on the calendar, ticks together ===== */
 const hb = await mkPhone("habit37@test.dev");
 await hb.evaluate(() => document.querySelector('.side-item[data-panel="habits"]').click()); await hb.waitForTimeout(400);
-await hb.fill("#habitName", "Stretch"); await hb.fill("#habitTiny", "Touch my toes"); await hb.fill("#habitTime", "20:15");
+await hb.fill("#habitName", "Stretch"); await hb.evaluate(() => window.PaceHabitSteps && window.PaceHabitSteps.show(3)); await hb.fill("#habitTiny", "Touch my toes"); await hb.evaluate(() => window.PaceHabitSteps && window.PaceHabitSteps.show(4)); await hb.fill("#habitTime", "20:15");
 await hb.click("#habitAddBtn"); await hb.waitForTimeout(500);
 const hs = await hb.evaluate(() => { const s = JSON.parse(localStorage.getItem(Object.keys(localStorage).find(x => x.startsWith("calmcal-v1:")))); return { h: s.habits[0], t: s.tasks.find(t => t.habitId) }; });
 check("a habit with a time makes a daily calendar task with its own reminder", hs.h && hs.t && hs.t.repeat === "every day" && hs.t.time === "20:15" && Array.isArray(hs.t.remind) && hs.h.taskId === hs.t.id);

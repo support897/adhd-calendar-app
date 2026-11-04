@@ -56,6 +56,18 @@ while (guard++ < 40) {
 check("T1 tour explains Low/Steady/Full with a demo", sawDemo && bubbles.some(b => /Low keeps only what matters/.test(b)));
 check("T2 tour has a Try it for Talk to it", sawTry && bubbles.some(b => /Talk to it\. Tell it/.test(b)));
 check("T3 tour ends by asking what to work on first, with 4 choices", sawFirst && (await page.locator(".guide-first button").count()) === 4 && /What would you like to work on first/.test(bubbles[bubbles.length - 1]));
+await page.evaluate(() => document.getElementById("guideAgain").click()); await page.waitForTimeout(200);
+{ let g2 = 0; while (g2++ < 6 && !(await page.locator("#guideShort").count())) { const nm = page.locator("#tourName"); if (await nm.count()) await nm.fill("Tester"); await page.click("#guideNext"); await page.waitForTimeout(100); }
+  check("T3a Skip's first screen offers three ways to start", (await page.locator("#guideShort").count()) === 1 && (await page.locator("#guideSelf").count()) === 1 && /Show me around/.test(await page.locator("#guideNext").innerText()));
+  await page.click("#guideShort"); await page.waitForTimeout(150); const seen = [];
+  for (let k = 0; k < 12 && (await page.locator("#guideSheet:not([hidden])").count()); k++) { seen.push(await page.locator("#guideBubble").innerText()); if (await page.locator(".guide-first").count()) break; await page.click("#guideNext"); await page.waitForTimeout(100); }
+  check("T3b the short path is only 4 stops: feeling, how the day adapts, Talk to it, first action", seen.length === 4 && /feeling/i.test(seen[0]) && /What would you like to work on first/.test(seen[3]));
+  await page.evaluate(() => document.getElementById("guideAgain").click()); await page.waitForTimeout(200);
+  g2 = 0; while (g2++ < 6 && !(await page.locator("#guideSelf").count())) { const nm = page.locator("#tourName"); if (await nm.count()) await nm.fill("Tester"); await page.click("#guideNext"); await page.waitForTimeout(100); }
+  await page.click("#guideSelf"); await page.waitForTimeout(200);
+  check("T3c 'I'll explore myself' closes the guide, nothing forced", (await page.locator("#guideSheet:not([hidden])").count()) === 0);
+  await page.evaluate(() => document.getElementById("guideAgain").click()); await page.waitForTimeout(200);
+  for (let k = 0; k < 45 && !(await page.locator(".guide-first").count()); k++) { const nm = page.locator("#tourName"); if (await nm.count()) await nm.fill("Tester"); await page.click("#guideNext"); await page.waitForTimeout(80); } }
 check("T4 tour mentions Skip in the first step", bubbles.some(b => /Skip|Ahoy|calendar starts empty/i.test(b)));
 await page.locator('[data-first="goal"]').click(); await page.waitForTimeout(300);
 check("T5 'Create a goal' takes you to Goals with the form open", await page.locator("#panel-goals.is-active").count() === 1);

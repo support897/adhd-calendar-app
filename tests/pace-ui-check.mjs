@@ -68,7 +68,8 @@ let rw = (await h.store()).rewards;
 check("D5 sparks + a 'First win' badge awarded", rw.xp > 0 && !!rw.badges.first && rw.log.length === 1);
 await tab("more").catch(() => {});
 await page.evaluate(() => document.querySelector('.side-item[data-panel="progress"]').click()); await page.waitForTimeout(200);
-check("D6 Progress shows level, streak, week and badges", /sparks/.test(await page.locator("#paceRewards").innerText()) && /First win/.test(await page.locator("#paceRewards").innerText()));
+const pgt = await page.locator("#paceRewards").innerText();
+check("D6 Progress shows level, streak, week ring and badges", /sparks/.test(pgt) && /First win|All badges/i.test(pgt) && (await page.locator(".pg-ring-fg").count()) === 1 && /This week/i.test(pgt));
 await page.evaluate(() => { const t = JSON.parse(localStorage.getItem("calmcal-v1:" + JSON.parse(localStorage.getItem("pace-auth-v1")).uid)); });
 await page.evaluate(() => document.querySelector('.side-item[data-panel="calendar"]').click()); await page.waitForTimeout(150);
 /* untick via the task list gives sparks back */

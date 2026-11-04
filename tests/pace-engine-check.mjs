@@ -131,4 +131,14 @@ check("goals: momentum picks the next step by date, marks stale when no wins thi
 const S6 = { tasks: [], feelings: {} }; ["A", "B", "C"].forEach((g, i) => R.award(S6, { id: "h" + i, title: "h", goalId: g }, base, {}));
 check("rewards: moving 3 goals in a week earns Goal juggler", !!S6.rewards.badges.juggler);
 
+/* batch 2: goal + feeling in one breath, never lost */
+const U1 = B.understand("I want to launch my podcast, feeling stressed about taxes by friday", base, {});
+check("brain: goal and feeling in one sentence are split (podcast goal kept)", U1.goals.length === 1 && /podcast/i.test(U1.goals[0].title) && U1.feelings.length === 1 && U1.items.length === 0);
+const U2 = B.understand("clean the kitchen, I feel tired, call mum tomorrow", base, {});
+check("brain: feeling between two tasks keeps both tasks", U2.items.length === 2 && U2.feelings.length === 1);
+const U3 = B.understand("book flights for December", base, {});
+check("brain: month-only date is flagged as unsure", U3.items.length === 1 && U3.items[0].date.slice(5, 7) === "12" && (U3.items[0].unsure || []).some(u => /1st of the month/.test(u)));
+const U4 = B.understand("go to the gym around 6", base, {});
+check("brain: 'around 6' becomes 18:00 and stays out of the title", U4.items[0].time === "18:00" && !/around/.test(U4.items[0].title));
+
 console.log("\n" + pass + " passed, " + fail + " failed"); process.exit(fail ? 1 : 0);
