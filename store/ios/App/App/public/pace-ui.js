@@ -20,6 +20,7 @@ function ensure() {
   if (!Array.isArray(s.captured)) s.captured = [];
   if (!s.settings.plan || typeof s.settings.plan !== "object") s.settings.plan = {};
   R.snapshot(s, today()); /* makes s.rewards exist */
+  if (s.rewards.log.length > 1500) s.rewards.log = s.rewards.log.slice(-1500); /* keeps the saved profile small; xp and badges are stored separately */
   return s;
 }
 function planSettings() { var p = ensure().settings.plan; return { workStart: p.workStart || "09:00", workEnd: p.workEnd || "17:30", capacityPct: 100 - (+p.open || 28), breakMin: 60 }; }
@@ -98,6 +99,15 @@ function renderToday() {
   card.appendChild(head);
   var wonToday = (s.rewards.log || []).some(function (e) { return e.key === key; });
   card.appendChild(el("div", "pt-skip", tr(level === "low" ? "Skip: Let's make things smaller." : wonToday ? "Skip: Look how far you've come." : level === "full" ? "Skip: More room today, and your breaks are still safe." : "Skip: Let's make today easier.")));
+
+  if (!quiet()) {
+    var sn = R.snapshot(S(), key), tg = weekTarget(S());
+    var wkb = el("button", "pt-week", null, { type: "button", id: "ptWeek", "aria-label": tr("See my progress") });
+    wkb.appendChild(el("span", "pt-week-t", tr("This week") + ": " + sn.week.wins + " " + tr("of") + " " + tg + " " + tr("wins")));
+    var wbar = el("span", "pt-week-bar"); var wf = el("i"); wf.style.width = Math.max(4, Math.min(100, Math.round(sn.week.wins * 100 / tg))) + "%"; wbar.appendChild(wf); wkb.appendChild(wbar);
+    wkb.addEventListener("click", function () { C.showPanel("progress"); });
+    card.appendChild(wkb);
+  }
 
   /* welcome back after a break: small, kind, no pile-up */
   var gap = R.lastWinGap(s, today());
@@ -305,7 +315,14 @@ function renderReview() {
       var time = el("input", null, null, { type: "time", "aria-label": tr("Time") }); time.value = d.time || ""; time.addEventListener("change", function () { d.time = time.value || null; });
       var dur = el("input", null, null, { type: "number", min: "5", step: "5", "aria-label": tr("Minutes") }); dur.value = d.durationMin; dur.style.width = "72px"; dur.addEventListener("change", function () { d.durationMin = Math.max(5, +dur.value || 25); });
       meta.appendChild(date); meta.appendChild(time); meta.appendChild(dur); meta.appendChild(el("span", "hint", tr("min")));
-      body.appendChild(title); body.appendChild(meta);
+      /* one calm line; the three pickers hide until you tap Change */
+      var sumTxt = function () { return niceDate(d.date) + (d.time ? " \u00b7 " + d.time : "") + " \u00b7 " + d.durationMin + " " + tr("min"); };
+      var when = el("button", "pr-when", null, { type: "button", "aria-expanded": "false" });
+      var whenTxt = el("span", "pr-when-t", sumTxt()); when.appendChild(whenTxt); when.appendChild(el("span", "pr-when-c", tr("Change")));
+      meta.hidden = true;
+      when.addEventListener("click", function () { meta.hidden = !meta.hidden; when.setAttribute("aria-expanded", String(!meta.hidden)); });
+      [date, time, dur].forEach(function (x) { x.addEventListener("change", function () { whenTxt.textContent = sumTxt(); }); });
+      body.appendChild(title); body.appendChild(when); body.appendChild(meta);
       var chips = el("div", "pr-chips");
       if (d.deadline) chips.appendChild(el("span", "chip chip-deadline", tr("Deadline") + " " + niceDate(d.deadline)));
       if (d.essential) chips.appendChild(el("span", "chip chip-must", tr("must not slip")));
@@ -577,35 +594,152 @@ function renderChip() {
   chip.hidden = quiet();
   chip.textContent = snap.level.name + " · " + s.rewards.xp + " " + tr("sparks") + (snap.streak.current ? " · " + snap.streak.current + " " + tr(snap.streak.current === 1 ? "day" : "days") : "");
 }
+function weekTarget(s) {
+  /* Your own pace: the average of your last 4 weeks, never below 3, never above 10. */
+  var td = today(), log = (s.rewards.log || []), tot = 0;
+  var from = L.addDays(td, -34), to2 = L.addDays(td, -7);
+  log.forEach(function (e) { if (e.key >= from && e.key <= to2) tot++; });
+  var avg = tot / 4; return Math.max(3, Math.min(10, Math.round(avg) || 3));
+}
+function winDaySet(s) { var m = {}; (s.rewards.log || []).forEach(function (e) { m[e.key] = 1; }); return m; }
+function motivationLine(s, snap, target) {
+  var td = today(), wk = snap.week.wins, lvl = C.levelFor ? C.levelFor(td) : "steady";
+  var wd = L.parseKey(td).getDay(), left = Math.max(0, target - wk);
+  var won = (s.rewards.log || []).some(function (e) { return e.key === td; });
+  if (!snap.total) return { t: tr("Your first win is one tiny step away. Pick the smallest thing and start."), k: "first" };
+  var gap = 0, days = Object.keys(winDaySet(s)).filter(function (k) { return k < td; }).sort();
+  if (days.length && !won) gap = Math.round((L.parseKey(td) - L.parseKey(days[days.length - 1])) / 86400000);
+  if (gap >= 3) return { t: tr("Welcome back. A fresh start. Nothing was lost, and your wins still count."), k: "back" };
+  if (wk >= target) return { t: tr("You reached your week. Rest is allowed, and so is more."), k: "done" };
+  if (won && left <= 2) return { t: left === 1 ? tr("You won today. One more win closes your week.") : tr("You won today. {n} more and your week is done.", { n: left }), k: "close" };
+  if (won) return { t: tr("You already won today. Anything more is a bonus."), k: "won" };
+  if (lvl === "low") return { t: tr("Low days count too. One small thing is plenty."), k: "low" };
+  if (wk / target >= 0.7) return { t: left === 1 ? tr("So close. One more win closes your week.") : tr("So close. {n} more wins close your week.", { n: left }), k: "close" };
+  if (wd === 1) return { t: tr("A fresh week. The slate is clean. Start with one small step."), k: "fresh" };
+  return { t: tr("Small steps add up. {n} wins this week so far.", { n: wk }), k: "steady" };
+}
+function ringSvg(pct) {
+  var c = 2 * Math.PI * 54, off = c * (1 - Math.max(0, Math.min(1, pct)));
+  return '<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="pg-ring-bg" cx="60" cy="60" r="54"/><circle class="pg-ring-fg" cx="60" cy="60" r="54" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg>';
+}
+var BADGE_PROGRESS = { first: 1, five: 5, twentyfive: 25 };
 function renderRewards() {
   var root = $("paceRewards"); if (!root) return;
   var s = ensure(), snap = R.snapshot(s, today()); root.innerHTML = "";
-  if (quiet()) { root.hidden = true; return; } root.hidden = false;
-  var card = el("div", "pr-rewards");
-  card.appendChild(el("div", "rw-level", snap.level.name + " · " + s.rewards.xp + " " + tr("sparks")));
-  card.appendChild(el("div", "rw-line", tr(snap.level.line)));
-  var bar = el("div", "pt-cap"); var f = el("div", "pt-cap-fill"); f.style.width = snap.level.pct + "%"; bar.appendChild(f); card.appendChild(bar);
-  card.appendChild(el("div", "hint", snap.level.next ? tr("{n} sparks to the next level", { n: snap.level.toNext }) : tr("You reached the top. Keep shining.")));
-  var st = snap.streak;
-  card.appendChild(el("div", "rw-streak", st.current ? tr("{n} days with a win in a row", { n: st.current }) + (st.graceUsed ? " · " + tr("a rest day was forgiven") : "") : tr("A fresh start is always allowed.")));
-  card.appendChild(el("div", "hint", tr("Best run") + ": " + st.best + " · " + tr("Low days and rest days never break a streak.")));
-  card.appendChild(el("div", "rw-week", tr("This week") + ": " + snap.week.wins + " " + tr("wins") + " · " + snap.week.goalsMoved + " " + tr("goals moved") + " · " + snap.week.activeDays + " " + tr("active days")));
-  var grid = el("div", "rw-badges");
-  Object.keys(snap.allBadges).forEach(function (id) {
-    var on = !!s.rewards.badges[id], b = snap.allBadges[id];
-    var d = el("div", "rw-badge" + (on ? " is-on" : ""), null, { title: b.desc });
-    d.appendChild(el("b", null, b.name)); d.appendChild(el("span", null, on ? tr("Earned") : b.desc));
-    grid.appendChild(d);
-  });
-  card.appendChild(grid);
+  var det = $("pgBoard");
+  if (quiet()) { root.hidden = true; if (det) det.open = true; return; } root.hidden = false;
+  var target = weekTarget(s), wk = snap.week.wins, td = today(), mot = motivationLine(s, snap, target);
+  var wrap = el("div", "pg-wrap");
+
+  /* 1. Hero: this week, as one ring and one kind sentence */
+  var hero = el("section", "pg-card pg-hero", null, { "aria-label": tr("This week") });
+  var ring = el("div", "pg-ring"); ring.innerHTML = ringSvg(wk / target);
+  var mid = el("div", "pg-ring-mid"); mid.appendChild(el("b", null, String(wk))); mid.appendChild(el("span", null, tr("of {n} wins", { n: target }))); ring.appendChild(mid);
+  hero.appendChild(ring);
+  var ht = el("div", "pg-hero-text");
+  ht.appendChild(el("h3", null, tr("This week")));
+  ht.appendChild(el("p", "pg-mot", mot.t, { id: "pgMot", "data-k": mot.k }));
+  ht.appendChild(el("p", "hint", tr("Your week goal is {n} wins. Pace sets it from your own pace.", { n: target })));
+  hero.appendChild(ht);
+  wrap.appendChild(hero);
+
+  /* 2. The last 7 days: a win, a rest, or just a day */
+  var days = el("section", "pg-card pg-days", null, { "aria-label": tr("Last 7 days") });
+  var ws = winDaySet(s), nm = [];
+  for (var i = 6; i >= 0; i--) {
+    var k = L.addDays(td, -i), d = L.parseKey(k), isWin = !!ws[k], isRest = !!(s.rewards.rest && s.rewards.rest[k]);
+    var col = el("div", "pg-day" + (isWin ? " is-win" : "") + (isRest && !isWin ? " is-rest" : "") + (k === td ? " is-today" : ""), null, { "data-d": k });
+    col.appendChild(el("span", "pg-dot", isWin ? "\u2713" : isRest ? "\u263e" : ""));
+    col.appendChild(el("span", "pg-dn", d.toLocaleDateString(undefined, { weekday: "narrow" })));
+    days.appendChild(col);
+  }
+  wrap.appendChild(days);
+  var st = snap.streak, shown14 = 0; for (var j = 0; j < 14; j++) if (ws[L.addDays(td, -j)]) shown14++;
+  var idn = el("p", "pg-ident", shown14 ? tr("You showed up on {n} of the last 14 days. That is who you are becoming.", { n: shown14 }) : tr("Every day you show up counts. Today can be day one."));
+  wrap.appendChild(idn);
+
+  /* 3. Level: sparks to the next level */
+  var lv = el("section", "pg-card pg-level");
+  lv.appendChild(el("div", "pg-lv-name", snap.level.name + " \u00b7 " + s.rewards.xp + " " + tr("sparks")));
+  lv.appendChild(el("div", "pg-lv-line", tr(snap.level.line)));
+  var bar = el("div", "pt-cap"); var f = el("div", "pt-cap-fill"); f.style.width = Math.max(4, snap.level.pct) + "%"; bar.appendChild(f); lv.appendChild(bar);
+  lv.appendChild(el("div", "hint", snap.level.next ? tr("{n} sparks to the next level", { n: snap.level.toNext }) : tr("You reached the top. Keep shining.")));
+  wrap.appendChild(lv);
+
+  /* 4. Streak, gently */
+  var sk = el("section", "pg-card pg-streak");
+  sk.appendChild(el("div", "pg-sk-n", st.current ? tr("{n} days with a win in a row", { n: st.current }) : tr("A fresh start is always allowed.")));
+  sk.appendChild(el("div", "hint", tr("Best run") + ": " + st.best + (st.graceUsed ? " \u00b7 " + tr("a rest day was forgiven") : " \u00b7 " + tr("one gap day is forgiven"))));
   var rest = el("button", "soft-btn", tr("Take a rest day (keeps my streak)"), { type: "button", id: "rwRest" });
   rest.addEventListener("click", function () { R.markRest(s, today()); C.save(); renderRewards(); C.toast(tr("Rest day saved. Your streak is safe.")); });
-  card.appendChild(rest);
-  root.appendChild(card);
+  sk.appendChild(rest); wrap.appendChild(sk);
+
+  /* 5. Goals: each one with its own bar, so many goals stay visible */
+  var goals = (s.goals || []);
+  var gs = el("section", "pg-card pg-goals", null, { id: "pgGoals" }); gs.appendChild(el("h3", null, tr("Your goals")));
+  if (!goals.length) {
+    gs.appendChild(el("p", "hint", tr("Add a goal and watch it grow here, one small step at a time.")));
+    var gb = el("button", "soft-btn", tr("Add a goal"), { type: "button", id: "pgAddGoal" }); gb.addEventListener("click", function () { C.showPanel("goals"); C.setBottomTab && C.setBottomTab("goals"); }); gs.appendChild(gb);
+  } else goals.forEach(function (g) {
+    var m = R.goalMomentum(g, s.tasks, td, s.rewards.log);
+    var row = el("div", "pg-goal" + (m.complete ? " is-complete" : ""));
+    row.appendChild(el("div", "pg-goal-t", g.title));
+    var gbar = el("div", "pt-cap"); var gf = el("div", "pt-cap-fill"); gf.style.width = Math.max(m.pct ? m.pct : 3, 3) + "%"; gbar.appendChild(gf); row.appendChild(gbar);
+    var line = m.complete ? tr("Finished. You did this.") : m.pct >= 75 ? tr("{n}% there. The finish line is close.", { n: m.pct }) : m.pct >= 50 ? tr("{n}% there. Past halfway.", { n: m.pct }) : m.done ? tr("{a} of {b} steps done.", { a: m.done, b: m.total }) : tr("Ready when you are. {n} small steps.", { n: m.total });
+    row.appendChild(el("div", "hint", line));
+    if (m.next && !m.complete) row.appendChild(el("div", "pg-goal-next", tr("Next") + ": " + m.next.title));
+    gs.appendChild(row);
+  });
+  wrap.appendChild(gs);
+
+  /* 6. Almost there: the next one or two badges, with real counts */
+  var near = [], earned = s.rewards.badges || {};
+  Object.keys(snap.allBadges).forEach(function (id) { if (!earned[id]) near.push(id); });
+  near.sort(function (a, b) { var pa = BADGE_PROGRESS[a] ? 0 : 1, pb = BADGE_PROGRESS[b] ? 0 : 1; return pa - pb; });
+  var nb = el("section", "pg-card pg-near"); nb.appendChild(el("h3", null, tr("Almost there")));
+  near.slice(0, 2).forEach(function (id) {
+    var b = snap.allBadges[id], need = BADGE_PROGRESS[id], r = el("div", "pg-near-row");
+    r.appendChild(el("b", null, tr(b.name)));
+    r.appendChild(el("span", "hint", need ? tr("{a} of {b}", { a: Math.min(need, snap.total), b: need }) + " \u00b7 " + tr(b.desc) : tr(b.desc)));
+    if (need) { var nbar = el("div", "pt-cap"); var nf = el("div", "pt-cap-fill"); nf.style.width = Math.max(3, Math.min(100, Math.round(snap.total * 100 / need))) + "%"; nbar.appendChild(nf); r.appendChild(nbar); }
+    nb.appendChild(r);
+  });
+  if (!near.length) nb.appendChild(el("p", "hint", tr("You earned every badge. Wow.")));
+  wrap.appendChild(nb);
+
+  /* 7. Recent wins: proof that you are doing it */
+  var recent = (s.rewards.log || []).slice(-5).reverse();
+  var rw = el("section", "pg-card pg-recent"); rw.appendChild(el("h3", null, tr("Recent wins")));
+  if (!recent.length) rw.appendChild(el("p", "hint", tr("Your wins will show up here.")));
+  recent.forEach(function (e) {
+    var t = s.tasks.filter(function (x) { return x.id === e.taskId; })[0];
+    var li = el("div", "pg-win"); li.appendChild(el("span", "pg-win-t", "\u2713 " + (t ? t.title : tr("A step you finished"))));
+    li.appendChild(el("span", "hint", e.key === td ? tr("Today") : e.key)); rw.appendChild(li);
+  });
+  wrap.appendChild(rw);
+
+  /* 8. All badges, tucked away */
+  var all = el("details", "pg-card pg-all"); all.appendChild(el("summary", null, tr("All badges") + " (" + Object.keys(earned).length + "/" + Object.keys(snap.allBadges).length + ")"));
+  var grid = el("div", "rw-badges");
+  Object.keys(snap.allBadges).forEach(function (id) {
+    var on = !!earned[id], b = snap.allBadges[id];
+    var d = el("div", "rw-badge" + (on ? " is-on" : ""), null, { title: b.desc });
+    d.appendChild(el("b", null, tr(b.name))); d.appendChild(el("span", null, on ? tr("Earned") : tr(b.desc)));
+    grid.appendChild(d);
+  });
+  all.appendChild(grid); wrap.appendChild(all);
+  root.appendChild(wrap);
 }
 
+/* The settings page is already a one-at-a-time accordion (app.js). A jump chip now also opens its card. */
+function wireJumpOpen() {
+  [].forEach.call(document.querySelectorAll("#panel-settings [data-jump]"), function (b) {
+    b.addEventListener("click", function () { var g = $(b.getAttribute("data-jump")); if (g && g.classList.contains("sg-fold") && !g.classList.contains("is-open")) { var h = g.querySelector(":scope > h3"); if (h) h.click(); } });
+  });
+}
 /* ============ settings ============ */
 function wireSettings() {
+  try { wireJumpOpen(); } catch (e) { console.error("jump", e); }
   var s = ensure(), p = s.settings.plan;
   var rf0 = $("pcReflect"); if (rf0) { rf0.checked = !!p.reflect; rf0.addEventListener("change", function () { p.reflect = rf0.checked; C.save(); C.refreshAll(); }); }
   var q = $("pcQuiet"), a = $("pcStart"), b = $("pcEnd"), o = $("pcOpen"), l = $("pcLearn"), rp = $("pcReplay");

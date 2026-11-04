@@ -227,12 +227,14 @@ try {
     <section class="panel" id="panel-progress">
       <header class="topbar"><h2 data-i18n>Progress</h2></header>
       <div id="paceRewards" class="pace-rewards"></div>
+      <details id="pgBoard" class="pg-board"><summary data-i18n>See every task</summary>
       <div id="progressSummary" class="progress-summary"></div>
       <div class="board">
         <div class="board-col" data-status="todo"><h3 data-i18n>Next</h3><div class="board-list" id="col-todo"></div></div>
         <div class="board-col" data-status="doing"><h3 data-i18n>Doing</h3><div class="board-list" id="col-doing"></div></div>
         <div class="board-col" data-status="done"><h3 data-i18n>Done</h3><div class="board-list" id="col-done"></div></div>
       </div>
+      </details>
     </section>
 
     <!-- SETTINGS PANEL -->
@@ -783,6 +785,7 @@ try {
 <script src="firebase.js"></script>
 <script src="sharing.js"></script>
 <script src="app.js"></script>
+<script src="pace-steps.js"></script>
 <script src="goals-ui.js"></script>
 <script src="pace-ui.js"></script>
 <script src="sharing-ui.js"></script>
