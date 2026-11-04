@@ -157,7 +157,18 @@ function ensureHabitForm() {
   var tl = el("label", "field habit-time-field", tr("Remind me at (optional): puts it on your calendar every day"));
   var ti = el("input", null, null, { id: "habitTime", type: "time", "aria-label": tr("Habit time") });
   tl.appendChild(ti); name.parentNode.insertBefore(tl, tiny.nextSibling);
-  [plan, tiny].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") C.submitHabit(); }); });
+  if (window.PaceSteps && !window.PaceHabitSteps) {
+    var box = name.closest(".habit-add") || name.parentNode, picker = $("habitIcons"), addBtn = $("habitAddBtn");
+    var err = el("p", "gf-err", "", { role: "alert", id: "habitErr" });
+    var fin = el("div", "gf-actions"); fin.appendChild(addBtn);
+    window.PaceHabitSteps = PaceSteps.make(box, [
+      { h: tr("What habit do you want?"), nodes: [name], check: function () { return name.value.trim() ? "" : tr("Give the habit a name first."); } },
+      { h: tr("Pick an icon"), nodes: [picker] },
+      { h: tr("When and where?"), sub: tr("A plan for when and where makes it much easier to start. Optional."), nodes: [plan], skippable: true },
+      { h: tr("Smallest version"), sub: tr("What can you do on a hard day? Optional."), nodes: [tiny], skippable: true },
+      { h: tr("Want a reminder?"), sub: tr("Optional. Puts it on your calendar every day."), nodes: [tl], skippable: true }
+    ], { actions: fin, err: err });
+  } else [plan, tiny].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") C.submitHabit(); }); });
 }
 function renderWhy() {
   var panel = $("panel-habits"); if (!panel || $("habitWhy")) return;
@@ -239,14 +250,14 @@ function buildForm() {
   if (draft && draft.steps) return buildPreview(f);
   if (draft && draft.ask) return buildAsk(f);
   var today = L.todayKey();
-  var title = el("input", null, null, { id: "goalTitle", type: "text", maxlength: "100", autocomplete: "off", placeholder: tr("e.g. Pass my biology exam") });
+  var title = el("input", null, null, { id: "goalTitle", type: "text", maxlength: "100", autocomplete: "off", "aria-label": tr("What is your goal?"), placeholder: tr("e.g. Pass my biology exam") });
   var tpl = el("div", "gf-templates", null, { "aria-label": tr("Quick starts") });
   [["\ud83d\udcda", "Read a book", "Read a book", "personal"], ["\ud83d\udcb0", "Save money", "Save $600", "money"], ["\ud83c\udf93", "Study for an exam", "Pass my exam", "school"], ["\ud83c\udfe0", "Tidy my home", "Declutter my home", "home"]].forEach(function (x) {
     var tb = el("button", "gf-tpl", x[0] + " " + tr(x[1]), { type: "button" });
     tb.addEventListener("click", function () { title.value = x[2]; var cb = f.querySelector('[data-cat="' + x[3] + '"]'); if (cb) cb.click(); title.focus(); });
     tpl.appendChild(tb);
   });
-  var notes = el("textarea", null, null, { id: "goalNotes", rows: "5", maxlength: "6000", placeholder: tr("Optional: paste your outline, syllabus or notes. One item per line becomes a stage of your plan.") });
+  var notes = el("textarea", null, null, { id: "goalNotes", rows: "5", maxlength: "6000", "aria-label": tr("Details (optional)"), placeholder: tr("Optional: paste your outline, syllabus or notes. One item per line becomes a stage of your plan.") });
   var file = el("input", null, null, { id: "goalFile", type: "file", accept: ".txt,.md,text/plain", hidden: "hidden" });
   var fileBtn = el("label", "soft-btn", tr("Add a text file"));
   fileBtn.appendChild(file);
@@ -271,10 +282,10 @@ function buildForm() {
     cats.appendChild(b);
   });
   var endDefault = L.addDays(today, 84);
-  var end = el("input", null, null, { id: "goalEnd", type: "date", value: (draft && draft.end) || endDefault, min: L.addDays(today, 1) });
-  var pace = el("select", null, null, { id: "goalPace" });
+  var end = el("input", null, null, { id: "goalEnd", "aria-label": tr("Finish by"), type: "date", value: (draft && draft.end) || endDefault, min: L.addDays(today, 1) });
+  var pace = el("select", null, null, { id: "goalPace", "aria-label": tr("How often?") });
   [["daily", tr("Every day")], ["weekdays", tr("Weekdays only")], ["three", tr("Three days a week (Mon, Wed, Fri)")]].forEach(function (o) { pace.appendChild(el("option", null, o[1], { value: o[0] })); });
-  var mins = el("select", null, null, { id: "goalMins" });
+  var mins = el("select", null, null, { id: "goalMins", "aria-label": tr("How long each day?") });
   [10, 20, 30, 45].forEach(function (m) { var o = el("option", null, tr("About {n} minutes a day", { n: m }), { value: String(m) }); if (m === 20) o.selected = true; mins.appendChild(o); });
   var price = el("input", null, null, { id: "goalPrice", type: "number", min: "1", inputmode: "decimal", placeholder: tr("Optional, for money goals: price of one sale") });
   var err = el("p", "gf-err", "", { id: "goalErr", role: "alert" });
@@ -292,17 +303,29 @@ function buildForm() {
     if (!finishPlan(base)) { err.textContent = tr("That date is too close for a plan. Pick a later date."); return; }
     renderGoals(true);
   });
-  f.appendChild(field(tr("What is your goal?"), title));
-  f.appendChild(tpl);
-  f.appendChild(field(tr("Details (optional)"), notes));
-  f.appendChild(fileBtn); f.appendChild(fileMsg);
-  var kind = el("div", "gf-field"); kind.appendChild(el("span", "gf-label", tr("What kind of goal is it?"))); kind.appendChild(cats); f.appendChild(kind);
-  f.appendChild(field(tr("Finish by"), end));
-  f.appendChild(field(tr("How often?"), pace));
-  f.appendChild(field(tr("How long each day?"), mins));
-  f.appendChild(field(tr("Price of one sale (business goals)"), price));
-  f.appendChild(err);
-  var row = el("div", "gf-actions"); row.appendChild(go); row.appendChild(cancel); f.appendChild(row);
+  var kind = el("div", "gf-field"); kind.appendChild(cats);
+  var priceBox = field(tr("Price of one sale (business goals)"), price);
+  function syncPrice() { priceBox.hidden = !(picked === "work" || picked === "money"); }
+  cats.addEventListener("click", syncPrice); syncPrice();
+  /* quick finish-by chips: 1 month, 3 months, 6 months */
+  var endChips = el("div", "pstep-chips", null, { role: "group", "aria-label": tr("Finish by") });
+  [[30, "In a month"], [84, "In 3 months"], [180, "In 6 months"]].forEach(function (x) {
+    var cb = el("button", null, tr(x[1]), { type: "button" });
+    cb.addEventListener("click", function () { end.value = L.addDays(today, x[0]); endChips.querySelectorAll("button").forEach(function (y) { y.classList.toggle("is-on", y === cb); }); });
+    endChips.appendChild(cb);
+  });
+  var fileWrap = el("div", "gf-field"); fileWrap.appendChild(fileBtn); fileWrap.appendChild(fileMsg);
+  var groups = [
+    { h: tr("What is your goal?"), nodes: [title, tpl], check: function () { if (!title.value.trim() && !notes.value.trim()) return tr("Give your goal a name first."); return ""; } },
+    { h: tr("Anything to add?"), sub: tr("Optional. Paste notes or an outline. One line becomes one stage."), nodes: [notes, fileWrap], skippable: true },
+    { h: tr("What kind of goal is it?"), nodes: [kind, priceBox] },
+    { h: tr("When do you want to finish?"), nodes: [endChips, end], check: function () { if (!end.value || end.value <= today) return tr("Pick a finish date after today."); return ""; } },
+    { h: tr("How often, and how long?"), sub: tr("Small and steady wins. You can change this later."), nodes: [field(tr("How often?"), pace), field(tr("How long each day?"), mins)] }
+  ];
+  notes.addEventListener("input", function () { groups[1].filled = !!notes.value.trim(); });
+  var row = el("div", "gf-actions"); row.appendChild(go); row.appendChild(cancel);
+  if (window.PaceSteps) { PaceSteps.make(f, groups, { actions: row, err: err }); }
+  else { groups.forEach(function (g) { g.nodes.forEach(function (n) { f.appendChild(n); }); }); f.appendChild(err); f.appendChild(row); }
   setTimeout(function () { if (draft) { title.value = draft.title || ""; notes.value = draft.notes || ""; pace.value = draft.pace || "daily"; mins.value = String(draft.mins || 20); } }, 0);
   return f;
 }
@@ -329,6 +352,7 @@ function finishPlan(d) {
 function buildAsk(f) {
   f.appendChild(el("h3", "gf-h", draft.title));
   f.appendChild(el("p", "gf-sum", tr("A few quick questions, so the steps fit you. Skip any you like.")));
+  var askGroups = [];
   draft.ask.forEach(function (q) {
     var box = el("div", "gf-field", null, { "data-q": q.id });
     box.appendChild(el("span", "gf-label", tr(q.label)));
@@ -351,7 +375,8 @@ function buildAsk(f) {
       inp.addEventListener("input", function () { draft.answers[q.id] = inp.value.trim(); });
       box.appendChild(inp);
     }
-    f.appendChild(box);
+    askGroups.push({ h: tr(q.label), nodes: [box], skippable: true });
+    box.removeChild(box.firstChild);
   });
   var err = el("p", "gf-err", "", { role: "alert" });
   f.appendChild(err);
@@ -362,7 +387,9 @@ function buildAsk(f) {
   go.addEventListener("click", function () { run(false); });
   skip.addEventListener("click", function () { run(true); });
   back.addEventListener("click", function () { draft = null; renderGoals(true); });
-  var row2 = el("div", "gf-actions"); row2.appendChild(go); row2.appendChild(skip); row2.appendChild(back); f.appendChild(row2);
+  var row2 = el("div", "gf-actions"); row2.appendChild(go); row2.appendChild(skip); row2.appendChild(back);
+  err.parentNode && err.parentNode.removeChild(err);
+  if (window.PaceSteps) PaceSteps.make(f, askGroups, { actions: row2, err: err }); else { askGroups.forEach(function (g) { g.nodes.forEach(function (n) { f.appendChild(n); }); }); f.appendChild(err); f.appendChild(row2); }
   return f;
 }
 function buildPreview(f) {

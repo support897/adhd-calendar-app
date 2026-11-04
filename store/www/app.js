@@ -2304,9 +2304,10 @@ function submitHabit() {
   state.habits.push(hab);
   $("habitName").value = ""; if ($("habitTime")) $("habitTime").value = ""; if ($("habitPlan")) $("habitPlan").value = ""; if ($("habitTiny")) $("habitTiny").value = "";
   save(); renderHabits(); refreshAll();
+  if (window.PaceHabitSteps) window.PaceHabitSteps.show(0);
 }
 $("habitAddBtn").addEventListener("click", submitHabit);
-$("habitName").addEventListener("keydown", function (e) { if (e.key === "Enter") submitHabit(); });
+$("habitName").addEventListener("keydown", function (e) { if (e.key === "Enter" && !window.PaceHabitSteps) submitHabit(); });
 
 /* ---------- progress board ---------- */
 function renderProgress() {
@@ -2739,6 +2740,7 @@ var TOUR = [];
 function buildTour() {
   TOUR = [];
   if (tourNeedsName()) TOUR.push({ kind: "name", pose: "welcome", bubble: "Ahoy! I'm Skip. Welcome aboard! What's your name?", next: "Next" });
+  TOUR.push({ kind: "choose", pose: "welcome", bubble: "Hi, I'm Skip! I'll help you make your day feel a little easier. You don't have to figure everything out alone. How would you like to start?", next: "Show me around" });
   GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); if (step.action === "energy") { TOUR.push({ kind: "tour", pose: "point", bubble: "Low keeps only what matters and one small step. Steady is a balanced day. Full fits a bit more, and breaks stay protected. Pace shows you every change first.", next: "Next", action: "demo" }); TOUR.push({ kind: "tour", pose: "point", bubble: "Talk to it. Tell it what is on your mind. It sorts it into tasks, notes and goals, and you check everything before it is added.", next: "Next", action: "try" }); } });
   TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar if you want. The file is copied; it is never changed.", next: "Next" });
   TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders are optional. Choose if you want a gentle prompt.", next: "Next", panel: "settings" });
@@ -2813,6 +2815,14 @@ function showGuide(step) {
         ex.querySelectorAll("[data-energy]").forEach(function (choice) { choice.setAttribute("aria-pressed", String(choice === button)); });
       });
     });
+  } else if (s.kind === "choose") {
+    ex.innerHTML = '<div class="guide-choose"><button type="button" class="primary-btn" id="guideShort">' + tr("Let's get started") + '</button><button type="button" class="soft-btn" id="guideSelf">' + tr("I'll explore myself") + '</button></div>';
+    $("guideShort").addEventListener("click", function () {
+      /* the short path: how you feel, how the day adapts, Talk to Pace, then one real action */
+      var keep = TOUR.slice(0, guideStep + 1).concat(TOUR.slice(guideStep + 1).filter(function (x) { return x.action === "energy" || x.action === "demo" || x.action === "try" || x.action === "first"; }));
+      TOUR = keep; showGuide(guideStep + 1);
+    });
+    $("guideSelf").addEventListener("click", closeGuide);
   } else if (s.action === "demo") {
     ex.innerHTML = '<div class="guide-demo"><div><b>' + esc(state.settings.names.low) + '</b> 1 priority, 1 tiny step</div><div><b>' + esc(state.settings.names.steady) + '</b> up to 3 priorities, breaks kept</div><div><b>' + esc(state.settings.names.full) + '</b> a bit more, never to the brim</div></div>';
   } else if (s.action === "try") {
