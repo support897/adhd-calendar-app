@@ -154,6 +154,7 @@ try {
         <div id="yearView" hidden></div>
       </div>
 
+      <div id="paceToday" class="pace-today"></div>
       <div id="dayList" class="day-list agenda"></div>
     </section>
 
@@ -170,6 +171,8 @@ try {
         </div>
         <p id="captureMsg" class="hint" role="status"></p>
       </div>
+      <div id="paceReview" class="pace-review" hidden></div>
+      <section id="paceCaptured" class="pace-captured"></section>
       <div id="draftArea" hidden>
         <h3 data-i18n>Here is what I made from that. Fix any of it.</h3>
         <div id="draftList"></div>
@@ -223,6 +226,7 @@ try {
     <!-- PROGRESS PANEL -->
     <section class="panel" id="panel-progress">
       <header class="topbar"><h2 data-i18n>Progress</h2></header>
+      <div id="paceRewards" class="pace-rewards"></div>
       <div id="progressSummary" class="progress-summary"></div>
       <div class="board">
         <div class="board-col" data-status="todo"><h3 data-i18n>Next</h3><div class="board-list" id="col-todo"></div></div>
@@ -293,6 +297,17 @@ try {
         <label class="row" data-i18n>Bad day is called <input type="text" id="nameLow" value="Bad" maxlength="14"></label>
         <label class="row" data-i18n>Ok day is called <input type="text" id="nameSteady" value="Ok" maxlength="14"></label>
         <label class="row" data-i18n>Great day is called <input type="text" id="nameFull" value="Great" maxlength="14"></label>
+      </div>
+      <div class="settings-group" id="setPace">
+        <h3 data-i18n>Plan and rewards</h3>
+        <p class="hint" data-i18n>Pace plans with fixed rules. No AI, no account needed, free for everyone.</p>
+        <label class="row check"><input type="checkbox" id="pcQuiet"> <span data-i18n>Quiet mode: hide rewards, streaks and extras</span></label>
+        <label class="row"><span data-i18n>My work day starts</span> <input type="time" id="pcStart" value="09:00"></label>
+        <label class="row"><span data-i18n>My work day ends</span> <input type="time" id="pcEnd" value="17:30"></label>
+        <label class="row"><span data-i18n>Leave this much time open</span> <select id="pcOpen"><option value="35">35%</option><option value="28">28%</option><option value="25">25%</option><option value="20">20%</option></select></label>
+        <label class="row check"><input type="checkbox" id="pcReflect"> <span data-i18n>Evening look back (after 6pm)</span></label>
+        <label class="row check"><input type="checkbox" id="pcLearn"> <span data-i18n>Plan with how long my tasks really take</span></label>
+        <button type="button" id="pcReplay" class="soft-btn" data-i18n>Replay Skip's tour</button>
       </div>
       <div class="settings-group" id="setFocus">
         <h3 data-i18n>Focus</h3>
@@ -754,6 +769,9 @@ try {
 <script src="i18n.js"></script>
 <script src="logic.js"></script>
 <script src="goals.js"></script>
+<script src="brain.js"></script>
+<script src="planner.js"></script>
+<script src="rewards.js"></script>
 <script src="vendor/tesseract/tesseract.min.js"></script>
 <script src="vendor/ical/ical.min.js"></script>
 <script src="calendar-import.js"></script>
@@ -766,6 +784,7 @@ try {
 <script src="sharing.js"></script>
 <script src="app.js"></script>
 <script src="goals-ui.js"></script>
+<script src="pace-ui.js"></script>
 <script src="sharing-ui.js"></script>
 </body>
 </html>
