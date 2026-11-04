@@ -30,7 +30,7 @@ var BADGES = {
   goalHalf: { name: "Halfway there", desc: "A goal reached 50%." },
   goalDone: { name: "Goal complete", desc: "Finished a whole goal." }
 };
-var CHEERS = ["That counts.", "Nice. One more thing off your mind.", "You did it.", "Look how far you have come.", "Small steps add up.", "Done. Take a breath.", "Well done. You showed up.", "That was real progress."];
+var CHEERS = ["You made progress!", "That counts.", "Nice. One more thing off your mind.", "You did it.", "Look how far you have come.", "Small steps add up.", "Done. Take a breath.", "Well done. You showed up.", "That was real progress."];
 var LOW_CHEERS = ["On a Low day, this is a big deal.", "You did something on a gentle day. That counts double.", "Slow is still moving."];
 
 function R(state) { if (!state.rewards || typeof state.rewards !== "object") state.rewards = {}; var r = state.rewards; if (!r.log) r.log = []; if (!r.badges) r.badges = {}; if (typeof r.xp !== "number") r.xp = 0; if (!r.captured) r.captured = 0; if (!r.rest) r.rest = {}; return r; }

@@ -183,9 +183,14 @@ function splitClauses(sentence) {
     p = p.replace(/^\s*(?:maybe|perhaps|probably|also|then|just)\s+/i, "");
     var sched = /\b(?:every|daily|weekly|at \d|tomorrow|tonight|today|on (?:mon|tue|wed|thu|fri|sat|sun)\w*)\b/i;
     var schedSplit = sched.test(p) && sched.test(cur) && p.trim().split(/\s+/).length >= 2;
-    var startsAction = schedSplit || VERB_RE.test(p.trim()) || COMMIT_RE.test(p.slice(0, 40)) || /^(?:i\b|we\b)/i.test(p.trim()) || /^(?:remember|don'?t forget|make sure)/i.test(p.trim());
+    var FEELRE = /^(?:feeling|i(?:'m| am| feel| felt)|it(?:'s| is)|this is|that(?:'s| is)|so |honestly|ugh|stressed|anxious|worried|overwhelmed|tired|exhausted)\b/i;
+    var feelStart = /^(?:feeling|i(?:'m| am| feel| felt)|it(?:'s| is)|this is|that(?:'s| is)|so |honestly|ugh|stressed|anxious|worried|overwhelmed|tired|exhausted)\b/i.test(p.trim());
+    var startsAction = feelStart || schedSplit || VERB_RE.test(p.trim()) || COMMIT_RE.test(p.slice(0, 40)) || /^(?:i\b|we\b)/i.test(p.trim()) || /^(?:remember|don'?t forget|make sure)/i.test(p.trim());
     var curHasAction = VERB_RE.test(cur.trim().replace(COMMIT_RE, "").trim()) || COMMIT_RE.test(cur) || /\b(?:meeting|appointment|lunch|dinner|class|call|flight|party|session|interview)\b/i.test(cur);
-    if (startsAction && curHasAction) { out.push(cur); cur = p; }
+    var curFeel = FEELRE.test(cur.trim()) && !/\b(?:need|have|got|must|should|want|going) to\b/i.test(cur);
+    if (feelStart && cur.trim()) { out.push(cur); cur = p; }
+    else if (curFeel && (VERB_RE.test(p.trim()) || COMMIT_RE.test(p.slice(0, 40)))) { out.push(cur); cur = p; }
+    else if (startsAction && curHasAction) { out.push(cur); cur = p; }
     else cur = cur + ", " + p;
   }
   out.push(cur);
