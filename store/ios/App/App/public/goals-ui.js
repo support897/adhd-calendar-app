@@ -191,7 +191,19 @@ function renderGoals(force) {
   var todays = C.state.tasks.filter(function (t) { return t.goalId && t.date === today; });
   if (todays.length) {
     var d = todays.filter(function (t) { return t.status === "done"; }).length;
-    root.appendChild(el("div", "goal-today", tr("Goal steps today: {a} of {b} done", { a: d, b: todays.length })));
+    var box = el("div", "goal-today");
+    box.appendChild(el("div", "goal-today-h", tr("Goal steps today: {a} of {b} done", { a: d, b: todays.length })));
+    todays.forEach(function (t) {
+      var on = t.status === "done";
+      var row = el("button", "goal-today-row" + (on ? " is-done" : ""), null, { type: "button", "aria-pressed": String(on), "data-step": t.id });
+      row.appendChild(el("span", "gt-check", on ? "\u2713" : ""));
+      row.appendChild(el("span", "gt-text", t.title));
+      row.addEventListener("click", function () { C.toggleDone(t.id, t.date); });
+      box.appendChild(row);
+    });
+    root.appendChild(box);
+  } else if (goals.length) {
+    root.appendChild(el("div", "goal-today", tr("No goal steps today. A rest day is part of the plan.")));
   }
 
   if (showForm) root.appendChild(buildForm());
@@ -203,6 +215,8 @@ function renderGoals(force) {
 
   if (!goals.length && !showForm) root.appendChild(el("div", "empty-note", tr("No goals yet. A semester goal, a certificate, a tidy home: start with one.")));
   goals.forEach(function (g) { root.appendChild(goalCard(g, today)); });
+  // Shared goals (build 39): goals other people shared with me.
+  if (window.PaceShareUI) window.PaceShareUI.renderSharedSection(root);
   var why = el("details", "why-box");
   why.appendChild(el("summary", null, tr("Why small steps")));
   [
@@ -226,6 +240,12 @@ function buildForm() {
   if (draft && draft.ask) return buildAsk(f);
   var today = L.todayKey();
   var title = el("input", null, null, { id: "goalTitle", type: "text", maxlength: "100", autocomplete: "off", placeholder: tr("e.g. Pass my biology exam") });
+  var tpl = el("div", "gf-templates", null, { "aria-label": tr("Quick starts") });
+  [["\ud83d\udcda", "Read a book", "Read a book", "personal"], ["\ud83d\udcb0", "Save money", "Save $600", "money"], ["\ud83c\udf93", "Study for an exam", "Pass my exam", "school"], ["\ud83c\udfe0", "Tidy my home", "Declutter my home", "home"]].forEach(function (x) {
+    var tb = el("button", "gf-tpl", x[0] + " " + tr(x[1]), { type: "button" });
+    tb.addEventListener("click", function () { title.value = x[2]; var cb = f.querySelector('[data-cat="' + x[3] + '"]'); if (cb) cb.click(); title.focus(); });
+    tpl.appendChild(tb);
+  });
   var notes = el("textarea", null, null, { id: "goalNotes", rows: "5", maxlength: "6000", placeholder: tr("Optional: paste your outline, syllabus or notes. One item per line becomes a stage of your plan.") });
   var file = el("input", null, null, { id: "goalFile", type: "file", accept: ".txt,.md,text/plain", hidden: "hidden" });
   var fileBtn = el("label", "soft-btn", tr("Add a text file"));
@@ -273,6 +293,7 @@ function buildForm() {
     renderGoals(true);
   });
   f.appendChild(field(tr("What is your goal?"), title));
+  f.appendChild(tpl);
   f.appendChild(field(tr("Details (optional)"), notes));
   f.appendChild(fileBtn); f.appendChild(fileMsg);
   var kind = el("div", "gf-field"); kind.appendChild(el("span", "gf-label", tr("What kind of goal is it?"))); kind.appendChild(cats); f.appendChild(kind);
@@ -428,6 +449,12 @@ function goalCard(g, today) {
   }
   var seeBtn = el("button", "soft-btn", tr("See steps"), { type: "button", "aria-expanded": "false" });
   var del = el("button", "soft-btn danger", tr("Delete goal"), { type: "button" });
+  // Shared goals (build 39): the share entry lives on the goal card.
+  if (window.PaceShareUI) {
+    var shBtn = el("button", "soft-btn", tr(g.sharedGoalId ? "Shared goal" : "Share this goal"), { type: "button" });
+    shBtn.addEventListener("click", function () { window.PaceShareUI.openShare(g); });
+    acts.appendChild(shBtn);
+  }
   acts.appendChild(seeBtn); acts.appendChild(del);
   card.appendChild(acts);
   var stepsBox = el("div", "goal-steps"); stepsBox.hidden = true; card.appendChild(stepsBox);

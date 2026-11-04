@@ -21,19 +21,30 @@ function nudgeTime(task, setupMin) {
 }
 
 var CATEGORIES = [
-  { id: "money",   label: "Finance",  words: ["pay", "bill", "invoice", "bank", "tax", "rent", "budget", "quote", "price", "refund", "insurance", "savings", "loan", "salary", "mortgage", "super"], color: "#C9920E" },
-  { id: "pets",    label: "Pets",     words: ["dog", "cat ", "cats", "pet ", "pets", "puppy", "kitten", "litter", "groomer", "walk the dog", "feed the"], color: "#A0764B" },
-  { id: "health",  label: "Health",   words: ["doctor", "dentist", "medicine", "tablet", "pills", "gym", "walk", "run", "yoga", "therapist", "therapy", "physio", "vet", "appointment", "checkup", "check-up", "exercise", "swim", "stretch", "scan"], color: "#E85D75" },
-  { id: "family",  label: "Family",   words: ["family", "kids", "kid ", "son ", "daughter", "mum", "mom", "dad", "grandma", "grandpa", "nan ", "baby", "parent", "sister", "brother", "school run", "bedtime story"], color: "#D96AA7" },
-  { id: "school",  label: "School",   words: ["study", "exam", "homework", "assignment", "lecture", "essay", "revise", "revision", "uni ", "semester", "tutorial", "quiz", "course", "thesis", "school", "class "], color: "#2F80ED" },
-  { id: "work",    label: "Work",     words: ["work", "meeting", "email", "report", "client", "boss", "presentation", "spreadsheet", "call the office", "deadline", "project", "interview", "shift"], color: "#5B6BD5" },
-  { id: "home",    label: "Home",     words: ["clean", "tidy", "wash", "laundry", "kitchen", "bedroom", "bins", "garden", "cook", "dishes", "vacuum", "mop", "repair", "fix the"], color: "#35704E" },
-  { id: "travel",  label: "Travel",   words: ["flight", "hotel", "passport", "pack ", "packing", "trip", "holiday", "visa", "train", "airport", "booking"], color: "#00A3C4" },
-  { id: "people",  label: "Friends",  words: ["call", "visit", "birthday", "friend", "pick up", "pickup", "message", "text", "party", "dinner with", "coffee with", "catch up"], color: "#F2994A" },
-  { id: "errands", label: "Errands",  words: ["shop", "groceries", "buy", "post office", "pharmacy", "petrol", "fuel", "drop off", "collect", "return the"], color: "#20A39E" },
-  { id: "creative",label: "Creative", words: ["paint", "draw", "guitar", "piano", "practise", "practice", "craft", "photo", "design", "sketch", "journal", "compose"], color: "#C158DC" },
-  { id: "rest",    label: "Rest",     words: ["rest", "nap", "read", "bath", "breathe", "meditate", "break", "sit outside", "relax"], color: "#8E7CC3" }
+  { id: "money",   label: "Finance",  words: ["pay", "bill", "invoice", "bank", "tax", "rent", "budget", "quote", "price", "refund", "insurance", "savings", "loan", "salary", "mortgage", "super", "invest", "stocks", "credit card", "expenses", "receipt", "payroll"], color: "#C9920E" },
+  { id: "business",label: "Business", words: ["client", "clients", "customer", "customers", "sales", "marketing", "supplier", "stock take", "inventory", "proposal", "pitch", "quote for", "newsletter", "website", "launch", "my business", "orders", "shipping", "ads ", "instagram", "social media", "brand", "wholesale", "vendor", "booking clients"], color: "#B8602E" },
+  { id: "pets",    label: "Pets",     words: ["dog", "cat ", "cats", "pet ", "pets", "puppy", "kitten", "litter", "groomer", "walk the dog", "feed the", "vet"], color: "#A0764B" },
+  { id: "fitness", label: "Fitness",  words: ["gym", "workout", "work out", "run", "jog", "yoga", "swim", "stretch", "exercise", "training", "pilates", "cycling", "bike ride", "hike", "walk", "lift", "cardio", "steps today"], color: "#F25F3A" },
+  { id: "health",  label: "Health",   words: ["doctor", "dentist", "medicine", "tablet", "pills", "therapist", "therapy", "physio", "appointment", "checkup", "check-up", "scan", "blood test", "prescription", "optometrist", "gp ", "vaccine", "mental health", "counsel"], color: "#E85D75" },
+  { id: "family",  label: "Family",   words: ["family", "kids", "kid ", "son ", "daughter", "mum", "mom", "dad", "grandma", "grandpa", "nan ", "baby", "parent", "sister", "brother", "school run", "bedtime story", "husband", "wife", "partner", "cousin", "aunt", "uncle", "in-laws", "nephew", "niece", "playdate"], color: "#D96AA7" },
+  { id: "school",  label: "School",   words: ["study", "exam", "homework", "assignment", "lecture", "essay", "revise", "revision", "uni ", "semester", "tutorial", "quiz", "course", "thesis", "school", "class ", "flashcards", "textbook", "campus"], color: "#2F80ED" },
+  { id: "learning",label: "Learning", words: ["learn", "language", "spanish", "french", "duolingo", "podcast", "audiobook", "practise", "practice", "skill", "certificate", "workshop", "webinar", "read chapter", "book club"], color: "#3B9C9C" },
+  { id: "career",  label: "Career",   words: ["resume", "cv ", "linkedin", "job application", "job search", "promotion", "networking", "portfolio", "cover letter", "salary review", "performance review", "apply for the job"], color: "#2B6CB0" },
+  { id: "work",    label: "Work",     words: ["work", "meeting", "email", "report", "boss", "presentation", "spreadsheet", "call the office", "deadline", "project", "interview", "shift", "standup", "stand-up", "slides", "timesheet", "team"], color: "#5B6BD5" },
+  { id: "food",    label: "Food",     words: ["cook", "meal prep", "meal plan", "dinner", "lunch", "breakfast", "recipe", "bake", "baking", "snack", "lunchbox", "defrost", "marinate", "barbecue", "bbq"], color: "#8BB32F" },
+  { id: "home",    label: "Home",     words: ["clean", "tidy", "wash", "laundry", "kitchen", "bedroom", "bins", "garden", "dishes", "vacuum", "mop", "repair", "fix the", "declutter", "organise", "organize", "plumber", "electrician", "mow", "furniture", "sheets", "windows"], color: "#35704E" },
+  { id: "car",     label: "Car",      words: ["car ", "rego", "registration", "tyres", "tires", "mechanic", "oil change", "car wash", "service the car", "petrol", "fuel", "parking", "roadworthy", "driving lesson"], color: "#4A5568" },
+  { id: "travel",  label: "Travel",   words: ["flight", "hotel", "passport", "pack ", "packing", "trip", "holiday", "visa", "train", "airport", "booking", "itinerary", "luggage", "airbnb", "road trip", "vacation"], color: "#00A3C4" },
+  { id: "admin",   label: "Admin",    words: ["paperwork", "forms", "form ", "renew", "licence", "license", "council", "lawyer", "contract", "apply for", "application", "certificate", "centrelink", "notary", "legal", "will ", "id card", "post office", "mail", "file the"], color: "#5F6F52" },
+  { id: "faith",   label: "Faith",    words: ["church", "pray", "prayer", "mass", "mosque", "temple", "bible", "devotion", "service at church", "worship", "synagogue"], color: "#C7A24A" },
+  { id: "selfcare",label: "Self-care",words: ["skincare", "haircut", "hair appointment", "massage", "spa", "nails", "self-care", "self care", "facial", "shave", "shower", "manicure", "pedicure", "bath"], color: "#B58DB6" },
+  { id: "tech",    label: "Tech",     words: ["backup", "password", "wifi", "laptop", "update the", "install", "software", "phone plan", "back up", "delete photos", "storage", "app update", "subscription"], color: "#2C7A7B" },
+  { id: "people",  label: "Friends",  words: ["call", "visit", "birthday", "friend", "pick up", "pickup", "message", "text", "party", "dinner with", "coffee with", "catch up", "date night", "wedding", "gift", "drinks with", "reply to"], color: "#F2994A" },
+  { id: "errands", label: "Errands",  words: ["shop", "groceries", "buy", "pharmacy", "drop off", "collect", "return the", "dry cleaning", "pick up the parcel", "chemist", "hardware"], color: "#20A39E" },
+  { id: "creative",label: "Creative", words: ["paint", "draw", "guitar", "piano", "craft", "photo", "design", "sketch", "journal", "compose", "write a song", "knit", "sew", "film", "edit video", "blog"], color: "#C158DC" },
+  { id: "rest",    label: "Rest",     words: ["rest", "nap", "read", "breathe", "meditate", "break", "sit outside", "relax", "movie", "game night", "early night", "sleep"], color: "#8E7CC3" }
 ];
+var CATEGORY_ICON = { money: "\ud83d\udcb0", business: "\ud83d\udcc8", pets: "\ud83d\udc3e", fitness: "\ud83c\udfc3", health: "\ud83e\ude7a", family: "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67", school: "\ud83c\udf93", learning: "\ud83d\udcda", career: "\ud83e\udded", work: "\ud83d\udcbc", food: "\ud83c\udf7d\ufe0f", home: "\ud83c\udfe0", car: "\ud83d\ude97", travel: "\u2708\ufe0f", admin: "\ud83d\uddc2\ufe0f", faith: "\ud83d\ude4f", selfcare: "\ud83e\uddf4", tech: "\ud83d\udcbb", people: "\ud83d\udc4b", errands: "\ud83d\uded2", creative: "\ud83c\udfa8", rest: "\ud83d\udecb\ufe0f", goal: "\ud83c\udfaf", general: "\ud83d\udccc" };
 var DEFAULT_COLOR = "#7A8699";
 /* Prefix-on-a-word match: "run" finds "running" but not "prune"; a trailing
    space in a word means "that whole word" ("cat " is not "category"). */
@@ -41,16 +52,69 @@ function wordHit(t, w) {
   var exact = /\s$/.test(w), core = w.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp("(^|[^a-z])" + core + (exact ? "([^a-z]|$)" : "")).test(t);
 }
-function categoryFor(title) {
+function categoryMatch(title) {
   var t = String(title).toLowerCase();
   for (var i = 0; i < CATEGORIES.length; i++) {
     for (var j = 0; j < CATEGORIES[i].words.length; j++) {
-      if (wordHit(t, CATEGORIES[i].words[j])) return { id: CATEGORIES[i].id, color: CATEGORIES[i].color, label: CATEGORIES[i].label };
+      if (wordHit(t, CATEGORIES[i].words[j])) return { cat: CATEGORIES[i], word: CATEGORIES[i].words[j].trim() };
     }
   }
+  return null;
+}
+function categoryFor(title) {
+  var m = categoryMatch(title);
+  if (m) return { id: m.cat.id, color: m.cat.color, label: m.cat.label };
   return { id: "general", color: DEFAULT_COLOR, label: "Other" };
 }
-var CATEGORY_LIST = CATEGORIES.map(function (c) { return { id: c.id, label: c.label, color: c.color }; }).concat([{ id: "general", label: "Other", color: DEFAULT_COLOR }]);
+var GOAL_COLOR = "#9B5DE5";
+var CATEGORY_LIST = CATEGORIES.map(function (c) { return { id: c.id, label: c.label, color: c.color }; }).concat([{ id: "goal", label: "Goal", color: GOAL_COLOR }, { id: "general", label: "Other", color: DEFAULT_COLOR }]);
+
+/* ---- the smart read of a task name (add-task wizard) ----
+   Returns what the words say: a category (with the word that decided it, so the
+   tag can show WHY), an icon (best keyword match in the icon library, else the
+   category's own), the user's goal it belongs to (word overlap), and whether the
+   words sound like a whole goal rather than one task. */
+var GOAL_STOP = /^(the|and|for|with|from|that|this|have|your|into|about|some|task|todo|today|tomorrow|week|time|work|goal|more|make|take|keep|start|finish|then|when|just)$/;
+function stem(w) { return w.slice(0, 5); }
+function sigWords(text) {
+  return String(text || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(function (w) { return w.length >= 4 && !GOAL_STOP.test(w); }).map(stem);
+}
+function matchGoal(title, goals) {
+  var tw = sigWords(title), best = null, bestN = 0;
+  if (!tw.length) return null;
+  (goals || []).forEach(function (g) {
+    if (!g || !g.title) return;
+    var gw = sigWords(g.title + " " + (g.notes || "").slice(0, 200)), n = 0;
+    tw.forEach(function (w) { if (gw.indexOf(w) !== -1) n++; });
+    if (n > bestN) { bestN = n; best = g; }
+  });
+  return best;
+}
+var GOAL_VERB = /^\s*(learn|master|lose|gain|save|pay off|get (?:fit|fitter|healthy|stronger|promoted|a job)|write (?:a|my) (?:book|novel|thesis)|build|launch|start (?:a|my)|quit|become|prepare for|train for|run (?:a|my) (?:marathon|5k|10k)|read \d+|finish (?:my|the) (?:degree|thesis|book|novel)|pass (?:my|the)|declutter (?:my|the) (?:whole|entire)|renovate|move to)\b/i;
+function looksLikeGoal(text) {
+  var t = String(text || "");
+  if (/\b(today|tomorrow|tonight|at \d|\d(?:am|pm)|on (?:mon|tue|wed|thu|fri|sat|sun))/i.test(t)) return false;
+  return GOAL_VERB.test(t) || /\b(by (?:the end of |next )?(?:year|month|summer|december|june|march)|every day for a (?:month|year|week)|\d+\s?(?:kg|lbs|pounds|books|chapters)\b)/i.test(t);
+}
+function iconCandidates(title, icons) {
+  var t = String(title).toLowerCase(), scored = [];
+  (icons || []).forEach(function (it) {
+    if (!it.icon) return;
+    var kws = String(it.keywords || "").toLowerCase().split(/\s+/).filter(function (k) { return k.length >= 3; }), sc = 0;
+    kws.forEach(function (k) { if (wordHit(t, k + " ") || wordHit(t, k)) sc += k.length; });
+    if (sc) scored.push({ icon: it.icon, name: it.name, sc: sc });
+  });
+  scored.sort(function (a, b) { return b.sc - a.sc; });
+  return scored.slice(0, 8).map(function (x) { return x.icon; });
+}
+function analyzeTask(text, goals, icons) {
+  var m = categoryMatch(text), goal = matchGoal(text, goals);
+  var cat = m ? { id: m.cat.id, label: m.cat.label, color: m.cat.color } : { id: "general", label: "Other", color: DEFAULT_COLOR };
+  var why = m ? m.word : "";
+  var cands = iconCandidates(text, icons);
+  var icon = cands[0] || CATEGORY_ICON[cat.id] || CATEGORY_ICON.general;
+  return { category: cat, why: why, icon: icon, icons: cands, goal: goal ? { id: goal.id, title: goal.title, category: goal.category } : null, looksLikeGoal: !goal && looksLikeGoal(text) };
+}
 
 function estimateDuration(title) {
   var t = String(title).toLowerCase();
@@ -305,7 +369,7 @@ var api = {
   categoryFor: categoryFor, CATEGORY_LIST: CATEGORY_LIST, estimateDuration: estimateDuration,
   isBig: isBig, decompose: decompose, parseItem: parseItem, parseDump: parseDump,
   sortDay: sortDay, adaptDay: adaptDay, dayScore: dayScore,
-  nextStepText: nextStepText, digestText: digestText, CATEGORIES: CATEGORIES,
+  nextStepText: nextStepText, analyzeTask: analyzeTask, categoryMatch: categoryMatch, looksLikeGoal: looksLikeGoal, CATEGORY_ICON: CATEGORY_ICON, GOAL_COLOR: GOAL_COLOR, digestText: digestText, CATEGORIES: CATEGORIES,
   HABIT_ICONS: HABIT_ICONS, streakInfo: streakInfo
 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;

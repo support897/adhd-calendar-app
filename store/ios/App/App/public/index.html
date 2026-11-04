@@ -141,12 +141,21 @@ try {
 
       <div id="upNext" class="up-next" hidden></div>
 
+      <form id="tsForm" class="ts-bar" autocomplete="off">
+        <span class="ts-label" data-i18n>To do</span>
+        <input id="tsInput" type="text" placeholder="Add a to-do. No time needed" data-i18n-ph aria-label="Add a to-do with no time" data-i18n-aria maxlength="160">
+        <button type="submit" id="tsAdd" class="ts-add" aria-label="Add to-do" data-i18n-aria><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+      </form>
+      <div id="tsCarry" class="ts-carry" hidden></div>
+      <div id="dragTray" class="drag-tray" hidden></div>
+
       <div id="calendarWrap">
         <div id="calendar"></div>
         <div id="yearView" hidden></div>
       </div>
 
-      <div id="dayList" class="day-list"></div>
+      <div id="paceToday" class="pace-today"></div>
+      <div id="dayList" class="day-list agenda"></div>
     </section>
 
     <!-- CAPTURE PANEL -->
@@ -162,6 +171,8 @@ try {
         </div>
         <p id="captureMsg" class="hint" role="status"></p>
       </div>
+      <div id="paceReview" class="pace-review" hidden></div>
+      <section id="paceCaptured" class="pace-captured"></section>
       <div id="draftArea" hidden>
         <h3 data-i18n>Here is what I made from that. Fix any of it.</h3>
         <div id="draftList"></div>
@@ -215,6 +226,7 @@ try {
     <!-- PROGRESS PANEL -->
     <section class="panel" id="panel-progress">
       <header class="topbar"><h2 data-i18n>Progress</h2></header>
+      <div id="paceRewards" class="pace-rewards"></div>
       <div id="progressSummary" class="progress-summary"></div>
       <div class="board">
         <div class="board-col" data-status="todo"><h3 data-i18n>Next</h3><div class="board-list" id="col-todo"></div></div>
@@ -286,6 +298,27 @@ try {
         <label class="row" data-i18n>Ok day is called <input type="text" id="nameSteady" value="Ok" maxlength="14"></label>
         <label class="row" data-i18n>Great day is called <input type="text" id="nameFull" value="Great" maxlength="14"></label>
       </div>
+      <div class="settings-group" id="setPace">
+        <h3 data-i18n>Plan and rewards</h3>
+        <p class="hint" data-i18n>Pace plans with fixed rules. No AI, no account needed, free for everyone.</p>
+        <label class="row check"><input type="checkbox" id="pcQuiet"> <span data-i18n>Quiet mode: hide rewards, streaks and extras</span></label>
+        <label class="row"><span data-i18n>My work day starts</span> <input type="time" id="pcStart" value="09:00"></label>
+        <label class="row"><span data-i18n>My work day ends</span> <input type="time" id="pcEnd" value="17:30"></label>
+        <label class="row"><span data-i18n>Leave this much time open</span> <select id="pcOpen"><option value="35">35%</option><option value="28">28%</option><option value="25">25%</option><option value="20">20%</option></select></label>
+        <label class="row check"><input type="checkbox" id="pcReflect"> <span data-i18n>Evening look back (after 6pm)</span></label>
+        <label class="row check"><input type="checkbox" id="pcLearn"> <span data-i18n>Plan with how long my tasks really take</span></label>
+        <button type="button" id="pcReplay" class="soft-btn" data-i18n>Replay Skip's tour</button>
+      </div>
+      <div class="settings-group" id="setFocus">
+        <h3 data-i18n>Focus</h3>
+        <p class="hint" data-i18n>A calm timer for one task. Optional, always.</p>
+        <label class="row check" data-i18n><input type="checkbox" id="fcAuto"> Offer focus at the start of each timed task</label>
+        <label class="row check" data-i18n><input type="checkbox" id="fcBlock"> Keep me off these apps while I focus</label>
+        <div id="fcAppsWrap" hidden>
+          <div id="fcApps" class="chip-row" role="group" aria-label="Apps to keep away from" data-i18n-aria></div>
+          <p class="hint" id="fcNote" data-i18n>Your picks are saved. Pace nudges you back if you leave during a focus. Full blocking needs Apple's Screen Time permission, which Pace will ask for when Apple approves it.</p>
+        </div>
+      </div>
       <div class="settings-group" id="setNotif">
         <h3 data-i18n>Notifications</h3>
         <p class="hint" id="notifStatus" data-i18n>Notifications are off.</p>
@@ -332,42 +365,90 @@ try {
     </section>
   </main>
   <nav id="bottomTabs" aria-label="Main navigation" data-i18n-aria>
-    <button type="button" data-tab="today" class="is-active" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg><span data-i18n>Today</span></button>
-    <button type="button" data-tab="calendar"><svg class="ico" aria-hidden="true"><use href="#i-calplus"/></svg><span data-i18n>Calendar</span></button>
+    <button type="button" data-tab="calendar" class="is-active" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg><span data-i18n>Calendar</span></button>
+    <button type="button" data-tab="goals"><svg class="ico" aria-hidden="true"><use href="#i-goal"/></svg><span data-i18n>Goals</span></button>
     <button type="button" data-tab="capture"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg><span data-i18n>Talk to it</span></button>
     <button type="button" data-tab="todo"><svg class="ico" aria-hidden="true"><use href="#i-todo"/></svg><span data-i18n>To do</span></button>
+    <button type="button" data-tab="habits"><svg class="ico" aria-hidden="true"><use href="#i-habits"/></svg><span data-i18n>Habits</span></button>
     <button type="button" data-tab="more"><svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg><span data-i18n>More</span></button>
   </nav>
 </div>
 
 <!-- QUICK ADD -->
+<button id="fab" class="fab" type="button" aria-label="New task" data-i18n-aria title="New task"><svg class="ico fab-plus" aria-hidden="true"><use href="#i-plus"/></svg><svg class="ico fab-bin" aria-hidden="true"><use href="#i-trash"/></svg></button>
+
+<div id="focusAsk" class="focus-ask" hidden role="alert"><span id="faText"></span><button id="faStart" class="primary-btn" type="button" data-i18n>Start focus</button><button id="faNo" class="soft-btn" type="button" data-i18n>Not now</button></div>
+<div id="focusScreen" class="focus-screen" hidden role="dialog" aria-modal="true" aria-label="Focus" data-i18n-aria>
+  <button id="fsClose" class="fs-x" type="button" aria-label="Close focus" data-i18n-aria><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+  <div class="fs-icon" id="fsIcon" aria-hidden="true"></div>
+  <h2 id="fsTitle"></h2>
+  <div class="fs-ring" aria-live="off"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="fs-bg" cx="60" cy="60" r="54"/><circle class="fs-fg" id="fsFg" cx="60" cy="60" r="54"/></svg><div id="fsTime" role="timer">25:00</div></div>
+  <p id="fsSub" class="fs-sub" role="status"></p>
+  <div id="fsSteps" class="fs-steps"></div>
+  <div class="fs-actions"><button id="fsPause" class="soft-btn" type="button" data-i18n>Pause</button><button id="fsMore" class="soft-btn" type="button" data-i18n>5 more minutes</button><button id="fsDone" class="primary-btn" type="button" data-i18n>Done</button></div>
+  <p id="fsAway" class="hint" hidden></p>
+</div>
+
 <div id="addSheet" class="sheet" hidden>
-  <div class="sheet-card">
-    <h3 data-i18n>Add a task</h3>
-    <label class="field">
-      <input type="text" id="quickText" data-i18n-ph placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes" aria-label="Say it in one sentence">
-    </label>
-    <div id="quickSuggest" class="qsuggest" role="group" aria-label="Quick add">
-      <button type="button" data-add="today">Today</button>
-      <button type="button" data-add="tomorrow">Tomorrow</button>
-      <button type="button" data-add="at 9am">Morning</button>
-      <button type="button" data-add="at 6pm">Evening</button>
-      <button type="button" data-add="every day">Every day</button>
-      <button type="button" data-add="for 30 minutes">30 min</button>
-      <button type="button" data-add="!!!">Important</button>
+  <div class="sheet-card add-wiz" role="dialog" aria-modal="true" aria-label="Add a task" data-i18n-aria>
+    <div id="awHead" class="aw-head">
+      <button type="button" id="addCancel" class="aw-x" aria-label="Close" data-i18n-aria>&#215;</button>
+      <button type="button" id="awIcon" class="aw-icon" aria-label="Change the icon" data-i18n-aria>&#128204;</button>
+      <div class="aw-headtxt"><span id="awWhen" class="aw-when"></span><strong id="awTitle" data-i18n>New task</strong></div>
     </div>
-    <div id="quickPreview" class="quick-preview" hidden></div>
-    <details class="details-fallback"><summary data-i18n>Or fill in the details</summary>
-      <label class="field" data-i18n>Title <input type="text" id="fTitle"></label>
-      <label class="field" data-i18n>Link <input type="url" id="fLink" inputmode="url" placeholder="https://" autocomplete="off"></label>
-      <div class="field-row">
-        <label class="field" data-i18n>Date <input type="date" id="fDate"></label>
-        <label class="field" data-i18n>Time <input type="time" id="fTime"></label>
-        <label class="field" data-i18n>Minutes <input type="number" id="fDur" value="25" min="5" step="5"></label>
+    <div id="awDots" class="aw-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+    <section class="aw-step" data-aw="1">
+      <h3 data-i18n>What do you want to do?</h3>
+      <label class="field"><input type="text" id="quickText" data-i18n-ph placeholder="e.g. Ring the plumber tomorrow at 9am for 30 minutes" aria-label="Say it in one sentence" data-i18n-aria autocomplete="off"></label>
+      <div id="quickSuggest" class="qsuggest" role="group" aria-label="Quick add">
+        <button type="button" data-add="today">Today</button>
+        <button type="button" data-add="tomorrow">Tomorrow</button>
+        <button type="button" data-add="at 9am">Morning</button>
+        <button type="button" data-add="at 6pm">Evening</button>
+        <button type="button" data-add="every day">Every day</button>
+        <button type="button" data-add="for 30 minutes">30 min</button>
+        <button type="button" data-add="!!!">Important</button>
       </div>
-      <label class="field" data-i18n>Smallest version (for low days) <input type="text" id="fMin" data-i18n-ph placeholder="e.g. Just ring and rebook"></label>
-      <label class="field" data-i18n>Biggest version (for full days) <input type="text" id="fFull" data-i18n-ph placeholder="e.g. The whole deep clean"></label>
-      <label class="field" data-i18n>Repeat <select id="fRepeat">
+      <div id="awSmart" class="aw-smart" hidden>
+        <p class="aw-smart-h" data-i18n>Pace read it like this. Tap to change anything.</p>
+        <button type="button" id="awTag" class="aw-tag"><span class="aw-tag-dot"></span><span id="awTagTxt"></span><span class="aw-tag-edit" data-i18n>Change</span></button>
+        <p id="awWhy" class="aw-why"></p>
+        <button type="button" id="awGoalChip" class="aw-goalchip" hidden></button>
+        <div id="awGoalHint" class="aw-goalhint" hidden><span data-i18n>This sounds like a big goal, not one task.</span> <button type="button" id="awMakeGoal" class="soft-btn" data-i18n>Make it a goal</button></div>
+      </div>
+      <div id="awCatBox" class="aw-pick" hidden>
+        <p class="task-look-label" data-i18n>What is this? The colour follows it.</p>
+        <div id="fCatChips" class="chip-row" role="group" aria-label="Category" data-i18n-aria></div>
+      </div>
+      <div id="awIconBox" class="aw-pick" hidden>
+        <input type="search" id="awIconSearch" data-i18n-ph placeholder="Search icons (run, bill, dog…)" aria-label="Search icons" data-i18n-aria autocomplete="off">
+        <div id="awIconGrid" class="aw-icongrid"></div>
+      </div>
+      <div id="quickPreview" class="quick-preview" hidden></div>
+    </section>
+
+    <section class="aw-step" data-aw="2" hidden>
+      <h3 data-i18n>When?</h3>
+      <p class="task-look-label" data-i18n>Day</p>
+      <div id="awDayChips" class="chip-row"></div>
+      <input type="date" id="fDate" aria-label="Date" data-i18n-aria>
+      <p class="task-look-label" data-i18n>Time</p>
+      <div id="awTimeChips" class="chip-row"></div>
+      <input type="time" id="fTime" aria-label="Time" data-i18n-aria>
+      <p class="task-look-label" data-i18n>How long?</p>
+      <div id="awDurChips" class="chip-row"></div>
+      <input type="number" id="fDur" value="15" min="5" step="5" aria-label="Minutes" data-i18n-aria>
+    </section>
+
+    <section class="aw-step" data-aw="3" hidden>
+      <h3 data-i18n>Remind and repeat</h3>
+      <div class="field"><span class="gf-label" data-i18n>Remind me for this task</span>
+        <div id="fRemChips" class="chip-row" role="group" aria-label="Reminders for this task" data-i18n-aria></div>
+        <span class="hint" data-i18n>Reminders need a time. Each task keeps its own.</span></div>
+      <p class="task-look-label" data-i18n>Repeat</p>
+      <div id="awRepChips" class="chip-row"></div>
+      <select id="fRepeat" hidden>
         <option value="">Does not repeat</option>
         <option value="every day">Every day</option>
         <option value="every weekday">Every weekday</option>
@@ -376,17 +457,30 @@ try {
         <option value="every 2 weeks">Every 2 weeks</option>
         <option value="every month">Every month</option>
         <option value="every year">Every year</option>
-      </select></label>
-      <p class="task-look-label" data-i18n>Category (Auto picks one from the words)</p>
-      <div id="fCatChips" class="chip-row" role="group" aria-label="Category"></div>
+      </select>
       <label class="row check" data-i18n><input type="checkbox" id="fEssential"> This one must not slip</label>
-    </details>
-    <div class="field"><span class="gf-label" data-i18n>Remind me for this task</span>
-      <div id="fRemChips" class="chip-row" role="group" aria-label="Reminders for this task" data-i18n-aria></div>
-      <span class="hint" data-i18n>Reminders need a time. Each task keeps its own.</span></div>
-    <div class="sheet-actions">
-      <button id="addCancel" class="soft-btn" data-i18n>Cancel</button>
-      <button id="addSave" class="primary-btn" data-i18n>Add task</button>
+    </section>
+
+    <section class="aw-step" data-aw="4" hidden>
+      <h3 data-i18n>Make it easy to start</h3>
+      <p class="task-look-label" data-i18n>Small steps (optional)</p>
+      <div id="awSteps" class="aw-steps"></div>
+      <div class="aw-addstep"><input type="text" id="awStepIn" data-i18n-ph placeholder="Add a small step" aria-label="Add a small step" data-i18n-aria autocomplete="off"><button type="button" id="awStepAdd" class="soft-btn" data-i18n>Add</button></div>
+      <button type="button" id="awSuggestSteps" class="soft-btn" data-i18n>Suggest steps for me</button>
+      <textarea id="fNotes" rows="3" data-i18n-ph placeholder="Notes, meeting links or phone numbers" aria-label="Notes" data-i18n-aria></textarea>
+      <input type="url" id="fLink" inputmode="url" placeholder="https://" autocomplete="off" aria-label="Link">
+      <details class="details-fallback"><summary data-i18n>For low days</summary>
+        <label class="field" data-i18n>Smallest version (for low days) <input type="text" id="fMin" data-i18n-ph placeholder="e.g. Just ring and rebook"></label>
+        <label class="field" data-i18n>Biggest version (for full days) <input type="text" id="fFull" data-i18n-ph placeholder="e.g. The whole deep clean"></label>
+      </details>
+      <div id="awSummary" class="quick-preview"></div>
+    </section>
+
+    <p id="awErr" class="gf-err" role="alert"></p>
+    <div class="sheet-actions aw-actions">
+      <button type="button" id="awBack" class="soft-btn" data-i18n>Back</button>
+      <button type="button" id="awNext" class="primary-btn" data-i18n>Next</button>
+      <button type="button" id="addSave" class="primary-btn" data-i18n hidden>Create task</button>
     </div>
   </div>
 </div>
@@ -400,6 +494,7 @@ try {
     <button id="dBreak" class="soft-btn" data-i18n>Break this into small steps</button>
     <div class="sheet-actions wrap task-main-actions">
       <button id="dDone" class="primary-btn" data-i18n><svg class="ico"><use href="#i-check"/></svg>Done</button>
+      <button id="dFocus" class="soft-btn" data-i18n><svg class="ico"><use href="#i-play"/></svg>Focus</button>
       <button id="dDoing" class="soft-btn" data-i18n><svg class="ico"><use href="#i-play"/></svg>Doing</button>
       <button id="dNotToday" class="soft-btn" data-i18n><svg class="ico"><use href="#i-h-moon"/></svg>Not today</button>
     </div>
@@ -409,7 +504,8 @@ try {
       <label class="field" data-i18n>Time <input type="time" id="dTime"></label>
       <label class="field" data-i18n>Minutes <input type="number" id="dDur" min="5" step="5"></label>
     </div>
-      <label class="row check" data-i18n><input type="checkbox" id="dEssential"> This one must not slip</label></div>
+      <label class="row check" data-i18n><input type="checkbox" id="dEssential"> This one must not slip</label>
+      <label class="row check" data-i18n><input type="checkbox" id="dFocusAuto"> Offer focus when this starts</label></div>
     </details>
     <details class="task-more" id="dNotesWrap"><summary data-i18n>Notes and audio</summary>
       <div class="task-more-body"><section class="task-note-section" aria-labelledby="dNotesHeading">
@@ -650,12 +746,32 @@ try {
   </div>
 </div>
 
+<div id="shareSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3 data-i18n>Share goal</h3>
+    <div id="sgBody"></div>
+    <div class="sheet-actions">
+      <button id="shareClose" class="soft-btn" data-i18n>Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="joinSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3 data-i18n>Join goal</h3>
+    <div id="joinBody"></div>
+  </div>
+</div>
+
 <div id="toast" class="toast" hidden></div>
 
 <script src="fullcalendar.js"></script>
 <script src="i18n.js"></script>
 <script src="logic.js"></script>
 <script src="goals.js"></script>
+<script src="brain.js"></script>
+<script src="planner.js"></script>
+<script src="rewards.js"></script>
 <script src="vendor/tesseract/tesseract.min.js"></script>
 <script src="vendor/ical/ical.min.js"></script>
 <script src="calendar-import.js"></script>
@@ -665,7 +781,10 @@ try {
 <script src="billing-config.js"></script>
 <script src="billing.js"></script>
 <script src="firebase.js"></script>
+<script src="sharing.js"></script>
 <script src="app.js"></script>
 <script src="goals-ui.js"></script>
+<script src="pace-ui.js"></script>
+<script src="sharing-ui.js"></script>
 </body>
 </html>

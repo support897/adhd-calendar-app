@@ -260,7 +260,16 @@ var TASK_ICONS = [
   { icon: "🍀", name: "Luck / Trébol", keywords: "luck clover suerte trebol" },
   { icon: "🪁", name: "Kite / Cometa", keywords: "kite play cometa jugar" },
   { icon: "🧘‍♀️", name: "Meditate / Meditar", keywords: "meditate calm meditar" },
-  { icon: "🥳", name: "Treat / Premio", keywords: "treat reward premio recompensa" }
+  { icon: "🥳", name: "Treat / Premio", keywords: "treat reward premio recompensa" },
+  { icon: "🖥️", name: "Computer", keywords: "computer desk laptop computadora" },
+  { icon: "🧒", name: "Kids", keywords: "kids child school run nino" },
+  { icon: "🍻", name: "Drinks", keywords: "drinks pub bar beer" },
+  { icon: "👯", name: "Friends", keywords: "friends catch up amigos" },
+  { icon: "🐶", name: "Dog", keywords: "dog puppy walk perro" },
+  { icon: "🐱", name: "Cat", keywords: "cat kitten gato" },
+  { icon: "🏨", name: "Hotel", keywords: "hotel stay airbnb hospedaje" },
+  { icon: "🛂", name: "Passport / Visa", keywords: "passport visa id pasaporte" },
+  { icon: "📄", name: "Paperwork", keywords: "paperwork forms documents papeleo" },
 ];
 var TASK_COLORS = [
   { hex: "#7A8699", name: "Slate / Pizarra" }, { hex: "#C9920E", name: "Amber / Ámbar" },
@@ -345,6 +354,7 @@ function load(fromKey) {
       else s.dayOrder[day] = s.dayOrder[day].filter(function (id) { return typeof id === "string"; }).slice(0, 5000);
     });
     if (!isObj(s.feelings)) s.feelings = {};
+    if (!isObj(s.spreads)) s.spreads = {};
     if (!isObj(s.sent)) s.sent = {};
     if (typeof s.todos === "string" && s.todos) s.todos = [{ text: s.todos }];
     if (!Array.isArray(s.todos)) s.todos = [];
@@ -660,24 +670,76 @@ var FACTORY_NAMES = { low: "Bad", steady: "Ok", full: "Great" };
 function displayLevelName(k) { var n = state.settings.names[k]; return n === FACTORY_NAMES[k] ? tr(n) : n; }
 
 /* ---------- day list (the adapted plan) ---------- */
-function renderDayList() {
-  var key = selected;
-  var ad = adaptedFor(key);
-  var score = L.dayScore(ad);
+var agendaKey = "", agendaDays = 3;
+function agendaDayLabel(key) {
   var d = L.parseKey(key);
-  var level = levelFor(key);
-  var carry = key === L.todayKey() ? carryoverTasks(key) : [];
-  var html = "<h3>" + d.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }) +
-    '<span class="dl-score">' + tr("{done} of {total} done at your {name} pace", { done: score.done, total: score.total, name: displayLevelName(level) }) + "</span></h3>";
-  html += '<div class="dl-progress"><i style="width:' + score.pct + '%"></i></div>';
-  if (carry.length) html += '<div class="carryover-card"><p>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</p><button class="soft-btn" data-act="carry-over">' + tr("Bring them to today") + '</button></div>';
-  if (!ad.visible.length && !ad.done.length && !carry.length) html += '<div class="empty-note dock-note"><span class="dock-skip">' + skipSvg("goodbye") + '</span><span>' + tr("Nothing today. Empty is allowed.") + '</span><button class="soft-btn" data-act="add-first">' + tr("Add one task") + '</button></div>';
-  ad.visible.forEach(function (t, i) { html += rowHtml(t, false, i === 0, i === ad.visible.length - 1); });
-  ad.done.forEach(function (t, i) { html += rowHtml(t, true, i === 0, i === ad.done.length - 1); });
-  if (ad.stretch) html += '<div class="stretch-note">' + tr("One more from tomorrow:") + ' <strong>' + esc(ad.stretch.title) + '</strong><button data-act="stretch" data-id="' + ad.stretch.id + '">' + tr("Bring it to today") + '</button></div>';
-  if (ad.parked.length) html += '<p class="parked-note">' + tr(ad.parked.length === 1 ? "{n} thing parked. Parked, not dropped. Raise the level to bring them back." : "{n} things parked. Parked, not dropped. Raise the level to bring them back.", { n: ad.parked.length }) + "</p>";
-  $("dayList").innerHTML = html;
-  bindRows($("dayList"));
+  var t = L.todayKey();
+  var name = key === t ? tr("Today") : key === L.addDays(t, 1) ? tr("Tomorrow") : key === L.addDays(t, -1) ? tr("Yesterday") : d.toLocaleDateString(LOCALE, { weekday: "long" });
+  return { name: name, date: d.toLocaleDateString(LOCALE, { day: "numeric", month: "short" }) };
+}
+function agendaCard(t, resting) {
+  var row = document.createElement("div");
+  row.className = "ag-card" + (t.status === "done" ? " is-done" : "") + (resting ? " is-resting" : "");
+  row.style.setProperty("--ev-c", t.color || "#5b6bd5");
+  row.setAttribute("data-id", t.id); row.setAttribute("data-date", t.instanceDate);
+  var chk = document.createElement("button"); chk.type = "button";
+  chk.className = "ag-ico" + (t.status === "done" ? " is-on" : "") + (t.icon ? "" : " no-emo");
+  chk.setAttribute("aria-label", tr("Mark done")); chk.setAttribute("aria-pressed", String(t.status === "done"));
+  chk.innerHTML = '<span class="ev-emo">' + esc(t.icon || "") + '</span><span class="ev-tick">' + icon("i-check") + '</span>';
+  chk.addEventListener("click", function (e) { e.stopPropagation(); toggleDone(t.id, t.instanceDate); });
+  var body = document.createElement("div"); body.className = "ag-body";
+  var ti = document.createElement("div"); ti.className = "ag-t"; ti.textContent = t.title; if (t.displayTitle && t.displayTitle !== t.title) { var tg = document.createElement("span"); tg.className = "ag-tag"; tg.textContent = tr("small version today"); ti.appendChild(tg); }
+  var m = document.createElement("div"); m.className = "ag-m";
+  if (!t.time) m.textContent = tr("To do");
+  else { var s1 = t.time, e1 = L.toHHMM(L.toMin(s1) + (t.durationMin || 15)); m.textContent = clockLabel(s1) + "\u2013" + clockLabel(e1) + " \u00b7 " + tr("{n} min", { n: t.durationMin || 15 }); }
+  body.appendChild(ti); body.appendChild(m);
+  row.appendChild(chk); row.appendChild(body);
+  row.addEventListener("click", function () { openTask(t.id, t.instanceDate); });
+  return row;
+}
+function renderDayList() {
+  /* Build 43: the scrollable agenda is back, under the calendar: one block
+     per day, to-dos first then timed tasks, with a Next day button. */
+  var box = $("tsCarry");
+  if (box) {
+    var carry = selected === L.todayKey() ? carryoverTasks(selected) : [];
+    if (!carry.length) { box.hidden = true; box.innerHTML = ""; }
+    else {
+      box.hidden = false;
+      box.innerHTML = '<span>' + tr("You have {n} unfinished tasks from earlier days.", { n: carry.length }) + '</span><button class="soft-btn" type="button" data-act="carry-over">' + tr("Bring them to today") + '</button>';
+      box.querySelector("button").addEventListener("click", function () { carryOverTasks(selected); });
+    }
+  }
+  var host = $("dayList"); if (!host) return;
+  if (agendaKey !== selected) { agendaKey = selected; agendaDays = 3; }
+  host.style.minHeight = host.offsetHeight + "px"; /* keep page height so a tick never jumps the scroll */
+  host.innerHTML = "";
+  var head = document.createElement("div"); head.className = "ag-head";
+  head.innerHTML = '<h3>' + tr("Coming up") + '</h3>';
+  host.appendChild(head);
+  for (var i = 0; i < agendaDays; i++) {
+    var key = L.addDays(selected, i);
+    var ad = adaptedFor(key);
+    var items = ad.visible.concat(ad.done), rest = ad.parked || [];
+    var all = items.map(function (t) { return { t: t, r: false }; }).concat(rest.map(function (t) { return { t: t, r: true }; }));
+    all.sort(function (x, y) { var xa = x.t.time ? L.toMin(x.t.time) : -1, ya = y.t.time ? L.toMin(y.t.time) : -1; return xa - ya; });
+    var sec = document.createElement("section"); sec.className = "ag-day"; sec.setAttribute("data-day", key);
+    var lb = agendaDayLabel(key);
+    var hd = document.createElement("button"); hd.type = "button"; hd.className = "ag-dayhead";
+    hd.innerHTML = '<span class="ag-dn">' + esc(lb.name) + '</span><span class="ag-dd">' + esc(lb.date) + '</span><span class="ag-cnt">' + (all.length ? tr("{n} items", { n: all.length }) : "") + '</span>';
+    hd.addEventListener("click", function (k) { return function () { selectDate(k, true); }; }(key));
+    sec.appendChild(hd);
+    if (!all.length) { var em = document.createElement("div"); em.className = "ag-empty"; em.textContent = tr("Nothing planned. A free day."); sec.appendChild(em); }
+    all.forEach(function (x) { sec.appendChild(agendaCard(x.t, x.r)); });
+    host.appendChild(sec);
+  }
+  var more = document.createElement("div"); more.className = "ag-more";
+  var b1 = document.createElement("button"); b1.type = "button"; b1.className = "soft-btn"; b1.id = "agNext"; b1.textContent = tr("Next day");
+  b1.addEventListener("click", function () { agendaDays += 1; renderDayList(); });
+  var b2 = document.createElement("button"); b2.type = "button"; b2.className = "soft-btn"; b2.id = "agWeek"; b2.textContent = tr("Next 7 days");
+  b2.addEventListener("click", function () { agendaDays += 7; renderDayList(); });
+  more.appendChild(b1); more.appendChild(b2); host.appendChild(more);
+  host.style.minHeight = "";
 }
 function carryoverTasks(key) {
   return state.tasks.filter(function (t) {
@@ -764,7 +826,11 @@ function toggleDone(id, dateKey) {
     t.done = t.status === "done";
     if (t.status === "done") toast(tr("Done. That counts."));
   }
+  try { if (window.PaceUI) window.PaceUI.onToggle(t, dateKey); } catch (e) { console.error(e); }
   save(); refreshAll();
+  // Shared goals (build 39): a tick on a shared step writes
+  // through to the shared doc, so the whole team sees it.
+  if (!t.repeat && window.PaceShareUI) window.PaceShareUI.onLocalTick(t);
 }
 /* Move one occurrence of a (possibly repeating) task to another date. */
 function moveInstance(t, fromKey, toKey) {
@@ -807,10 +873,20 @@ function renderUpNext() {
   // keeps its designed spot at the end of the title line.
   el.innerHTML = '<span class="un-label">' + tr("Up next") + '</span>' + gapTxt + '<strong>' + esc(next.displayTitle || next.title) + "</strong> · " + durationLabel(next) +
     (next.time ? " · " + next.time : "") + (firstStep ? '<span class="un-step">' + esc(firstStep) + "</span>" : "") + '<button data-un="' + next.id + '"' + (firstStep ? ' class="un-start"' : "") + ">" + tr("Start") + '</button>';
+  var fb = document.createElement("button"); fb.type = "button"; fb.className = "un-focus"; fb.textContent = tr("Focus");
+  fb.addEventListener("click", function () { startFocus(next.id, next.instanceDate || today); });
+  el.appendChild(fb);
   el.querySelector("[data-un]").addEventListener("click", function () {
     var t = baseTask(next.id); if (t) { t.status = "doing"; save(); refreshAll(); toast(tr("Started. One step at a time.")); }
   });
 }
+
+/* The small red "now" line: says the time and which part of the day you are in. */
+function paceDayPart(d) { var h = d.getHours(); return h < 5 ? tr("Night") : h < 12 ? tr("Morning") : h < 17 ? tr("Afternoon") : h < 21 ? tr("Evening") : tr("Night"); }
+function paceNowText() { var d = new Date(); return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " \u00b7 " + paceDayPart(d); }
+function paceScrollToNow() { var l = document.querySelector(".fc-timegrid-now-indicator-line"); if (l && l.scrollIntoView) { try { l.scrollIntoView({ block: "center" }); } catch (e) { l.scrollIntoView(); } } }
+function paceNowLabel(el, isAxis) { if (el && !isAxis) el.setAttribute("data-now", paceNowText()); }
+setInterval(function () { document.querySelectorAll(".fc-timegrid-now-indicator-line").forEach(function (e) { e.setAttribute("data-now", paceNowText()); }); }, 20000);
 
 /* ---------- check-in ---------- */
 function renderCheckin() {
@@ -827,12 +903,78 @@ function renderCheckin() {
   if (subEl && state.feelings[selected]) subEl.textContent = adc.parked.length ? tr("Showing {a} of {b}. {c} resting until you feel up to it. You can change this any time.", { a: adc.visible.length, b: tot, c: adc.parked.length }) : tr("Showing everything for today. You can change this any time.");
   $("checkinQ").textContent = selected === L.todayKey() ? tr("How are you feeling today?") : tr("How does this day feel?");
 }
+/* ---------- Bad day: big things become small steps over the next days ----------
+   Researched shape (Goblin Tools / Tiimo / Sunsama): when energy is low, do not
+   just hide work or pile it onto tomorrow. Cut each movable thing into small
+   steps and lay one step per day on the lightest coming days. Things that cannot
+   move (marked must-do, repeating, imported appointments, anything already
+   started or done) stay exactly where they are. Choosing a better feeling, or
+   tapping Undo, puts every task back whole. */
+function canMoveTask(t, key) {
+  return !!t && !t.essential && !t.repeat && t.source !== "import" && t.status === "todo" && t.date === key && !t.spreadOf;
+}
+function spreadLowDay(key) {
+  if (!isObj(state.spreads)) state.spreads = {};
+  if (state.spreads[key]) return 0;
+  var ad = L.adaptDay(tasksOn(key), "low", []), moved = [];
+  var load = {};
+  function count(day) { return (load[day] != null ? load[day] : (load[day] = tasksOn(day).length)); }
+  ad.parked.forEach(function (p) {
+    var base = baseTask(p.id);
+    if (!canMoveTask(base, key)) return;
+    var steps = (base.steps || []).filter(function (x) { return x && x.text && !x.done; }).map(function (x) { return x.text; });
+    if (steps.length < 2) steps = L.decompose(base.title, base.durationMin, true).map(function (x) { return x.text; });
+    var n = Math.min(3, steps.length), groups = [], per = Math.ceil(steps.length / n), i;
+    for (i = 0; i < steps.length; i += per) groups.push(steps.slice(i, i + per));
+    n = groups.length;
+    var chunkMin = Math.max(5, Math.min(25, Math.round((base.durationMin || 30) / n / 5) * 5));
+    var prev = key, ids = [], baseIdx = state.tasks.indexOf(base);
+    groups.forEach(function (g, gi) {
+      var day = null, best = 1e9, d;
+      for (d = 1; d <= 7; d++) {
+        var cand = L.addDays(prev, d);
+        if (levelFor(cand) === "low" && d < 7) continue;
+        var c = count(cand);
+        if (c < best) { best = c; day = cand; }
+        if (c === 0) break;
+      }
+      day = day || L.addDays(prev, 1);
+      load[day] = count(day) + 1; prev = day;
+      var chunk = { id: uid(), title: base.title + " (" + (gi + 1) + " of " + n + ")", date: day, time: null, durationMin: chunkMin, priority: base.priority || 0, repeat: null,
+        category: base.category, color: base.color, icon: base.icon, essential: false, status: "todo",
+        steps: g.map(function (x) { return { text: x, done: false }; }), minVersion: "", fullVersion: "",
+        source: base.source || "manual", originalText: base.originalText || "", skipDates: [], doneDates: [], spreadOf: base.id, spreadFrom: key };
+      state.tasks.push(chunk); ids.push(chunk.id);
+    });
+    state.tasks.splice(state.tasks.indexOf(base), 1);
+    moved.push({ orig: base, at: baseIdx, ids: ids });
+  });
+  if (moved.length) state.spreads[key] = moved;
+  return moved.length;
+}
+function restoreSpread(key) {
+  if (!isObj(state.spreads) || !state.spreads[key]) return 0;
+  var back = 0;
+  state.spreads[key].forEach(function (rec) {
+    var parts = state.tasks.filter(function (t) { return t.spreadOf === rec.orig.id; });
+    if (parts.some(function (t) { return t.status !== "todo"; })) return; /* already begun: leave it */
+    state.tasks = state.tasks.filter(function (t) { return t.spreadOf !== rec.orig.id; });
+    state.tasks.splice(Math.min(rec.at, state.tasks.length), 0, rec.orig); back++;
+  });
+  delete state.spreads[key];
+  return back;
+}
 document.querySelectorAll(".level-btn").forEach(function (b) {
   b.addEventListener("click", function () {
     var level = b.getAttribute("data-level");
-    state.feelings[selected] = level; save();
+    var wasLow = state.feelings[selected] === "low", moved = 0;
+    state.feelings[selected] = level;
+    if (level !== "low" && wasLow) restoreSpread(selected);
+    if (level === "low" && !wasLow) moved = spreadLowDay(selected);
+    save();
     markActivated("check-in");
-    if (level === "low") toast(tr("Bad day. Small list — the rest is parked, safe."));
+    if (level === "low" && moved) { var dayK = selected; toast(tr("Bad day. {n} bigger things are now small steps over the next days. Must-dos stay put.", { n: moved }), function () { state.feelings[dayK] = "steady"; restoreSpread(dayK); save(); refreshAll(); }); }
+    else if (level === "low") toast(tr("Bad day. Small list — the rest is parked, safe."));
     else if (level === "full") toast(tr("Great day. A little more is on the table."));
     else toast(tr("Ok day. A small, capped list."));
     refreshAll();
@@ -850,7 +992,7 @@ function fcEvents() {
   return instancesInRange(a, b).map(function (t) {
     var ao = adaptOf(t.instanceDate), shown = ao.map[t.id], resting = t.status !== "done" && !shown;
     if (shown && shown.displayTitle) t = Object.assign({}, t, { title: shown.displayTitle, durationMin: shown.autoVersion ? shown.durationMin : (shown.shrunk ? Math.min(t.durationMin, 5) : t.durationMin) });
-    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { taskId: t.id, instanceDate: t.instanceDate } };
+    var ev = { id: t.id + "@" + t.instanceDate, taskId: t.id, instanceDate: t.instanceDate, title: (t.icon ? t.icon + " " : "") + t.title, allDay: !t.time, backgroundColor: t.color, borderColor: t.color, extendedProps: { emoji: t.icon || "", plainTitle: t.title, taskId: t.id, instanceDate: t.instanceDate } };
     if (t.time) {
       var startMin = L.toMin(t.time);
       ev.start = t.instanceDate + "T" + t.time + ":00";
@@ -865,23 +1007,51 @@ function fcEvents() {
 function initCalendar() {
   calendar = new FullCalendar.Calendar($("calendar"), {
     initialView: "timeGridDay",
+    initialDate: L.addDays(selected, -1),
     locale: PACE_LANG === "es" ? "es" : "en",
     height: "auto",
     firstDay: 1,
     headerToolbar: false,
     editable: true,
     dayMaxEvents: 3,
+    allDayText: tr("To do"),
+    slotDuration: "00:30:00",
+    snapDuration: "00:15:00",
+    slotLabelInterval: "01:00",
+    slotLabelFormat: { hour: "numeric", minute: "2-digit", omitZeroMinute: true, meridiem: "short" },
+    eventDragMinDistance: 5,
+    dragRevertDuration: 0,
+    views: {
+      timeGridDay: {
+        /* Build 42: the day shows yesterday, today and tomorrow side by side,
+           so a task can be dragged to the next day (or back) in one move. */
+        duration: { days: 3 },
+        dayHeaderFormat: { weekday: "short", day: "numeric" }
+      }
+    },
+    dayHeaderDidMount: function (info) {
+      info.el.style.cursor = "pointer";
+      info.el.addEventListener("click", function () { var k = L.toKey(info.date); if (k !== selected) selectDate(k, true); });
+    },
+    eventDragStart: function () { document.body.classList.add("is-dragging-task"); $("fab").classList.add("is-trash"); },
+    eventDragStop: function (info) {
+      document.body.classList.remove("is-dragging-task"); $("fab").classList.remove("is-trash");
+      var ep = info.event.extendedProps || {};
+      dropOutside(ep.taskId, ep.instanceDate, info.jsEvent);
+    },
     businessHours: dayHours(),
     slotMinTime: "06:00:00",
     slotMaxTime: "22:00:00",
+    nowIndicator: true,
+    nowIndicatorDidMount: function (info) { paceNowLabel(info.el, info.isAxis); },
     scrollTime: (function () { var h = Math.max(6, new Date().getHours() - 1); return (h < 10 ? "0" : "") + h + ":00:00"; })(),
     eventDidMount: function (info) {
       var c = info.event.backgroundColor || "#5b6bd5";
       info.el.classList.add("ev-calm");
       info.el.style.setProperty("--ev-c", c);
       if (info.el.classList.contains("fc-daygrid-event") || info.el.classList.contains("fc-timegrid-event")) {
-        info.el.style.background = "color-mix(in srgb, " + c + " 15%, var(--card))";
-        info.el.style.borderLeft = "3px solid " + c;
+        info.el.style.background = "color-mix(in srgb, " + c + " 24%, var(--card))";
+        info.el.style.borderLeft = "0";
         info.el.style.color = "var(--ink)";
       }
     },
@@ -894,16 +1064,27 @@ function initCalendar() {
       if (v === "dayGridMonth") return;
       var ep = arg.event.extendedProps || {}, isDone = (arg.event.classNames || []).indexOf("ev-done") >= 0 || (arg.el && arg.el.classList.contains("ev-done"));
       var wrap = document.createElement("div"); wrap.className = "ev-row";
-      var chk = document.createElement("button"); chk.type = "button"; chk.className = "ev-check" + (isDone ? " is-on" : "");
-      chk.setAttribute("aria-label", tr("Mark done")); chk.setAttribute("aria-pressed", String(!!isDone)); chk.innerHTML = isDone ? icon("i-check") : "";
+      var chk = document.createElement("button"); chk.type = "button"; chk.className = "ev-ico" + (isDone ? " is-on" : "");
+      chk.setAttribute("aria-label", tr("Mark done")); chk.setAttribute("aria-pressed", String(!!isDone));
+      chk.innerHTML = '<span class="ev-emo">' + esc(ep.emoji || "") + '</span><span class="ev-tick">' + icon("i-check") + '</span>';
+      if (!ep.emoji) chk.classList.add("no-emo");
       ["mousedown", "touchstart", "pointerdown"].forEach(function (n) { chk.addEventListener(n, function (e) { e.stopPropagation(); }); });
       chk.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); toggleDone(ep.taskId, ep.instanceDate); });
       var body = document.createElement("span"); body.className = "ev-body";
-      var t = document.createElement("span"); t.className = "ev-t"; t.textContent = arg.event.title;
-      var emo = taskEmoji(arg.event.title); if (emo) wrap.setAttribute("data-emo", emo);
+      var t = document.createElement("span"); t.className = "ev-t"; t.textContent = ep.plainTitle || arg.event.title;
       body.appendChild(t);
-      var bt = baseTask(ep.taskId);
-      if (bt && v !== "timeGridWeek") { var m = document.createElement("span"); m.className = "ev-m"; m.textContent = [bt.time, durationLabel(bt)].filter(Boolean).join(" \u00b7 "); body.appendChild(m); }
+      if (v !== "timeGridWeek") {
+        var m = document.createElement("span"); m.className = "ev-m";
+        var st = arg.event.start, en = arg.event.end;
+        if (arg.event.allDay || !st) m.textContent = tr("To do");
+        else {
+          var bt = baseTask(ep.taskId), dur = bt ? bt.durationMin : 15;
+          var s1 = L.pad(st.getHours()) + ":" + L.pad(st.getMinutes());
+          var e1 = en ? L.pad(en.getHours()) + ":" + L.pad(en.getMinutes()) : L.toHHMM(L.toMin(s1) + dur);
+          m.textContent = clockLabel(s1) + "\u2013" + clockLabel(e1) + " \u00b7 " + tr("{n} min", { n: dur });
+        }
+        body.appendChild(m);
+      }
       wrap.appendChild(chk); wrap.appendChild(body);
       return { domNodes: [wrap] };
     },
@@ -911,9 +1092,9 @@ function initCalendar() {
       selectDate(info.dateStr.slice(0, 10), false);
       if (!info.allDay && info.dateStr.length > 10 && /timeGrid/.test(info.view.type)) {
         $("addBtn").click();
-        $("fDate").value = info.dateStr.slice(0, 10);
-        $("fTime").value = info.dateStr.slice(11, 16);
-        var dt = document.querySelector("#addSheet details"); if (dt) dt.open = true; var ft = $("fTitle"); if (ft) ft.focus();
+        $("fDate").value = info.dateStr.slice(0, 10); AW.touched.date = true;
+        $("fTime").value = info.dateStr.slice(11, 16); AW.touched.time = true;
+        awRender();
       }
     },
     eventClick: function (info) { openTask(info.event.extendedProps.taskId, info.event.extendedProps.instanceDate); },
@@ -922,12 +1103,15 @@ function initCalendar() {
       var fromKey = info.event.extendedProps.instanceDate;
       var newStart = info.event.start;
       var newKey = L.toKey(newStart);
+      var toTodo = !!info.event.allDay;
       if (t.repeat || fromKey !== t.date) {
         var copy = moveInstance(t, fromKey, newKey);
-        if (info.event.allDay === false && newStart.getHours() !== undefined) copy.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
+        if (toTodo) copy.time = null;
+        else copy.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
       } else {
         t.date = newKey;
-        if (!info.event.allDay) t.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
+        if (toTodo) t.time = null;
+        else t.time = L.pad(newStart.getHours()) + ":" + L.pad(newStart.getMinutes());
       }
       save(); refreshAll(); toast(tr("Moved. The day re-shaped itself."));
     },
@@ -936,7 +1120,7 @@ function initCalendar() {
       var mins = Math.max(5, Math.round((info.event.end - info.event.start) / 60000));
       t.durationMin = mins; save(); refreshAll();
     },
-    datesSet: function () { renderTitle(); }
+    datesSet: function () { renderTitle(); markSelectedCols(); }
   });
   calendar.render();
   var style = document.createElement("style");
@@ -944,7 +1128,7 @@ function initCalendar() {
   document.head.appendChild(style);
 }
 function renderTitle() {
-  var d = calendar ? calendar.getDate() : L.parseKey(selected);
+  var d = L.parseKey(selected);
   $("monthTitle").textContent = d.toLocaleDateString(LOCALE, { month: "long", year: "numeric" });
 }
 function refreshCalendar() {
@@ -952,10 +1136,12 @@ function refreshCalendar() {
   calendar.removeAllEvents();
   fcEvents().forEach(function (e) { calendar.addEvent(e); });
 }
+/* The day view is three columns wide (yesterday, today, tomorrow): the picked day sits in the middle. */
+function calGoto(key) { calendar.gotoDate(calendar.view.type === "timeGridDay" ? L.addDays(key, -1) : key); }
 function selectDate(key, jumpCalendar) {
   selected = key;
-  if (calendar && jumpCalendar) calendar.gotoDate(key);
-  renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderYear();
+  if (calendar && jumpCalendar) calGoto(key);
+  renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderYear(); renderTray(); markSelectedCols();
 }
 $("goalBtn").addEventListener("click", function () {
   var side = document.querySelector('.side-item[data-panel="goals"]'); if (side) side.click();
@@ -968,9 +1154,10 @@ document.querySelectorAll(".segmented button").forEach(function (b) {
     b.classList.add("is-active");
     var v = b.getAttribute("data-view");
     currentView = v;
-    setBottomTab(v === "timeGridDay" && selected === L.todayKey() ? "today" : "calendar");
+    setTimeout(renderTray, 0);
+    setBottomTab("calendar");
     if (v === "year") { $("calendar").hidden = true; $("yearView").hidden = false; renderYear(); }
-    else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, selected); }
+    else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, v === "timeGridDay" ? L.addDays(selected, -1) : selected); }
   });
 });
 function renderYear() {
@@ -1012,8 +1199,12 @@ document.querySelectorAll(".side-item").forEach(function (b) {
     b.classList.add("is-active");
     var panelName = b.getAttribute("data-panel");
     $("panel-" + panelName).classList.add("is-active");
-    setBottomTab(panelName === "calendar" ? (selected === L.todayKey() && currentView === "timeGridDay" ? "today" : "calendar") : (panelName === "todo" || panelName === "capture" ? panelName : "more"));
+    setBottomTab(panelName === "calendar" || panelName === "goals" || panelName === "todo" || panelName === "capture" ? panelName : "more");
     if (panelName === "progress") renderProgress();
+    // Opening Goals always re-renders it (build 39): shared
+    // goals arrive async, so the section must draw on arrival
+    // at the panel, not only on data events.
+    if (panelName === "goals" && window.PaceGoalsUI) window.PaceGoalsUI.renderGoals();
     // FullCalendar sizes itself while visible. Returning from a
     // hidden panel must re-measure after the calendar has its width.
     if (panelName === "calendar" && calendar) {
@@ -1045,12 +1236,9 @@ function showPanel(name) { document.querySelector('.side-item[data-panel="' + na
 document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
   b.addEventListener("click", function () {
     var tab = b.getAttribute("data-tab");
-    if (tab === "today") {
-      var day = document.querySelector('.segmented button[data-view="timeGridDay"]');
-      if (day && currentView !== "timeGridDay") day.click();
-      selectDate(L.todayKey(), true);
-      showPanel("calendar");
-      setBottomTab("today");
+    if (tab === "calendar" && document.querySelector("#panel-calendar.is-active")) {
+      /* tapping Calendar while on it jumps back to today */
+      selectDate(L.todayKey(), true); setBottomTab("calendar"); setTimeout(paceScrollToNow, 250);
     } else if (tab === "more") {
       var collapsed = document.documentElement.getAttribute("data-sb") === "collapsed";
       (collapsed ? $("sbExpand") : $("sbCollapse")).click();
@@ -1062,13 +1250,24 @@ document.querySelectorAll("#bottomTabs [data-tab]").forEach(function (b) {
   });
 });
 
-/* ---------- quick add ---------- */
-var addCat = null;
-function pickAddCat(c) { addCat = c; renderCatChips($("fCatChips"), c ? c.id : null, pickAddCat, true); }
+/* ---------- add a task: the step-by-step wizard (build 41) ----------
+   Modelled on Structured's task editor (coloured header with icon + title, icon
+   suggested from the title, then date / time / duration / alert / subtasks / notes),
+   cut into four calm steps so nobody sees every field at once. Pace reads the words:
+   it picks the icon, a category with a colour tag that SAYS what it is (and why),
+   and links the task to a goal when the words match one. Everything it picks can
+   be changed with one tap. */
+var AW = null;
 var addRemind = [];
+function awEmpty() { return { step: 1, cat: null, icon: null, goalOff: false, touched: {}, steps: [], an: null, item: null }; }
+function awCat() { var c = AW.cat || (AW.an && AW.an.category) || { id: "general", label: "Other", color: "#7A8699" }; if (!AW.cat && AW.an && AW.an.goal && c.id === "general") return { id: "goal", label: "Goal", color: L.GOAL_COLOR }; return c; }
+function awIconNow() { return AW.icon != null ? AW.icon : (AW.an ? AW.an.icon : "\ud83d\udccc"); }
+function awGoal() { return !AW.goalOff && AW.an && AW.an.goal ? AW.an.goal : null; }
+function awTitleText() { var it = AW.item; return (it && it.title) || $("quickText").value.trim(); }
 function renderAddRemind() {
   var box = $("fRemChips"); if (!box) return;
   box.innerHTML = "";
+  if (!$("fTime").value) { var p = document.createElement("span"); p.className = "hint"; p.textContent = tr("Pick a time on the last step to get reminders."); box.appendChild(p); return; }
   REMIND_MINS.forEach(function (m) {
     box.appendChild(chipButton(remindLabel(m), addRemind.indexOf(m) !== -1, function () {
       var i = addRemind.indexOf(m); if (i === -1) addRemind.push(m); else addRemind.splice(i, 1);
@@ -1076,24 +1275,150 @@ function renderAddRemind() {
     }));
   });
 }
-$("addBtn").addEventListener("click", function () {
-  addRemind = defaultLeads().slice(); renderAddRemind();
-  $("quickText").value = ""; $("fTitle").value = ""; $("fLink").value = "";
-  $("fDate").value = selected; $("fTime").value = ""; $("fDur").value = 25;
-  $("fMin").value = ""; $("fFull").value = ""; $("fEssential").checked = false;
-  $("quickPreview").hidden = true;
-  $("fRepeat").value = ""; addCat = null; renderCatChips($("fCatChips"), null, pickAddCat, true);
+function pickAddCat(c) { AW.cat = c; renderCatChips($("fCatChips"), c ? c.id : null, pickAddCat, true); awRender(); }
+function awClock(hhmm) { return hhmm ? clockLabel(hhmm) : ""; }
+function awRender() {
+  var c = awCat(), title = awTitleText();
+  $("awHead").style.setProperty("--aw-c", c.color);
+  $("awIcon").textContent = awIconNow() || "\ud83d\udccc";
+  $("awTitle").textContent = title || tr("New task");
+  var d = $("fDate").value || selected, t = $("fTime").value, dur = +$("fDur").value || 15;
+  $("awWhen").textContent = (t ? awClock(t) + " \u00b7 " : "") + dur + " " + tr("min") + " \u00b7 " + L.parseKey(d).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" });
+  var has = !!$("quickText").value.trim();
+  $("awSmart").hidden = !has;
+  if (has && AW.an) {
+    $("awTagTxt").textContent = tr(c.label);
+    $("awTag").style.setProperty("--tag-c", c.color);
+    $("awWhy").textContent = AW.cat ? tr("You chose this.") : AW.an.why ? tr("Because you wrote \u201c{w}\u201d", { w: AW.an.why }) : AW.an.goal ? tr("Matches your goal.") : tr("No clear word. Tap Change to pick what fits.");
+    var g = awGoal(), gc = $("awGoalChip");
+    gc.hidden = !g;
+    if (g) gc.textContent = "\ud83c\udfaf " + tr("Counts toward your goal: {g}", { g: g.title }) + "  \u00d7";
+    $("awGoalHint").hidden = !(AW.an.looksLikeGoal && !g);
+  }
+}
+function awAnalyse() {
+  var raw = $("quickText").value.trim();
+  AW.item = raw ? L.parseItem(splitLink(raw).text, selected) : null;
+  AW.an = raw ? L.analyzeTask(AW.item ? AW.item.title : raw, state.goals || [], TASK_ICONS) : null;
+  var it = AW.item, T = AW.touched;
+  if (it) {
+    if (!T.date) $("fDate").value = it.date || selected;
+    if (!T.time) $("fTime").value = it.time || "";
+    if (!T.dur) $("fDur").value = it.durationMin || 15;
+    if (!T.rep) { var ok = [].some.call($("fRepeat").options, function (o) { return o.value === it.repeat; }); $("fRepeat").value = ok ? (it.repeat || "") : ""; }
+    if (!T.ess) $("fEssential").checked = !!it.essential;
+  }
+  awRender();
+}
+function awOpen() {
+  AW = awEmpty();
+  addRemind = defaultLeads().slice();
+  ["quickText", "fLink", "fMin", "fFull", "fNotes", "awStepIn", "awIconSearch"].forEach(function (id) { if ($(id)) $(id).value = ""; });
+  $("fDate").value = selected; $("fTime").value = ""; $("fDur").value = 15; $("fRepeat").value = ""; $("fEssential").checked = false;
+  $("quickPreview").hidden = true; $("awCatBox").hidden = true; $("awIconBox").hidden = true; $("awErr").textContent = "";
+  renderCatChips($("fCatChips"), null, pickAddCat, true);
+  awShow(1); awRender();
   $("addSheet").hidden = false;
   setTimeout(function () { $("quickText").focus(); }, 50);
-});
+}
+function awShow(n) {
+  AW.step = n;
+  document.querySelectorAll("#addSheet [data-aw]").forEach(function (sec) { sec.hidden = +sec.getAttribute("data-aw") !== n; });
+  document.querySelectorAll("#awDots i").forEach(function (d, i) { d.classList.toggle("is-on", i < n); });
+  $("awBack").hidden = n === 1; $("awNext").hidden = n === 4; $("addSave").hidden = n !== 4;
+  $("awErr").textContent = "";
+  if (n === 2) awChips2();
+  if (n === 3) { renderAddRemind(); awChips3(); }
+  if (n === 4) { awRenderSteps(); awSummary(); }
+}
+function awDayKey(off) { return L.addDays(L.todayKey(), off); }
+function awChips2() {
+  var dv = $("fDate").value || selected, box = $("awDayChips"); box.innerHTML = "";
+  [[tr("Today"), 0], [tr("Tomorrow"), 1], [tr("In 2 days"), 2], [tr("Next week"), 7]].forEach(function (x) {
+    box.appendChild(chipButton(x[0], dv === awDayKey(x[1]), function () { $("fDate").value = awDayKey(x[1]); AW.touched.date = true; awChips2(); awRender(); }));
+  });
+  var tv = $("fTime").value, tb = $("awTimeChips"); tb.innerHTML = "";
+  tb.appendChild(chipButton(tr("No set time"), !tv, function () { $("fTime").value = ""; AW.touched.time = true; awChips2(); awRender(); }));
+  [[tr("Morning"), "09:00"], [tr("Midday"), "12:00"], [tr("Afternoon"), "15:00"], [tr("Evening"), "18:00"]].forEach(function (x) {
+    tb.appendChild(chipButton(x[0] + " " + awClock(x[1]), tv === x[1], function () { $("fTime").value = x[1]; AW.touched.time = true; awChips2(); awRender(); }));
+  });
+  var dv2 = +$("fDur").value || 15, db = $("awDurChips"); db.innerHTML = "";
+  [5, 10, 15, 30, 45, 60, 90].forEach(function (m) {
+    db.appendChild(chipButton(m >= 60 ? (m / 60) + " h" : m + " min", dv2 === m, function () { $("fDur").value = m; AW.touched.dur = true; awChips2(); awRender(); }));
+  });
+}
+function awChips3() {
+  var box = $("awRepChips"), cur = $("fRepeat").value; box.innerHTML = "";
+  [].forEach.call($("fRepeat").options, function (o) {
+    box.appendChild(chipButton(tr(o.textContent), cur === o.value, function () { $("fRepeat").value = o.value; AW.touched.rep = true; awChips3(); }));
+  });
+}
+function awRenderSteps() {
+  var box = $("awSteps"); box.innerHTML = "";
+  AW.steps.forEach(function (txt, i) {
+    var row = document.createElement("div"); row.className = "aw-step-row";
+    var sp = document.createElement("span"); sp.textContent = txt;
+    var x = document.createElement("button"); x.type = "button"; x.className = "aw-step-x"; x.setAttribute("aria-label", tr("Remove")); x.textContent = "\u00d7";
+    x.addEventListener("click", function () { AW.steps.splice(i, 1); awRenderSteps(); awSummary(); });
+    row.appendChild(sp); row.appendChild(x); box.appendChild(row);
+  });
+}
+function awSummary() {
+  var c = awCat(), g = awGoal(), t = $("fTime").value, parts = [awIconNow() + " " + awTitleText(), tr(c.label)];
+  parts.push(L.parseKey($("fDate").value || selected).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" }));
+  parts.push(t ? awClock(t) : tr("no set time")); parts.push((+$("fDur").value || 15) + " " + tr("min"));
+  if ($("fRepeat").value) parts.push(tr("repeats {repeat}", { repeat: repeatLabel($("fRepeat").value) }));
+  if (t && addRemind.length) parts.push(tr("reminder") + ": " + remindLabel(addRemind[0]).toLowerCase());
+  if (g) parts.push("\ud83c\udfaf " + g.title);
+  $("awSummary").textContent = parts.join(" \u00b7 ");
+}
+function awRenderIcons() {
+  var q = ($("awIconSearch").value || "").trim().toLowerCase(), grid = $("awIconGrid"); grid.innerHTML = "";
+  var list = (!q && AW.an && AW.an.icons.length ? TASK_ICONS.filter(function (i) { return AW.an.icons.indexOf(i.icon) !== -1; }) : []).concat(TASK_ICONS.filter(function (i) {
+    return i.icon && (!q || (i.name + " " + i.keywords).toLowerCase().indexOf(q) !== -1);
+  })).filter(function (i, k, arr) { return arr.findIndex(function (z) { return z.icon === i.icon; }) === k; }).slice(0, 90);
+  list.forEach(function (it) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "task-icon-option" + (awIconNow() === it.icon ? " is-on" : "");
+    b.textContent = it.icon; b.setAttribute("aria-label", it.name);
+    b.addEventListener("click", function () { AW.icon = it.icon; awRenderIcons(); awRender(); });
+    grid.appendChild(b);
+  });
+}
+$("addBtn").addEventListener("click", awOpen);
 $("addCancel").addEventListener("click", function () {
   $("addSheet").hidden = true;
   if (guideResumeAfterTask !== null) { guideResumeAfterTask = null; showGuide(guideStep); }
 });
+$("awIcon").addEventListener("click", function () { var box = $("awIconBox"); box.hidden = !box.hidden; if (!box.hidden) { $("awCatBox").hidden = true; awRenderIcons(); } });
+$("awIconSearch").addEventListener("input", awRenderIcons);
+$("awTag").addEventListener("click", function () { var box = $("awCatBox"); box.hidden = !box.hidden; if (!box.hidden) { $("awIconBox").hidden = true; renderCatChips($("fCatChips"), AW.cat ? AW.cat.id : null, pickAddCat, true); } });
+$("awGoalChip").addEventListener("click", function () { AW.goalOff = true; awRender(); });
+$("awMakeGoal").addEventListener("click", function () {
+  var txt = $("quickText").value.trim(); $("addSheet").hidden = true;
+  showPanel("goals"); setBottomTab("goals");
+  setTimeout(function () { var nb = $("goalNewBtn"); if (nb) nb.click(); var gt = $("goalTitle"); if (gt) { gt.value = txt; gt.focus(); } }, 120);
+});
+["fDate", "fTime", "fDur"].forEach(function (id) {
+  $(id).addEventListener("input", function () { AW.touched[id === "fDate" ? "date" : id === "fTime" ? "time" : "dur"] = true; if (AW.step === 2) awChips2(); awRender(); });
+});
+$("fEssential").addEventListener("change", function () { AW.touched.ess = true; });
+$("awStepAdd").addEventListener("click", awAddStep);
+$("awStepIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); awAddStep(); } });
+function awAddStep() { var v = $("awStepIn").value.trim(); if (!v) return; AW.steps.push(v.slice(0, 120)); $("awStepIn").value = ""; awRenderSteps(); awSummary(); }
+$("awSuggestSteps").addEventListener("click", function () {
+  var steps = L.decompose(awTitleText(), +$("fDur").value || 25, true).map(function (x) { return x.text; });
+  steps.forEach(function (x) { if (AW.steps.indexOf(x) === -1) AW.steps.push(x); }); awRenderSteps(); awSummary();
+});
+$("awNext").addEventListener("click", function () {
+  if (AW.step === 1 && !$("quickText").value.trim()) { $("awErr").textContent = tr("Give it a title first, even a messy one."); $("quickText").focus(); return; }
+  awShow(Math.min(4, AW.step + 1));
+});
+$("awBack").addEventListener("click", function () { awShow(Math.max(1, AW.step - 1)); });
+$("quickText").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("awNext").click(); } });
 $("quickText").addEventListener("input", function () {
+  awAnalyse();
   var v = $("quickText").value.trim();
-  if (!v) { $("quickPreview").hidden = true; return; }
-  var item = L.parseItem(v, selected);
+  var item = v ? AW.item : null;
   if (!item) { $("quickPreview").hidden = true; return; }
   $("quickPreview").hidden = false;
   var chip = function (cls, t) { return '<span class="qchip ' + cls + '">' + esc(t) + '</span>'; };
@@ -1114,30 +1439,27 @@ document.querySelectorAll("#quickSuggest [data-add]").forEach(function (b) {
   });
 });
 $("addSave").addEventListener("click", function () {
-  // A smallest version typed at creation is a teach (Plus);
-  // refused, the task still saves — without the taught version.
+  var raw = $("quickText").value.trim();
+  if (!raw) { awShow(1); $("awErr").textContent = tr("Give it a title first, even a messy one."); return; }
+  if (!AW.an) awAnalyse();
+  var qs = splitLink(raw), item = AW.item || L.parseItem(qs.text, selected);
   var minV = $("fMin").value.trim();
   if (minV && !plusGate("steps")) minV = "";
-  var task = null, qLink = "";
-  var manualTitle = $("fTitle").value.trim();
-  if (manualTitle) {
-    var cat = L.categoryFor(manualTitle);
-    task = { title: manualTitle, date: $("fDate").value || selected, time: $("fTime").value || null, durationMin: Math.max(5, +$("fDur").value || 25), priority: 0, repeat: null, category: cat.id, color: cat.color, essential: $("fEssential").checked, steps: L.decompose(manualTitle, +$("fDur").value || 25, false), minVersion: minV, fullVersion: $("fFull").value.trim() };
-  } else if ($("quickText").value.trim()) {
-    var qs = splitLink($("quickText").value.trim()); qLink = qs.link;
-    var item = L.parseItem(qs.text, selected);
-    if (item) task = { title: item.title, date: item.date, time: item.time, durationMin: item.durationMin, priority: item.priority, repeat: item.repeat, category: item.category, color: item.color, essential: item.essential, steps: item.steps, minVersion: minV, fullVersion: $("fFull").value.trim() };
-  }
-  if (!task) { toast(tr("Give it a title first, even a messy one.")); return; }
-  if ($("fRepeat").value) task.repeat = $("fRepeat").value;
-  var fl = cleanUrl($("fLink").value) || qLink; if (fl) task.link = fl;
-  if (addCat) { task.category = addCat.id; task.color = addCat.color; }
-  task.remind = cleanLeads(addRemind); /* its own reminders, not the general setting */
-  task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = $("quickText").value.trim(); task.skipDates = []; task.doneDates = [];
+  var c = awCat(), g = awGoal();
+  var task = { title: (item && item.title) || qs.text, date: $("fDate").value || selected, time: $("fTime").value || null,
+    durationMin: Math.max(5, +$("fDur").value || 15), priority: (item && item.priority) || 0, repeat: $("fRepeat").value || null,
+    category: c.id, color: c.color, icon: awIconNow() === "\ud83d\udccc" && !AW.icon && c.id === "general" ? "" : awIconNow(),
+    essential: $("fEssential").checked, steps: AW.steps.length ? AW.steps.map(function (x) { return { text: x, done: false }; }) : ((item && item.steps) || []),
+    minVersion: minV, fullVersion: $("fFull").value.trim() };
+  if (g) task.goalId = g.id;
+  var notes = $("fNotes").value.trim(); if (notes) task.notes = notes.slice(0, 4000);
+  var fl = cleanUrl($("fLink").value) || qs.link; if (fl) task.link = fl;
+  task.remind = task.time ? cleanLeads(addRemind) : [];
+  task.id = uid(); task.status = "todo"; task.source = "manual"; task.originalText = raw; task.skipDates = []; task.doneDates = [];
   state.tasks.push(task); save(); markActivated("event");
   $("addSheet").hidden = true;
   selectDate(task.date, true); refreshAll();
-  toast(tr("Added. Small and clear."));
+  toast(g ? tr("Added, and it counts toward your goal.") : tr("Added. Small and clear."));
   if (guideResumeAfterTask !== null) {
     var nextGuideStep = guideResumeAfterTask; guideResumeAfterTask = null;
     setTimeout(function () { showGuide(nextGuideStep); }, 80);
@@ -1208,6 +1530,7 @@ function openTask(id, instanceDate) {
   $("dTime").value = t.time || "";
   $("dDur").value = t.durationMin;
   $("dEssential").checked = !!t.essential;
+  $("dFocusAuto").checked = t.focus === true || (t.focus !== false && !!fcCfg().auto);
   if (t.originalText) { $("dOriginalWrap").hidden = false; $("dOriginal").textContent = t.originalText; }
   else $("dOriginalWrap").hidden = true;
   $("taskSheet").hidden = false;
@@ -1470,8 +1793,8 @@ $("dDelete").addEventListener("click", function () {
 
 /* ---------- capture ---------- */
 $("parseBtn").addEventListener("click", function () {
-  if (!plusGate("talk")) return;
   var text = $("dumpText").value;
+  if (window.PaceUI) { window.PaceUI.capture(text); return; }
   drafts = L.parseDump(text, L.todayKey());
   if (!drafts.length) { $("captureMsg").textContent = tr("Nothing I could sort yet. Try one thing per line, like: call the dentist tomorrow at 3pm."); return; }
   $("captureMsg").textContent = "";
@@ -1640,12 +1963,12 @@ window.addEventListener("beforeunload", function () { if (taskAudioSession) task
 
 var voiceSession = null;
 function voiceErrorText(code) {
-  if (code === "not-allowed" || code === "service-not-allowed") return tr("The microphone is blocked. Allow the mic for Pace, then tap Speak again. Typing works the same.");
+  if (code === "not-allowed" || code === "service-not-allowed") return tr("Your microphone permission is off. Allow the mic for Pace, then tap Speak again. Your notes are safe. Typing works the same.");
   if (code === "audio-capture") return tr("No microphone could be found. Typing works the same.");
-  if (code === "no-speech") return tr("I did not hear anything. Try again, a little closer. Typing works the same.");
-  if (code === "network") return tr("Voice typing needs the internet on this device. Typing works the same.");
+  if (code === "no-speech") return tr("I couldn't hear anything. Try again, a little closer, or type. Your notes are safe.");
+  if (code === "network") return tr("Voice recognition isn't available right now (it needs the internet on this device). Your notes are safe. You can try again or type.");
   if (code === "aborted") return "";
-  return tr("Voice did not come through. Typing works the same.");
+  return tr("I couldn't transcribe this recording. Your notes are safe. You can try again or type.");
 }
 function nativeSpeech() {
   try {
@@ -1675,7 +1998,7 @@ function toggleVoice(hooks) {
     var stopped = false;
     voiceSession = { stop: function () { stopped = true; try { nat.stop(); } catch (e) {} done(); } };
     if (span) span.textContent = tr("Stop");
-    hooks.msg("Listening… talk away, then tap Stop.");
+    hooks.msg("I'm listening. Take your time, then tap Stop.");
     nat.requestPermissions().then(function (perm) {
       if (perm && perm.speechRecognition && perm.speechRecognition !== "granted") { hooks.msg(voiceErrorText("not-allowed")); done(); return null; }
       var partialH = null;
@@ -1698,7 +2021,7 @@ function toggleVoice(hooks) {
   var heardFinal = false;
   voiceSession = { stop: function () { try { rec.stop(); } catch (e) {} } };
   if (span) span.textContent = tr("Stop");
-  hooks.msg("Listening… talk away, then tap Stop.");
+  hooks.msg("I'm listening. Take your time, then tap Stop.");
   rec.onresult = function (ev) {
     var interim = "";
     for (var i = ev.resultIndex; i < ev.results.length; i++) {
@@ -1721,7 +2044,7 @@ $("voiceBtn").addEventListener("click", function () {
     msg: function (t) { $("captureMsg").textContent = t; },
     final: function (said) {
       $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + said;
-      $("captureMsg").textContent = tr("Got it. Check the words, then tap Make my list.");
+      $("captureMsg").textContent = tr("Ready to review. Check what Pace heard before creating tasks.");
     }
   });
 });
@@ -1752,24 +2075,27 @@ var OCR_OPTIONS = {
   cacheMethod: "none",
   gzip: !OCR_IN_APP
 };
-function ocrPhoto(f, msgEl, onText) {
+function ocrPhoto(f, msgEl, onText, onFail) {
   msgEl.textContent = tr("Reading your photo. This can take a little while the first time.");
   if (!window.Tesseract) {
     msgEl.textContent = tr("The reading tool did not load. Typing or speaking works the same.");
+    if (onFail) onFail();
     return;
   }
   window.Tesseract.recognize(f, "eng", OCR_OPTIONS).then(function (res) {
     var text = (res && res.data && res.data.text || "").trim();
     if (text) onText(text);
-    else msgEl.textContent = tr("I could not read words in that photo. Typing or speaking works the same.");
-  }).catch(function () { msgEl.textContent = tr("Reading the photo did not work this time. Typing or speaking works the same."); });
+    else { msgEl.textContent = tr("I could not read words in that photo. Typing or speaking works the same."); if (onFail) onFail(); }
+  }).catch(function () { msgEl.textContent = tr("Reading the photo did not work this time. Your photo is safe. Typing or speaking works the same."); if (onFail) onFail(); });
 }
 $("photoFile").addEventListener("change", function (e) {
   var f = e.target.files[0]; if (!f) return;
+  var procId = window.PaceUI ? window.PaceUI.processing(tr("Photo of notes")) : null;
   ocrPhoto(f, $("captureMsg"), function (text) {
+    if (window.PaceUI) window.PaceUI.processingDone(procId);
     $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + text;
-    $("captureMsg").textContent = tr("Here is what I could read. Fix any words, then tap Make my list.");
-  });
+    $("captureMsg").textContent = tr("Text extracted. Check the words, then tap Make my list. Nothing is added until you say so.");
+  }, function () { if (window.PaceUI) window.PaceUI.processingDone(procId); });
 });
 
 /* ---------- to do: a fast list that lives happily beside the calendar ---------- */
@@ -2088,6 +2414,7 @@ function bindSettings() {
   $("nDone").checked = s.notif.done; $("nDoneTime").value = s.notif.doneTime;
   renderLeadChips();
   renderNotifStatus();
+  renderFocusSettings();
 }
 function readSettings() {
   var s = state.settings;
@@ -2133,6 +2460,27 @@ $("clearSamples").addEventListener("click", function () {
    Every save replans (cancel the old set, schedule the new), so a
    check-in, a pause, or a settings change rewrites the plan at once.
    A failure here must never break a save: every call is fenced. */
+/* Reminder wording, like Apple / Google Calendar: the TITLE is the task,
+   the line under it says when ("Now", "In 5 minutes", "In 1 hour") plus
+   the clock time. A first step rides on a second line only when the task
+   really has steps. */
+function leadWhen(lead) {
+  if (lead <= 0) return tr("Now");
+  if (lead < 60) return lead === 1 ? tr("In 1 minute") : tr("In {n} minutes", { n: lead });
+  if (lead % 60 === 0) return lead === 60 ? tr("In 1 hour") : tr("In {n} hours", { n: lead / 60 });
+  return tr("In {n} minutes", { n: lead });
+}
+function clockLabel(hhmm) {
+  var p = String(hhmm || "").split(":"), h = +p[0], m = +p[1];
+  if (isNaN(h) || isNaN(m)) return String(hhmm || "");
+  try { return new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); } catch (e) { return hhmm; }
+}
+function startNote(t, lead) {
+  var shown = t.displayTitle || t.title;
+  var hasSteps = Array.isArray(t.steps) && t.steps.some(function (x) { return x && !x.done; });
+  var body = leadWhen(lead) + " \u00b7 " + clockLabel(t.time) + (hasSteps ? "\n" + tr("First step: {step}", { step: L.nextStepText(t) }) : "");
+  return { title: shown, body: body };
+}
 var PaceRemind = (function () {
   var timer = null;
   function plugin() {
@@ -2163,9 +2511,7 @@ var PaceRemind = (function () {
       leadsFor(t).forEach(function (lead) {
         var at = atMs(dayKey, t.time) - lead * 60000;
         if (at <= floor) return;
-        var shown = t.displayTitle || t.title;
-        var head = lead === 0 ? tr("Starting now: {title}", { title: shown }) : lead >= 60 ? tr("Coming up: {title}", { title: shown }) : tr("Time to start: {title}", { title: shown });
-        var body = lead >= 60 ? tr("Starts at {time}. First step: {step}", { time: t.time, step: L.nextStepText(t) }) : tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin });
+        var sn = startNote(t, lead), head = sn.title, body = sn.body;
         out.push({ id: nid("start", String(t.id) + "@" + lead, dayKey), title: head, body: body, at: at, extra: { paceKind: "start", paceTask: String(t.id), paceDate: dayKey } });
       });
     });
@@ -2306,9 +2652,7 @@ function checkNotifications() {
         var base = new Date(+p[0], +p[1] - 1, +p[2], +tt[0], +tt[1], 0, 0).getTime();
         leadsFor(t).forEach(function (lead) {
           if (Math.floor((base - lead * 60000) / 60000) !== nowMin) return;
-          var shown = t.displayTitle || t.title;
-          var head = lead === 0 ? tr("Starting now: {title}", { title: shown }) : lead >= 60 ? tr("Coming up: {title}", { title: shown }) : tr("Time to start: {title}", { title: shown });
-          var body = lead >= 60 ? tr("Starts at {time}. First step: {step}", { time: t.time, step: L.nextStepText(t) }) : tr("First step: {step} · about {n} min.", { step: L.nextStepText(t), n: t.durationMin });
+          var sn = startNote(t, lead), head = sn.title, body = sn.body;
           notify(head, body, "start-" + t.id + "-" + day + "-" + lead, { task: String(t.id), date: day });
         });
       });
@@ -2395,14 +2739,13 @@ var TOUR = [];
 function buildTour() {
   TOUR = [];
   if (tourNeedsName()) TOUR.push({ kind: "name", pose: "welcome", bubble: "Ahoy! I'm Skip. Welcome aboard! What's your name?", next: "Next" });
-  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); });
+  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); if (step.action === "energy") { TOUR.push({ kind: "tour", pose: "point", bubble: "Low keeps only what matters and one small step. Steady is a balanced day. Full fits a bit more, and breaks stay protected. Pace shows you every change first.", next: "Next", action: "demo" }); TOUR.push({ kind: "tour", pose: "point", bubble: "Talk to it. Tell it what is on your mind. It sorts it into tasks, notes and goals, and you check everything before it is added.", next: "Next", action: "try" }); } });
   TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar if you want. The file is copied; it is never changed.", next: "Next" });
   TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders are optional. Choose if you want a gentle prompt.", next: "Next", panel: "settings" });
-  TOUR.push({ kind: "tour", panel: "today", pose: "welcome", bubble: "Today is for the day in front of you.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar lets you switch Day, Week, Month, Year, and Agenda.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar is your day. A small red line shows where you are right now. Tap it again any time to jump back to today.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Talk to it turns a sentence into tasks. Speaking is optional.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "todo", pose: "point", bubble: "To do keeps loose tasks beside the calendar.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress, Habits, Goals, and Settings.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress and Settings.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Progress groups tasks by status. If it is locked, Pace will say so.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "habits", pose: "point", bubble: "Habits helps you notice routines, one day at a time.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "goals", pose: "point", bubble: "Goals turns one big goal into one small step a day on your calendar.", next: "Next" });
@@ -2412,7 +2755,8 @@ function buildTour() {
   TOUR.push({ kind: "tour", panel: "settings", section: "setCheckin", pose: "point", bubble: "Check-in: when I ask how you feel, and what you call Bad, Ok and Great.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "setNotif", pose: "point", bubble: "Reminders: choose how early each reminder comes. Each task can have its own.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "setTasks", pose: "point", bubble: "Tasks: bring a calendar in, or save yours as a file.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "settings", section: "setHelp", pose: "celebrate", bubble: "Help is here if you get stuck. Everything in Pace is free.", next: "Done ✓", last: true });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setHelp", pose: "celebrate", bubble: "Help is here if you get stuck. Everything in Pace is free.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "calendar", pose: "celebrate", bubble: "What would you like to work on first?", next: "Done ✓", last: true, action: "first" });
 }
 var guideStep = 0;
 var guideResumeAfterTask = null;
@@ -2422,15 +2766,11 @@ function showGuide(step) {
   var s = TOUR[step];
   if (!s) return;
   if (s.kind === "tour") {
-    if (s.panel === "today") {
-      var dayBtn = document.querySelector('.segmented button[data-view="timeGridDay"]');
-      if (dayBtn && currentView !== "timeGridDay") dayBtn.click();
-      showPanel("calendar"); selectDate(L.todayKey(), true); setBottomTab("today");
-    } else if (s.panel === "calendar") { showPanel("calendar"); setBottomTab("calendar"); }
+    if (s.panel === "calendar") { showPanel("calendar"); setBottomTab("calendar"); }
     else if (s.panel === "capture") { showPanel("capture"); setBottomTab("capture"); }
     else if (s.panel === "todo") { showPanel("todo"); setBottomTab("todo"); }
-    else if (s.panel === "habits") { showPanel("habits"); setBottomTab("more"); }
-    else if (s.panel === "goals") { showPanel("goals"); setBottomTab("more"); }
+    else if (s.panel === "habits") { showPanel("habits"); setBottomTab("habits"); }
+    else if (s.panel === "goals") { showPanel("goals"); setBottomTab("goals"); }
     else if (s.panel === "settings") { showPanel("settings"); setBottomTab("more"); }
     else if (s.panel === "more" || s.panel === "progress") { setBottomTab("more"); }
   } else if (s.kind === "reminders") { showPanel("settings"); setBottomTab("more"); }
@@ -2454,7 +2794,7 @@ function showGuide(step) {
   if (s.kind === "tour") {
     if (s.panel === "more") target = $("sbExpand");
     else if (s.panel === "progress") target = document.querySelector('.side-item[data-panel="progress"]');
-    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" || s.panel === "habits" || s.panel === "goals" ? "more" : s.panel) + '"]');
+    else target = document.querySelector('#bottomTabs [data-tab="' + (s.panel === "capture" ? "capture" : s.panel === "todo" ? "todo" : s.panel === "settings" ? "more" : s.panel) + '"]');
   }
   if (s.section && $(s.section)) { target = $(s.section); try { target.scrollIntoView({ block: "start", behavior: "auto" }); } catch (e) {} }
   if (target) target.classList.add("guide-target");
@@ -2473,6 +2813,17 @@ function showGuide(step) {
         ex.querySelectorAll("[data-energy]").forEach(function (choice) { choice.setAttribute("aria-pressed", String(choice === button)); });
       });
     });
+  } else if (s.action === "demo") {
+    ex.innerHTML = '<div class="guide-demo"><div><b>' + esc(state.settings.names.low) + '</b> 1 priority, 1 tiny step</div><div><b>' + esc(state.settings.names.steady) + '</b> up to 3 priorities, breaks kept</div><div><b>' + esc(state.settings.names.full) + '</b> a bit more, never to the brim</div></div>';
+  } else if (s.action === "try") {
+    ex.innerHTML = '<button type="button" class="primary-btn guide-action" id="guideTry">' + tr("Try it") + '</button>';
+    $("guideTry").addEventListener("click", function () { $("guideSheet").hidden = true; showPanel("capture"); setBottomTab("capture"); $("dumpText").value = "I need to finish my website and send some emails"; if (window.PaceUI) window.PaceUI.capture($("dumpText").value, { demo: true }); });
+  } else if (s.action === "first") {
+    ex.innerHTML = '<div class="guide-first"><button type="button" class="soft-btn" data-first="task">' + tr("Add a task") + '</button><button type="button" class="soft-btn" data-first="goal">' + tr("Create a goal") + '</button><button type="button" class="soft-btn" data-first="import">' + tr("Import my calendar") + '</button><button type="button" class="soft-btn" data-first="empty">' + tr("Start with an empty day") + '</button></div>';
+    ex.querySelectorAll("[data-first]").forEach(function (b) { b.addEventListener("click", function () {
+      var w = b.getAttribute("data-first"); $("guideSheet").hidden = true;
+      if (w === "task") $("addBtn").click(); else if (w === "goal") { showPanel("goals"); setBottomTab("goals"); var gb = $("goalNewBtn"); if (gb) gb.click(); } else if (w === "import") { showPanel("settings"); setBottomTab("more"); var ib = $("setTasks"); if (ib && ib.scrollIntoView) ib.scrollIntoView(); } else { showPanel("calendar"); setBottomTab("calendar"); }
+    }); });
   } else if (s.action === "task") {
     var hasOwnTask = (state.tasks || []).some(function (task) { return task && task.source !== "sample"; });
     ex.innerHTML = hasOwnTask ? '' : '<button type="button" id="guideTaskOpen" class="primary-btn guide-action">' + tr("Add a task now") + '</button>';
@@ -2620,8 +2971,8 @@ function renderPlans() {
   var st = $("planState"); if (!st) return;
   var holds = $("planHolds");
   if (holds) holds.textContent = on
-    ? tr("Plus holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.")
-    : tr("When Plus arrives, it holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.");
+    ? tr("Plus holds: all six Looks and Cute mode · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.")
+    : tr("When Plus arrives, it holds: all six Looks and Cute mode · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.");
   if (!on) { st.textContent = tr("Not on sale yet. Nothing to pay today."); return; }
   var s = PaceBilling.state();
   if (PaceBilling.plusActive() && s.owned) st.textContent = tr("Plus is yours. Everything is open.");
@@ -3038,7 +3389,7 @@ function resolvePot(bring) {
 }
 function freshAccountState() {
   var s = seed();
-  s.tasks = []; s.todos = []; s.habits = []; s.goals = []; s.feelings = {}; s.imports = [];
+  s.tasks = []; s.todos = []; s.habits = []; s.goals = []; s.feelings = {}; s.spreads = {}; s.imports = [];
   // A born state has NO content, so it claims NO content time:
   // updatedAt 0 keeps its birth save() from outranking the
   // account's real server content at the reconcile (QA F1).
@@ -3369,7 +3720,10 @@ function bindAccounts() {
         .then(function () { return FB.fsDelete(spinePath()); })
         .then(function () { return FB.fsDelete("aggSignups/" + sess.uid); })
         .then(function () { return FB.fsDelete("aggImports/" + sess.uid); })
-        .then(function () { return FB.fsDelete("subscriptions/" + sess.uid); });
+        .then(function () { return FB.fsDelete("subscriptions/" + sess.uid); })
+        // Shared goals (build 39, rules v2.5): owned shared
+        // goals die with the account, memberships are left.
+        .then(function () { return window.PaceShareUI ? window.PaceShareUI.leaveAllShared() : null; });
     }).then(function () { return FB.deleteAccount(); })
       .then(function () {
         try { localStorage.removeItem(storeKey()); localStorage.removeItem("pace-last-uid"); } catch (e) {}
@@ -3381,9 +3735,9 @@ function bindAccounts() {
 }
 
 /* ---------- boot ---------- */
-function refreshAll() { renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
+function refreshAll() { renderTray(); renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderRing(); refreshCalendar(); renderYear(); renderTodos(); renderHabits(); if (window.PaceGoalsUI) window.PaceGoalsUI.renderGoals(); if (window.PaceUI) window.PaceUI.render(); if ($("panel-progress").classList.contains("is-active")) renderProgress(); }
 applyI18n();
-initCalendar();
+initCalendar(); setTimeout(paceScrollToNow, 1200);
 applyAppearance();
 applySidebar();
 bindSettings();
@@ -3396,7 +3750,249 @@ bindAccounts();
 if (!ACTIVE_UID && window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(null, null, null); } catch (e) {} }
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
 /* Bridge for goals-ui.js (the Goals screen and the Habits week view live there). */
-window.PaceCtx = { get state() { return state; }, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
+
+/* ---------- build 42: new-task button, to-do bar, drag anywhere, focus ---------- */
+function markSelectedCols() {
+  try {
+    document.querySelectorAll("#calendar [data-date]").forEach(function (el) {
+      el.classList.toggle("pc-sel", (el.getAttribute("data-date") || "").slice(0, 10) === selected);
+    });
+  } catch (e) {}
+}
+$("fab").addEventListener("click", function () { if ($("fab").classList.contains("is-trash")) return; $("addBtn").click(); });
+
+function submitTsTodo() {
+  var v = $("tsInput").value.trim();
+  if (!v) { toast(tr("Type the thing first, then tap +.")); return; }
+  var qs = splitLink(v), item = L.parseItem(qs.text, selected) || {};
+  var title = (item.title || qs.text).slice(0, 160), an = L.analyzeTask(title, state.goals || [], TASK_ICONS), c = an.category;
+  var task = { id: uid(), title: title, date: item.date || selected, time: null, durationMin: 15, priority: item.priority || 0, repeat: null,
+    category: c.id, color: c.color, icon: an.icon || "", essential: false, status: "todo", steps: [], minVersion: "", fullVersion: "",
+    source: "manual", originalText: v, skipDates: [], doneDates: [], remind: [] };
+  if (an.goal) task.goalId = an.goal.id;
+  state.tasks.push(task); save(); markActivated("event");
+  $("tsInput").value = "";
+  if (task.date !== selected) selectDate(task.date, true);
+  refreshAll();
+  toast(tr("On your to-do for the day. Drag it onto a time whenever you like."));
+}
+$("tsForm").addEventListener("submit", function (e) { e.preventDefault(); submitTsTodo(); });
+
+function deleteInstance(id, key) {
+  var t = baseTask(id); if (!t) return;
+  if (t.repeat) {
+    t.skipDates = t.skipDates || [];
+    if (t.skipDates.indexOf(key) === -1) t.skipDates.push(key);
+    save(); refreshAll();
+    toast(tr("Removed for this day. The rest of the series stays."), function () {
+      t.skipDates = t.skipDates.filter(function (d) { return d !== key; }); save(); refreshAll(); toast(tr("Back again."));
+    });
+  } else {
+    var idx = state.tasks.indexOf(t);
+    state.tasks = state.tasks.filter(function (x) { return x.id !== id; });
+    save(); refreshAll();
+    toast(tr("Deleted."), function () { restoreAt(state.tasks, t, idx); save(); refreshAll(); toast(tr("Back again.")); });
+  }
+}
+/* One hit test for every drop that happens outside the calendar grid:
+   the day strip (move to that day), the year grid (same), the new-task button (delete). */
+function dropOutside(id, fromKey, ev, fromTray) {
+  if (!id || !ev) return false;
+  var p = (ev.changedTouches && ev.changedTouches[0]) || ev;
+  /* the dragged card itself sits under the finger, so look through everything stacked there */
+  var stack = (document.elementsFromPoint ? document.elementsFromPoint(p.clientX, p.clientY) : [document.elementFromPoint(p.clientX, p.clientY)]).filter(function (n) { return n && n.closest; });
+  var onFab = stack.some(function (n) { return n.closest("#fab"); });
+  if (onFab) { deleteInstance(id, fromKey); return true; }
+  var SEL = fromTray ? "#ticker [data-date], [data-ydate], #calendar .fc-daygrid-day[data-date]" : "#ticker [data-date], [data-ydate]";
+  var hit = stack.filter(function (n) { return n.closest(SEL); })[0];
+  var cell = hit && hit.closest(SEL);
+  if (cell) {
+    var to = cell.getAttribute("data-date") || cell.getAttribute("data-ydate"), t = baseTask(id);
+    if (!t || !to || to === fromKey) return false;
+    moveInstance(t, fromKey, to);
+    save(); refreshAll(); toast(tr("Moved. The day re-shaped itself."));
+    return true;
+  }
+  return false;
+}
+/* The tray (Year and Agenda views): hold a task, drag it onto a day. */
+function renderTray() {
+  var box = $("dragTray"); if (!box) return;
+  var on = currentView === "year" || currentView === "listWeek" || currentView === "dayGridMonth";
+  box.hidden = !on; if (!on) { box.innerHTML = ""; return; }
+  var items = tasksOn(selected);
+  var head = '<p class="tray-hint">' + tr("Hold a task and drag it onto a day. Drop it on the + to delete.") + '</p>';
+  if (!items.length) { box.innerHTML = head + '<p class="tray-empty">' + tr("Nothing on this day.") + '</p>'; return; }
+  box.innerHTML = head + '<div class="tray-row">' + items.map(function (t) {
+    return '<div class="tray-chip" data-id="' + esc(t.id) + '" data-date="' + esc(t.instanceDate) + '" style="--c:' + esc(t.color) + '"><span class="tc-emo">' + esc(t.icon || "") + '</span><span class="tc-t">' + esc(t.title) + '</span></div>';
+  }).join("") + '</div>';
+  box.querySelectorAll(".tray-chip").forEach(function (chip) {
+    chip.addEventListener("pointerdown", function (e) {
+      var sx = e.clientX, sy = e.clientY, ghost = null, started = false, timer = null, touch = e.pointerType === "touch";
+      var id = chip.getAttribute("data-id"), key = chip.getAttribute("data-date");
+      function begin() {
+        started = true; ghost = chip.cloneNode(true); ghost.classList.add("tray-ghost");
+        document.body.appendChild(ghost); document.body.classList.add("is-dragging-task"); $("fab").classList.add("is-trash");
+        try { chip.setPointerCapture(e.pointerId); } catch (x) {}
+      }
+      function mv(ev) {
+        if (!started) {
+          if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 6) { if (touch) { cleanup(); return; } begin(); } else return;
+        }
+        ev.preventDefault();
+        ghost.style.left = ev.clientX + "px"; ghost.style.top = ev.clientY + "px";
+      }
+      function cleanup() { clearTimeout(timer); chip.removeEventListener("pointermove", mv); chip.removeEventListener("pointerup", up); chip.removeEventListener("pointercancel", up); }
+      function up(ev) {
+        cleanup();
+        if (ghost) { ghost.remove(); document.body.classList.remove("is-dragging-task"); $("fab").classList.remove("is-trash"); }
+        if (started) { ghost = null; if (!dropOutside(id, key, ev, true)) toast(tr("Drop it on a day, or on the + to delete.")); }
+        else if (ev.type === "pointerup") openTask(id, key);
+      }
+      chip.addEventListener("pointermove", mv); chip.addEventListener("pointerup", up); chip.addEventListener("pointercancel", up);
+      if (touch) timer = setTimeout(function () { begin(); if (ghost) { ghost.style.left = sx + "px"; ghost.style.top = sy + "px"; } }, 250);
+    });
+  });
+}
+
+/* ---------- focus: one task, one calm timer ---------- */
+var FOCUS = null, FOCUS_ASKED = {}, FOCUS_TICK = null;
+function focusApps() { return ["Instagram", "TikTok", "YouTube", "Facebook", "X", "Snapchat", "Reddit", "WhatsApp", "Netflix", "Games"]; }
+function fcCfg() { var s = state.settings; s.focus = Object.assign({ auto: false, block: false, apps: [] }, s.focus || {}); return s.focus; }
+function fcClock(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + L.pad(s % 60); }
+function fcLocal() { try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null; } catch (e) { return null; } }
+function startFocus(id, dateKey) {
+  var t = baseTask(id); if (!t) return;
+  var key = dateKey || t.date, inst = instanceOf(t, key), mins = Math.max(5, +inst.durationMin || 25), ms = mins * 60000;
+  if (FOCUS_TICK) clearInterval(FOCUS_TICK);
+  FOCUS = { id: id, date: key, total: ms, endsAt: Date.now() + ms, left: ms, paused: false, over: false, hiddenAt: 0, awayMs: 0 };
+  $("focusAsk").hidden = true;
+  $("fsTitle").textContent = inst.title;
+  $("fsIcon").textContent = inst.icon || "\u23f1";
+  $("fsIcon").style.background = inst.color || "#7A8699";
+  $("focusScreen").style.setProperty("--fs-c", inst.color || "#7A8699");
+  $("fsAway").hidden = true;
+  $("fsPause").textContent = tr("Pause");
+  $("fsDone").textContent = tr("Done");
+  $("focusScreen").hidden = false;
+  document.body.classList.add("focus-on");
+  fcSteps(); fcPaint();
+  FOCUS_TICK = setInterval(fcPaint, 500);
+  if (t.status !== "done" && t.status !== "doing" && !t.repeat) { t.status = "doing"; save(); }
+}
+function fcSteps() {
+  var t = FOCUS && baseTask(FOCUS.id), box = $("fsSteps"); box.innerHTML = "";
+  if (!t || !(t.steps || []).length) return;
+  t.steps.forEach(function (s, i) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "fs-step" + (s.done ? " is-on" : "");
+    b.innerHTML = '<span class="fs-box">' + (s.done ? icon("i-check") : "") + '</span><span></span>';
+    b.lastChild.textContent = s.text;
+    b.addEventListener("click", function () { s.done = !s.done; save(); fcSteps(); });
+    box.appendChild(b);
+  });
+}
+function fcPaint() {
+  if (!FOCUS) return;
+  var left = FOCUS.paused ? FOCUS.left : FOCUS.endsAt - Date.now();
+  if (left <= 0 && !FOCUS.over) {
+    FOCUS.over = true; left = 0;
+    $("fsSub").textContent = tr("Time is up. Mark it done, or take five more.");
+    $("fsPause").hidden = true;
+    toast(tr("Focus time is up."));
+    try { notify(tr("Focus time is up"), $("fsTitle").textContent, "focus-" + FOCUS.id + "-" + Date.now(), { taskId: FOCUS.id }); } catch (e) {}
+  }
+  $("fsTime").textContent = fcClock(left);
+  var C = 2 * Math.PI * 54, fr = FOCUS.total ? Math.max(0, Math.min(1, left / FOCUS.total)) : 0;
+  var fg = $("fsFg"); fg.style.strokeDasharray = C.toFixed(1); fg.style.strokeDashoffset = (C * (1 - fr)).toFixed(1);
+  if (!FOCUS.over) $("fsSub").textContent = FOCUS.paused ? tr("Paused. Breathe. Come back when you are ready.") : tr("One thing. Nothing else counts right now.");
+}
+function endFocus() {
+  if (FOCUS_TICK) clearInterval(FOCUS_TICK); FOCUS_TICK = null; FOCUS = null;
+  $("focusScreen").hidden = true; document.body.classList.remove("focus-on");
+  var p = fcLocal(); if (p) { try { p.cancel({ notifications: [{ id: 424242 }] }); } catch (e) {} }
+}
+$("fsClose").addEventListener("click", endFocus);
+$("fsPause").addEventListener("click", function () {
+  if (!FOCUS || FOCUS.over) return;
+  if (FOCUS.paused) { FOCUS.paused = false; FOCUS.endsAt = Date.now() + FOCUS.left; $("fsPause").textContent = tr("Pause"); }
+  else { FOCUS.left = Math.max(0, FOCUS.endsAt - Date.now()); FOCUS.paused = true; $("fsPause").textContent = tr("Resume"); }
+  fcPaint();
+});
+$("fsMore").addEventListener("click", function () {
+  if (!FOCUS) return;
+  var add = 5 * 60000; FOCUS.total += add;
+  if (FOCUS.over) { FOCUS.over = false; FOCUS.paused = false; FOCUS.endsAt = Date.now() + add; $("fsPause").hidden = false; $("fsPause").textContent = tr("Pause"); }
+  else if (FOCUS.paused) FOCUS.left += add; else FOCUS.endsAt += add;
+  fcPaint();
+});
+$("fsDone").addEventListener("click", function () {
+  if (!FOCUS) return;
+  var t = baseTask(FOCUS.id), key = FOCUS.date;
+  var isDone = t && (t.repeat ? (t.doneDates || []).indexOf(key) !== -1 : t.status === "done");
+  if (t && !isDone) { try { var spent = Math.round((FOCUS.paused ? FOCUS.total - FOCUS.left : FOCUS.total - Math.max(0, FOCUS.endsAt - Date.now())) / 60000); if (spent >= 1 && !t.repeat) t.actualMin = spent; } catch (e) {} toggleDone(FOCUS.id, key); }
+  endFocus();
+});
+$("dFocus").addEventListener("click", function () {
+  var id = currentTaskId, key = currentInstanceDate; persistSheetFields(); $("taskSheet").hidden = true; refreshAll(); startFocus(id, key);
+});
+$("dFocusAuto").addEventListener("change", function () { var t = baseTask(currentTaskId); if (t) { t.focus = $("dFocusAuto").checked; save(); } });
+document.addEventListener("visibilitychange", function () {
+  if (!FOCUS) return;
+  var cfg = fcCfg(), p = fcLocal();
+  if (document.hidden) {
+    FOCUS.hiddenAt = Date.now();
+    if (cfg.block && p && !FOCUS.paused && !FOCUS.over) {
+      try {
+        p.schedule({ notifications: [{ id: 424242, title: tr("Back to {task}", { task: $("fsTitle").textContent }), body: tr("Your focus is still running."),
+          schedule: { at: new Date(Date.now() + 20000) } }] });
+      } catch (e) {}
+    }
+  } else {
+    if (p) { try { p.cancel({ notifications: [{ id: 424242 }] }); } catch (e) {} }
+    if (FOCUS.hiddenAt) {
+      var away = Date.now() - FOCUS.hiddenAt; FOCUS.hiddenAt = 0; FOCUS.awayMs += away;
+      if (away > 15000) { $("fsAway").hidden = false; $("fsAway").textContent = tr("Welcome back. You were away {n} min. No judgement.", { n: Math.max(1, Math.round(away / 60000)) }); }
+    }
+  }
+});
+/* Settings: focus options */
+function renderFocusSettings() {
+  var cfg = fcCfg();
+  $("fcAuto").checked = !!cfg.auto; $("fcBlock").checked = !!cfg.block; $("fcAppsWrap").hidden = !cfg.block;
+  var box = $("fcApps"); box.innerHTML = "";
+  focusApps().forEach(function (name) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "chip" + (cfg.apps.indexOf(name) !== -1 ? " is-on" : ""); b.textContent = name;
+    b.setAttribute("aria-pressed", String(cfg.apps.indexOf(name) !== -1));
+    b.addEventListener("click", function () {
+      var i = cfg.apps.indexOf(name); if (i === -1) cfg.apps.push(name); else cfg.apps.splice(i, 1);
+      save(); renderFocusSettings();
+    });
+    box.appendChild(b);
+  });
+}
+$("fcAuto").addEventListener("change", function () { fcCfg().auto = $("fcAuto").checked; save(); });
+$("fcBlock").addEventListener("change", function () { fcCfg().block = $("fcBlock").checked; save(); renderFocusSettings(); });
+/* Offer focus when a timed task starts (only if the user opted in: globally or on that task). */
+function focusWatch() {
+  if (FOCUS || !state || !state.tasks) return;
+  var now = new Date(), key = L.todayKey(), hhmm = L.pad(now.getHours()) + ":" + L.pad(now.getMinutes()), cfg = fcCfg();
+  tasksOn(key).forEach(function (t) {
+    if (!t.time || t.status === "done" || (t.doneDates || []).indexOf(key) !== -1) return;
+    var base = baseTask(t.id) || t, want = base.focus === true || (base.focus !== false && cfg.auto);
+    var ak = t.id + "@" + key;
+    if (!want || FOCUS_ASKED[ak]) return;
+    var diff = L.toMin(hhmm) - L.toMin(t.time);
+    if (diff < 0 || diff > 1) return;
+    FOCUS_ASKED[ak] = 1;
+    $("faText").textContent = tr("Time for {task}. Start a focus?", { task: t.title });
+    $("focusAsk").hidden = false; $("focusAsk").setAttribute("data-id", t.id); $("focusAsk").setAttribute("data-date", key);
+  });
+}
+$("faStart").addEventListener("click", function () { startFocus($("focusAsk").getAttribute("data-id"), $("focusAsk").getAttribute("data-date")); });
+$("faNo").addEventListener("click", function () { $("focusAsk").hidden = true; });
+setInterval(focusWatch, 15000);
+
+window.PaceCtx = { get selected() { return selected; }, levelFor: levelFor, esc: esc, skipSvg: skipSvg, showPanel: showPanel, setBottomTab: setBottomTab, selectDate: selectDate, baseTask: baseTask, markActivated: markActivated, openQuickAdd: function () { $("addBtn").click(); }, startFocus: startFocus, focusWatch: focusWatch, get focus() { return FOCUS; }, dropOutside: dropOutside, renderFocusSettings: renderFocusSettings, deleteInstance: deleteInstance,  get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
 })();
 
 
