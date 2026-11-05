@@ -40,8 +40,8 @@ const stored = (p) => p.evaluate(() => JSON.parse(localStorage.getItem("calmcal-
 {
   const p = await fresh();
   await p.evaluate(() => document.querySelector('[data-panel="settings"]').click()); await p.waitForTimeout(300);
-  await p.click('.swatch[data-theme-set="dark"]'); await p.waitForTimeout(200);
-  check("Black choice applies the dark look", (await theme(p)) === "dark");
+  await p.click('.swatch[data-theme-set="blush"]'); await p.waitForTimeout(200);
+  check("Blush choice applies", (await theme(p)) === "blush");
   await p.click('.swatch[data-theme-set="brand"]'); await p.waitForTimeout(200);
   check("Brand choice applies the brand look", (await theme(p)) === "brand");
   // The app fades between looks (0.25s transition) — wait for the
@@ -59,10 +59,10 @@ let darkPage;
   const p = await fresh(); darkPage = p;
   await p.evaluate(() => document.querySelector('[data-panel="settings"]').click()); await p.waitForTimeout(300);
   await p.setInputFiles("#bgPhotoFile", "/tmp/bg-dark.png"); await p.waitForTimeout(700);
-  check("dark photo picks the dark ink set", (await p.evaluate(() => document.documentElement.getAttribute("data-photo"))) === "dark" && (await theme(p)) === "photodark");
+  check("dark photo now uses the light ink set (no black look)", (await p.evaluate(() => document.documentElement.getAttribute("data-photo"))) === "light" && (await theme(p)) === "photolight");
   check("the photo is stored as user data", ((await stored(p)).photo || "").indexOf("data:image/") === 0 && (await stored(p)).bgChoice === "photo");
   await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(400);
-  check("photo background survives reload", (await p.evaluate(() => document.documentElement.getAttribute("data-photo"))) === "dark");
+  check("photo background survives reload", (await p.evaluate(() => document.documentElement.getAttribute("data-photo"))) === "light");
 }
 // 3. AA at the worst case, from the live CSS values.
 {

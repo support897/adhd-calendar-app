@@ -1,0 +1,73 @@
+// Build 50: one-day Day view with peeks, today fill, per-view headers, swipes, Progress map and badges. Offline.
+import { boot, check, summary } from "./pace-harness.mjs";
+const h = await boot(8997, { viewport: { width: 390, height: 844 } }); const { page } = h;
+await page.locator("#welcomeSkip").click({ timeout: 800 }).catch(() => {}); await page.locator("#guideSkip").click({ timeout: 800 }).catch(() => {});
+await page.evaluate(() => { const C = window.PaceCtx, L = window.CalmLogic; const t = L.todayKey(), tm = L.addDays(t, 1); const mk = (title, date, time) => C.state.tasks.push({ id: "g" + Math.random().toString(36).slice(2), title, date, time, durationMin: 30, status: "todo", color: "#5b6bd5", icon: "\u2B50", createdAt: Date.now() }); mk("Today one", t, "09:00"); mk("Today two", t, "11:00"); mk("Tomorrow one", tm, "10:00"); C.save(); C.refreshAll(); });
+await page.waitForTimeout(400);
+const key = () => page.evaluate(() => document.querySelector("#ticker .tick.is-selected").getAttribute("data-date"));
+const today = await page.evaluate(() => window.CalmLogic.todayKey());
+check("G1 Day view shows exactly ONE day column", (await page.locator(".fc-timeGridDay-view .fc-col-header-cell").count()) === 1);
+check("G2 that day's tasks are in it (2 today)", (await page.locator(".fc-timegrid-event").count()) === 2);
+check("G3 today's header is filled and says Today", /today/i.test(await page.locator(".fc-col-header-cell.fc-day-today").innerText()) && (await page.evaluate(() => getComputedStyle(document.querySelector(".fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion")).backgroundColor)) !== "rgba(0, 0, 0, 0)");
+check("G4 a small strip each side: day before and day after", (await page.locator("#peekPrev:visible").count()) === 1 && (await page.locator("#peekNext:visible").count()) === 1);
+const w = await page.evaluate(() => [document.querySelector("#peekPrev").getBoundingClientRect().width, document.querySelector("#calendar").getBoundingClientRect().width]);
+check("G5 the strips are thin and the day takes most of the screen", w[0] <= 48 && w[1] > 280);
+await page.click("#peekNext"); await page.waitForTimeout(400);
+check("G6 tapping the next strip shows tomorrow's tasks only", (await page.locator(".fc-timegrid-event").count()) === 1 && (await key()) !== today);
+check("G7 tomorrow is NOT filled like today", (await page.locator(".fc-col-header-cell.fc-day-today").count()) === 0);
+await page.click("#peekPrev"); await page.waitForTimeout(300);
+check("G8 tapping the strip back returns to today", (await key()) === today && (await page.locator(".fc-timegrid-event").count()) === 2);
+const swipe = async (sel, dx) => page.evaluate(([sel, dx]) => { const el = document.querySelector(sel), r = el.getBoundingClientRect(), x0 = r.left + r.width / 2, y = r.top + 200; const mk = (type, x) => { const e = new Event(type, { bubbles: true, cancelable: true }); const tt = [{ clientX: x, clientY: y, target: el }]; Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : tt }); Object.defineProperty(e, "changedTouches", { value: tt }); el.dispatchEvent(e); }; mk("touchstart", x0); mk("touchmove", x0 + dx / 2); mk("touchend", x0 + dx); }, [sel, dx]);
+await swipe("#calendarWrap .fc-timegrid-body", -140); await page.waitForTimeout(400);
+check("G9 swipe left goes to the next day", (await key()) !== today && (await page.locator(".fc-timegrid-event").count()) === 1);
+await swipe("#calendarWrap .fc-timegrid-body", 140); await page.waitForTimeout(400);
+check("G10 swipe right comes back", (await key()) === today);
+// week + month: the header is the view's own, and the strip is gone
+await page.locator('.segmented button[data-view="timeGridWeek"]').click(); await page.waitForTimeout(500);
+const hdrTxt = await page.locator(".fc-col-header-cell").allInnerTexts();
+check("G11 Week view has 7 labelled weekday columns", hdrTxt.length === 7 && hdrTxt.every(t => t.trim().length > 2));
+check("G12 Week view hides the day strip", !(await page.locator("#ticker").isVisible()) && (await page.locator("#peekPrev:visible").count()) === 0);
+await page.evaluate(() => window.scrollTo(0, 700)); await page.waitForTimeout(250);
+const top = await page.evaluate(() => Math.round(document.querySelector(".fc-col-header-cell").getBoundingClientRect().top));
+check("G13 scrolling down keeps the weekday header pinned at the top", top >= 0 && top <= 4);
+check("G14 Week calendar fills the full width (no blank band)", await page.evaluate(() => document.querySelector(".fc-col-header").getBoundingClientRect().width > document.querySelector("#calendar").getBoundingClientRect().width - 6));
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.locator('.segmented button[data-view="dayGridMonth"]').click(); await page.waitForTimeout(500);
+const mh = await page.locator(".fc-col-header-cell").allInnerTexts();
+check("G15 Month view shows the weekday names", mh.length === 7 && mh.every(t => t.trim().length >= 2));
+check("G16 today's date is a filled circle in Month", (await page.evaluate(() => getComputedStyle(document.querySelector(".fc-day-today .fc-daygrid-day-number")).backgroundColor)) !== "rgba(0, 0, 0, 0)");
+await page.locator('.segmented button[data-view="timeGridDay"]').click(); await page.waitForTimeout(500);
+check("G17 back to Day: one column and the strips return", (await page.locator(".fc-timeGridDay-view .fc-col-header-cell").count()) === 1 && (await page.locator("#peekNext:visible").count()) === 1 && (await page.evaluate(() => document.querySelector(".fc-col-header").getBoundingClientRect().width > document.querySelector("#calendar").getBoundingClientRect().width - 6)));
+// sheets
+await page.evaluate(() => document.querySelector(".fc-timegrid-event").click()); await page.waitForTimeout(400);
+check("G18 a task opens its sheet", await page.locator("#taskSheet").isVisible());
+await page.evaluate(() => { const card = document.querySelector("#taskSheet .sheet-card"); const mk = (type, y) => { const e = new Event(type, { bubbles: true, cancelable: true }); const tt = [{ clientX: 200, clientY: y, target: card }]; Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : tt }); Object.defineProperty(e, "changedTouches", { value: tt }); card.dispatchEvent(e); }; mk("touchstart", 300); mk("touchmove", 360); mk("touchmove", 460); mk("touchend", 460); });
+await page.waitForTimeout(500);
+check("G19 swiping the sheet down closes it", !(await page.locator("#taskSheet").isVisible()));
+await page.evaluate(() => document.querySelector(".fc-timegrid-event").click()); await page.waitForTimeout(300);
+await page.evaluate(() => { const mk = (type, x) => { const e = new Event(type, { bubbles: true, cancelable: true }); const tt = [{ clientX: x, clientY: 400, target: document.body }]; Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : tt }); Object.defineProperty(e, "changedTouches", { value: tt }); document.body.dispatchEvent(e); }; mk("touchstart", 6); mk("touchmove", 60); mk("touchend", 130); });
+await page.waitForTimeout(400);
+check("G20 swiping right from the edge closes the sheet (back)", !(await page.locator("#taskSheet").isVisible()));
+await page.evaluate(() => window.PaceCtx.showPanel("settings")); await page.waitForTimeout(300);
+await page.evaluate(() => { const mk = (type, x) => { const e = new Event(type, { bubbles: true, cancelable: true }); const tt = [{ clientX: x, clientY: 400, target: document.body }]; Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : tt }); Object.defineProperty(e, "changedTouches", { value: tt }); document.body.dispatchEvent(e); }; mk("touchstart", 6); mk("touchmove", 60); mk("touchend", 130); });
+await page.waitForTimeout(500);
+check("G21 swiping back from Settings returns to the calendar", await page.locator("#panel-calendar.is-active").count() === 1);
+// settings icons
+await page.evaluate(() => window.PaceCtx.showPanel("settings")); await page.waitForTimeout(500);
+const rows = await page.evaluate(() => [...document.querySelectorAll("#panel-settings .settings-group .row")].filter(r => r.offsetParent).map(r => !!r.querySelector(".ic-e") || /^[^\w\s]/.test(r.innerText.trim()) || (getComputedStyle(r, "::before").content !== "none" && getComputedStyle(r, "::before").content !== "normal")));
+check("G22 every visible settings row has a picture", rows.length > 8 && rows.every(Boolean), rows.join());
+// progress
+await page.evaluate(() => window.PaceCtx.showPanel("progress")); await page.waitForTimeout(500);
+check("G23 Progress has all-time numbers, a journey map, and a badge wall", (await page.locator(".pg-stat").count()) === 8 && (await page.locator(".jm-node").count()) === 7 && (await page.locator(".rw-badge").count()) >= 18);
+check("G24 the ferry marks where you are on the map", (await page.locator(".jm-node.is-here").count()) === 1 && (await page.locator(".jm-boat").count()) === 1);
+await page.evaluate(() => { const C = window.PaceCtx; C.state.habits.push({ id: "h1", name: "Stretch", icon: "i-habit", days: Object.fromEntries([0,1,2,3,4,5,6].map(i => [window.CalmLogic.addDays(window.CalmLogic.todayKey(), -i), true])) }); C.state.goals.push({ id: "gs", title: "Shared one", sharedGoalId: "abc", createdAt: Date.now() }); C.save(); C.refreshAll(); });
+await page.evaluate(() => window.PaceCtx.showPanel("calendar")); await page.evaluate(() => window.PaceCtx.showPanel("progress")); await page.waitForTimeout(500);
+check("G25 habits show with a 7-dot week, and the badges Habit seven + Better together unlock", (await page.locator(".pg-habit").count()) === 1 && (await page.locator('.rw-badge.is-on[data-b="habit7"]').count()) === 1 && (await page.locator('.rw-badge.is-on[data-b="together"]').count()) === 1);
+// finish a task: wins ever goes up
+await page.evaluate(() => { const t = window.PaceCtx.state.tasks.find(x => x.title === "Today one"); window.PaceCtx.toggleDone && window.PaceCtx.toggleDone(t.id, t.date); });
+await page.evaluate(() => window.PaceCtx.showPanel("calendar")); await page.evaluate(() => window.PaceCtx.showPanel("progress")); await page.waitForTimeout(400);
+const first = await page.locator(".pg-stat b").first().innerText();
+check("G26 finishing a task raises the all-time wins", +first >= 1, first);
+check("G27 no page errors", h.errors.length === 0, h.errors.slice(0, 3).join(" | "));
+summary();
+process.exit(0);

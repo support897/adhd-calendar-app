@@ -86,6 +86,29 @@ const a = await door("#appleBtn", "apple", true);
 check("N13 Apple button uses the native Apple door and signs in with its token", h.mock.idpCalls.some(x => /fake-apple-token/.test(JSON.stringify(x))));
 const ax = await door("#appleBtn", "apple", false);
 check("N14 Apple closed/cancelled: 'Nothing changed' message, no crash", ax.used.includes("apple") && /Nothing changed/i.test(ax.text));
+/* ---- Build 50: a Google/Apple user (no password) can delete their account ---- */
+for (const [btn, kind] of [["#googleBtn", "google"], ["#appleBtn", "apple"]]) {
+  const ctx3 = await h.browser.newContext({ viewport: { width: 390, height: 800 } }); const p3 = await ctx3.newPage();
+  await p3.addInitScript(fake);
+  await p3.goto("http://localhost:8994/", { waitUntil: "networkidle" });
+  await p3.locator("#welcomeSkip").click({ timeout: 1500 }).catch(() => {}); await p3.locator("#guideSkip").click({ timeout: 800 }).catch(() => {});
+  await p3.evaluate(() => { const b = document.querySelector("#doorOpen, #signInOpen, [data-open-door]"); if (b) b.click(); }); await p3.waitForTimeout(400);
+  await p3.click(btn); await p3.waitForTimeout(1800);
+  await p3.evaluate(() => window.PaceCtx.showPanel("settings")); await p3.waitForTimeout(300);
+  const outVis = await p3.locator("#pcOut").isVisible().catch(() => false);
+  await p3.evaluate(() => document.getElementById("accountDelete").click()); await p3.waitForTimeout(700);
+  const passShown = await p3.locator("#deletePass").isVisible().catch(() => false);
+  check("N17 (" + kind + ") quick Sign out button is on the profile card", outVis);
+  check("N18 (" + kind + ") delete asks NO password for a " + kind + " account", !passShown);
+  const before = h.mock.idpCalls.length;
+  await p3.evaluate(() => window.__calls.auth.length = 0);
+  await p3.evaluate(() => document.getElementById("deleteGo").click()); await p3.waitForTimeout(2500);
+  const used = await p3.evaluate(() => window.__calls.auth).catch(() => []);
+  const gone = await p3.evaluate(() => !localStorage.getItem("pace-auth-v1")).catch(() => true);
+  check("N19 (" + kind + ") delete re-checks with " + kind + " itself, then the account is gone", (used.includes(kind) || h.mock.idpCalls.length > before) && gone);
+  await ctx3.close();
+}
 check("N15 zero JS errors through all native hand-offs", h.errors.length === 0);
 if (h.errors.length) console.log(h.errors.slice(0, 4));
-await h.close(); process.exit(summary() ? 1 : 0);
+await h.close(); process.exit(
+summary() ? 1 : 0);

@@ -64,8 +64,8 @@ await page.locator("#setPace > h3").click(); await page.waitForTimeout(200);
 check("S3 opening another closes the first (one at a time)", (await page.locator(".settings-group.is-open").count()) === 1 && (await shown("#setLook .swatch")) === 0 && (await shown("#pcQuiet")) === 1);
 await page.locator('.set-jump [data-jump="setCheckin"]').click(); await page.waitForTimeout(300);
 check("S4 jump chips open the right card", (await shown("#wakeTime")) === 1);
-await page.locator('#setLook > h3').click(); await page.locator('[data-theme-set="dark"]').click(); await page.waitForTimeout(150);
-check("S5 settings inside cards still work (theme)", (await page.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "dark");
+await page.locator('#setLook > h3').click(); await page.locator('[data-theme-set="blush"]').click(); await page.waitForTimeout(150);
+check("S5 settings inside cards still work (theme)", (await page.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "blush");
 await page.locator('[data-theme-set="white"]').click();
 await page.evaluate(() => localStorage.removeItem("paceFold"));
 

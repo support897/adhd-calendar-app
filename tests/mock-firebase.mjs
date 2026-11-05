@@ -192,6 +192,11 @@ export function startMock() {
           if (!u) { const uid = "uid-" + ++uidN; u = { uid, email: "", password: null }; users.set(key, u); }
           return send(200, { localId: u.uid, email: u.email, idToken: tok(u.uid), refreshToken: "rt-" + u.uid, expiresIn: "3600", federatedId: key, providerId });
         }
+        if (action === "lookup") {
+          const uid = uidOf({ headers: { authorization: "Bearer " + (b.idToken || "") } });
+          for (const [e, u] of users) if (u.uid === uid) return send(200, { users: [{ localId: uid, email: u.email, providerUserInfo: [{ providerId: u.password ? "password" : (String(e).split(":")[0] || "password") }] }] });
+          return send(400, { error: { message: "USER_NOT_FOUND" } });
+        }
         if (action === "sendOobCode") return send(200, { email: b.email });
         if (action === "delete") {
           const uid = uidOf({ headers: { authorization: "Bearer " + (b.idToken || "") } });
