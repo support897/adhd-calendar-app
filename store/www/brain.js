@@ -344,7 +344,7 @@ function buildTask(clause, baseKey, ctx, seen, weak) {
   if (assumedClock) { item.confidence = Math.min(item.confidence, 0.8); item.assumed = "time"; }
   if (item.title.split(/\s+/).length === 1 && !VERB_RE.test(item.title) && !item.time && !ESSENTIAL_RE.test(item.title) && item.date === baseKey && weak !== "list") { item.confidence = Math.min(item.confidence, 0.55); item.unsure.push("Very short. Is this a task?"); }
   if (/\b(?:sometime|someday|eventually)\b/i.test(clause)) { item.confidence = Math.min(item.confidence, 0.6); item.unsure.push("No clear date. I used today; change it if needed."); }
-  if (item.time && item.date === baseKey && ctx.nowMin != null && L.toMin(item.time) < ctx.nowMin - 5 && /\bat\b/i.test(clause) && !/\btoday\b|\btomorrow\b/i.test(clause)) { item.confidence = Math.min(item.confidence, 0.7); item.unsure.push("That time has already passed today."); }
+  if (item.time && item.date === baseKey && ctx.nowMin != null && L.toMin(item.time) < ctx.nowMin - 5 && /\bat\b/i.test(clause) && !/\btoday\b|\btomorrow\b/i.test(clause)) { item.confidence = Math.min(item.confidence, 0.7); item.unsure.push("Time passed today ⏰"); }
   item.confident = item.confidence >= 0.75;
   var g = findGoal(item.title + " " + clause, ctx.goals);
   if (g) { item.goalId = g.id; item.goalTitle = g.title || g.name; }

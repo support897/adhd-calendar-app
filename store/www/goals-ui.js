@@ -86,7 +86,7 @@ function renderHabits() {
   var today = L.todayKey(), week = G.weekDays(today);
   if (!C.state.habits.length) {
     var empty = el("div", "empty-note");
-    empty.appendChild(el("span", null, tr("No habits yet. Start with one small habit, then add its tiny version below.")));
+    empty.appendChild(el("span", null, tr("🌱 No habits yet.")));
     wrap.appendChild(empty);
   }
   C.state.habits.forEach(function (h, idx) {
@@ -154,7 +154,7 @@ function ensureHabitForm() {
   var tiny = el("input", null, null, { id: "habitTiny", type: "text", autocomplete: "off", maxlength: "70", placeholder: tr("Smallest version for hard days? e.g. Put my shoes on"), "aria-label": tr("Smallest version") });
   name.parentNode.insertBefore(plan, name.nextSibling);
   name.parentNode.insertBefore(tiny, plan.nextSibling);
-  var tl = el("label", "field habit-time-field", tr("Remind me at (optional): puts it on your calendar every day"));
+  var tl = el("label", "field habit-time-field", tr("Remind me at (optional)"));
   var ti = el("input", null, null, { id: "habitTime", type: "time", "aria-label": tr("Habit time") });
   tl.appendChild(ti); name.parentNode.insertBefore(tl, tiny.nextSibling);
   if (window.PaceSteps && !window.PaceHabitSteps) {
@@ -175,11 +175,11 @@ function renderWhy() {
   var d = el("details", "why-box", null, { id: "habitWhy" });
   d.appendChild(el("summary", null, tr("Why this works")));
   [
-    "Missing one day barely changes how a habit forms. Missing two in a row is the real risk, so the streak forgives one gap. (Lally et al., UCL, 2010)",
-    "On average a habit feels automatic after about 66 days, but it ranges from 18 to 254. Be patient. (Lally et al., 2010)",
+    "One miss is fine. Two in a row = restart.",
+    "About 66 days to feel automatic.",
     "A plan for when and where roughly doubles follow-through. That is the 'When and where' box. (Gollwitzer and Sheeran, 2006)",
     "A tiny version for hard days keeps the habit alive when energy is low.",
-    "Aim for 5 of 7 days, not perfection. Tracking itself helps people stick with it."
+    "Aim for 5 of 7 days."
   ].forEach(function (t) { d.appendChild(el("p", null, tr(t))); });
   panel.appendChild(d);
 }
@@ -195,7 +195,7 @@ function renderGoals(force) {
   root.innerHTML = "";
   var goals = ensureGoals(), today = L.todayKey();
   autoSlide();
-  var intro = el("p", "panel-lede", tr("Give Pace one big goal. It becomes one small step a day on your calendar, so you can finish without feeling swamped."));
+  var intro = el("p", "panel-lede", tr("One big goal. One small step a day."));
   root.appendChild(intro);
 
   // today's goal steps
@@ -224,7 +224,7 @@ function renderGoals(force) {
     root.appendChild(add);
   }
 
-  if (!goals.length && !showForm) root.appendChild(el("div", "empty-note", tr("No goals yet. A semester goal, a certificate, a tidy home: start with one.")));
+  if (!goals.length && !showForm) root.appendChild(el("div", "empty-note", tr("🎯 No goals yet.")));
   goals.forEach(function (g) { root.appendChild(goalCard(g, today)); });
   // Shared goals (build 39): goals other people shared with me.
   if (window.PaceShareUI) window.PaceShareUI.renderSharedSection(root);
@@ -232,8 +232,8 @@ function renderGoals(force) {
   why.appendChild(el("summary", null, tr("Why small steps")));
   [
     "A big goal far away is hard to start. One small step today is easy to start, and each step you finish shows real progress. Seeing how close you are makes you want to keep going.",
-    "Pace plans backwards from your date, and keeps the last days free as a buffer, so one slow week never ruins the plan.",
-    "You decide the plan once, now, when you are calm. Later you just do today's step."
+    "Last days stay free as a buffer.",
+    "Plan once. Then just do today."
   ].forEach(function (t) { why.appendChild(el("p", null, tr(t))); });
   root.appendChild(why);
 }
@@ -257,14 +257,14 @@ function buildForm() {
     tb.addEventListener("click", function () { title.value = x[2]; var cb = f.querySelector('[data-cat="' + x[3] + '"]'); if (cb) cb.click(); title.focus(); });
     tpl.appendChild(tb);
   });
-  var notes = el("textarea", null, null, { id: "goalNotes", rows: "5", maxlength: "6000", "aria-label": tr("Details (optional)"), placeholder: tr("Optional: paste your outline, syllabus or notes. One item per line becomes a stage of your plan.") });
+  var notes = el("textarea", null, null, { id: "goalNotes", rows: "5", maxlength: "6000", "aria-label": tr("Details (optional)"), placeholder: tr("Paste notes (optional). One line = one stage.") });
   var file = el("input", null, null, { id: "goalFile", type: "file", accept: ".txt,.md,text/plain", hidden: "hidden" });
   var fileBtn = el("label", "soft-btn", tr("Add a text file"));
   fileBtn.appendChild(file);
   var fileMsg = el("p", "hint", "", { id: "goalFileMsg", role: "status" });
   file.addEventListener("change", function () {
     var fl = file.files && file.files[0]; if (!fl) return;
-    if (!/\.(txt|md)$/i.test(fl.name) && fl.type !== "text/plain") { fileMsg.textContent = tr("Pace reads .txt and .md files. For a PDF or Word file, copy the text and paste it above."); return; }
+    if (!/\.(txt|md)$/i.test(fl.name) && fl.type !== "text/plain") { fileMsg.textContent = tr("PDF or Word? Copy and paste the text."); return; }
     if (fl.size > 200000) { fileMsg.textContent = tr("That file is too big. Paste the part that matters."); return; }
     var r = new FileReader();
     r.onload = function () { notes.value = String(r.result || "").slice(0, 6000); fileMsg.textContent = tr("Added. Check it, then make the plan."); };
@@ -343,7 +343,7 @@ function buildForm() {
   var fileWrap = el("div", "gf-field"); fileWrap.appendChild(fileBtn); fileWrap.appendChild(fileMsg);
   var groups = [
     { h: tr("What is your goal?"), nodes: [title, tpl], check: function () { if (!title.value.trim() && !notes.value.trim()) return tr("Give your goal a name first."); return ""; } },
-    { h: tr("Anything to add?"), sub: tr("Optional. Paste notes or an outline. One line becomes one stage."), nodes: [notes, fileWrap], skippable: true },
+    { h: tr("Anything to add?"), sub: tr("Paste notes (optional)."), nodes: [notes, fileWrap], skippable: true },
     { h: tr("What kind of goal is it?"), nodes: [kind, priceBox], onShow: paintIcons },
     { h: tr("When do you want to finish?"), nodes: [endChips, end], check: function () { if (!end.value || end.value <= today) return tr("Pick a finish date after today."); return ""; } },
     { h: tr("How often, and how long?"), sub: tr("Small and steady wins. You can change this later."), nodes: [field(tr("How often?"), pace), field(tr("How long each day?"), mins)] }
@@ -433,17 +433,17 @@ function buildPreview(f) {
       var td = el("ol", "gf-steps");
       s.analysis.typicalDay.forEach(function (x) { var li = el("li"); li.appendChild(el("span", "gs-date", x.time)); li.appendChild(el("span", "gs-title", x.title)); td.appendChild(li); });
       f.appendChild(td);
-      f.appendChild(el("p", "hint", tr("Each block has a reminder before it starts. You can change any time in your calendar.")));
+      f.appendChild(el("p", "hint", tr("Reminders included.")));
       if (s.analysis.guess) f.appendChild(el("p", "hint", s.analysis.guess));
     }
-    if (s.analysis.tight) f.appendChild(el("p", "hint", tr("That is a lot for the days left. The steps are bigger than usual \u2014 a later finish date would make them small again.")));
+    if (s.analysis.tight) f.appendChild(el("p", "hint", tr("Tight. A later date makes steps small.")));
   }
   if (draft.fullCount) f.appendChild(el("p", "hint", tr("{n} of these days already look full, so those steps will sit in the day's list instead of at a set time.", { n: draft.fullCount })));
   var list = el("ol", "gf-steps");
   s.slice(0, 6).forEach(function (st) { var li = el("li"); li.appendChild(el("span", "gs-date", niceDate(st.date))); li.appendChild(el("span", "gs-title", st.title)); list.appendChild(li); });
   f.appendChild(list);
   if (s.length > 6) f.appendChild(el("p", "hint", tr("…and {n} more steps.", { n: s.length - 6 })));
-  f.appendChild(el("p", "hint", tr("Each step also has a 5-minute version for hard days. You can move or change any step later in your calendar.")));
+  f.appendChild(el("p", "hint", tr("Each step has a 5-minute version.")));
   var ok = el("button", "primary-btn", tr("Add to my calendar"), { type: "button", id: "goalAddBtn" });
   var back = el("button", "soft-btn", tr("Change something"), { type: "button" });
   ok.addEventListener("click", function () { commitDraft(); });
@@ -486,7 +486,7 @@ function goalCard(g, today) {
   var msg;
   if (p.state === "complete") msg = tr("Goal complete. You did that, one small step at a time.");
   else if (p.state === "behind") msg = tr("A few steps slipped. That is okay. Spread them out again?");
-  else if (p.state === "slightly") msg = tr("One step slipped. No stress, it is still easy to catch up.");
+  else if (p.state === "slightly") msg = tr("Slipped. Easy to catch up.");
   else msg = p.done ? tr("On track. Keep it small.") : tr("Ready when you are. Your first step is waiting.");
   card.appendChild(el("p", "goal-msg", msg));
   if (p.next && p.state !== "complete") card.appendChild(el("p", "goal-next", tr("Next:") + " " + p.next.title + " (" + (p.next.date === today ? tr("today") : niceDate(p.next.date)) + ")"));
