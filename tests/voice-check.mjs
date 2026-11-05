@@ -50,7 +50,7 @@ const fakeSR = (script) => `
   const p = await freshPage(`Object.defineProperty(window, "SpeechRecognition", { value: undefined, configurable: true }); Object.defineProperty(window, "webkitSpeechRecognition", { value: undefined, configurable: true });`);
   await p.click("#voiceBtn");
   const m = await p.textContent("#captureMsg");
-  check("no voice offered: calm typed fallback named", /not offered/.test(m));
+  check("no voice offered: calm typed fallback named", /No voice here/.test(m));
   await p.close();
 }
 // 2. Web speech: interim preview, then final lands in the box.
@@ -69,14 +69,14 @@ const fakeSR = (script) => `
 {
   const p = await freshPage(fakeSR([{ type: "final", text: "ring the dentist tomorrow" }, { type: "interim", text: "and also water the" }]));
   await p.click("#voiceBtn"); await p.waitForTimeout(500);
-  check("the check-the-words nudge survives later interim words", /Check what Pace heard/.test(await p.textContent("#captureMsg")));
+  check("the check-the-words nudge survives later interim words", /Ready to review/.test(await p.textContent("#captureMsg")));
   await p.close();
 }
 // 3. Web error codes speak their real cause.
 {
   const p = await freshPage(fakeSR([{ type: "error", code: "not-allowed" }]));
   await p.click("#voiceBtn"); await p.waitForTimeout(200);
-  check("blocked mic says so (not a mystery failure)", /microphone permission is off.*notes are safe/i.test(await p.textContent("#captureMsg")));
+  check("blocked mic says so (not a mystery failure)", /mic is off.*notes are safe/i.test(await p.textContent("#captureMsg")));
   await p.close();
   const p2 = await freshPage(fakeSR([{ type: "error", code: "no-speech" }]));
   await p2.click("#voiceBtn"); await p2.waitForTimeout(200);
@@ -99,7 +99,7 @@ const fakeSR = (script) => `
       requestPermissions: async () => ({ speechRecognition: "denied" }), start: async () => ({}), stop: async () => {} } } };`;
   const p2 = await freshPage(denied);
   await p2.click("#voiceBtn"); await p2.waitForTimeout(300);
-  check("native permission denied says the mic is blocked", /microphone permission is off.*notes are safe/i.test(await p2.textContent("#captureMsg")));
+  check("native permission denied says the mic is blocked", /mic is off.*notes are safe/i.test(await p2.textContent("#captureMsg")));
   await p2.close();
 }
 // 4b. POLAR P1 hardening: native platform, plugin MISSING from
@@ -112,7 +112,7 @@ const fakeSR = (script) => `
   const p = await freshPage(missing);
   await p.click("#voiceBtn"); await p.waitForTimeout(300);
   const msg = await p.textContent("#captureMsg");
-  check("POLAR P1: a build without the plugin says so honestly (no false 'mic blocked')", /not in this build/.test(msg) && !/blocked/.test(msg), msg);
+  check("POLAR P1: a build without the plugin says so honestly (no false 'mic blocked')", /No voice here/.test(msg) && !/blocked/.test(msg), msg);
   await p.close();
 }
 // 5. To-do voice: a spoken phrase becomes a to-do.

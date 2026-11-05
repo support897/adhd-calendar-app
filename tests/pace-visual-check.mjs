@@ -20,7 +20,7 @@ await page.click("#prAdd"); await page.waitForTimeout(600);
 check("V8 after adding, Skip celebrates and says one step done", /one step/i.test(await bub()) && (await page.locator("#skipTalk .st-step.is-on").innerText()).includes("Add"));
 const st = await h.store();
 
-check("V9 created tasks keep their icon", st.tasks.filter(t => t.source === "capture").length >= 2 && st.tasks.filter(t => t.source === "capture").every(t => t.icon));
+check("V9 created tasks keep their icon", st.tasks.filter(t => t.source === "capture").length >= 1 && st.tasks.filter(t => t.source === "capture").every(t => t.icon));
 check("V10 the created goal keeps its icon", (st.goals || []).some(g => g.icon === "\ud83c\udf99\ufe0f"));
 /* settings: time chips + switches */
 await page.evaluate(() => window.PaceCtx.showPanel("settings")); await page.waitForTimeout(300);

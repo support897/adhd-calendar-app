@@ -155,9 +155,9 @@ check("then the empty-start beat", /Your calendar starts empty/.test(await p4.lo
 await p4.click("#guideNext");
 check("then the feeling beat", /How are you feeling today/.test(await p4.locator("#guideBubble").textContent()));
 await p4.click("#guideNext");
-check("then Skip explains how Low, Steady and Full change the day (new)", /Low keeps only what matters/.test(await p4.locator("#guideBubble").textContent()));
+check("then Skip explains how Low, Steady and Full change the day (new)", /Low . Steady . Full/.test(await p4.locator("#guideBubble").textContent()));
 await p4.click("#guideNext");
-check("then Skip teaches Talk to it with a Try it button (new)", /Talk to it\./.test(await p4.locator("#guideBubble").textContent()) && (await p4.locator("#guideTry").count()) === 1);
+check("then Skip teaches Talk to it with a Try it button (new)", /Say it\. Check it/.test(await p4.locator("#guideBubble").textContent()) && (await p4.locator("#guideTry").count()) === 1);
 await p4.click("#guideNext");
 check("the tour offers the theme picks (the two free looks)", /Pick a look you like/.test(await p4.locator("#guideBubble").textContent()) && (await p4.locator(".g-swatch").count()) === 2);
 await p4.locator('.g-swatch[data-g-theme="dark"]').click(); await p4.waitForTimeout(200);

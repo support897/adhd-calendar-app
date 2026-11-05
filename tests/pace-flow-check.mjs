@@ -27,7 +27,7 @@ await page.click("#parseBtn"); await page.waitForTimeout(250);
 check("V4 the edited transcript is what gets understood", /electrician/i.test(await page.locator("#paceReview .pr-title").first().inputValue()) && (await page.locator("#paceReview .pr-card").count()) >= 2);
 await page.click("#prClear");
 /* Voice failures keep the user's words and speak plainly */
-const failCases = [["no-speech", /couldn't hear anything/i], ["not-allowed", /microphone permission is off/i], ["network", /isn't available right now/i], ["audio-capture", /No microphone/i]];
+const failCases = [["no-speech", /couldn't hear anything/i], ["not-allowed", /mic is off/i], ["network", /isn't available right now/i], ["audio-capture", /No microphone/i]];
 for (const [mode, re] of failCases) {
   await page.fill("#dumpText", "my careful notes"); 
   await page.evaluate((m) => { window.__voice.mode = m; }, mode);
@@ -53,8 +53,8 @@ while (guard++ < 40) {
   const nm = page.locator("#tourName"); if (await nm.count()) await nm.fill("Tester");
   await page.click("#guideNext"); await page.waitForTimeout(120);
 }
-check("T1 tour explains Low/Steady/Full with a demo", sawDemo && bubbles.some(b => /Low keeps only what matters/.test(b)));
-check("T2 tour has a Try it for Talk to it", sawTry && bubbles.some(b => /Talk to it\. Tell it/.test(b)));
+check("T1 tour explains Low/Steady/Full with a demo", sawDemo && bubbles.some(b => /Low . Steady . Full/.test(b)));
+check("T2 tour has a Try it for Talk to it", sawTry && bubbles.some(b => /Say it\. Check it\. Add it/.test(b)));
 check("T3 tour ends by asking what to work on first, with 4 choices", sawFirst && (await page.locator(".guide-first button").count()) === 4 && /What would you like to work on first/.test(bubbles[bubbles.length - 1]));
 await page.evaluate(() => document.getElementById("guideAgain").click()); await page.waitForTimeout(200);
 { let g2 = 0; while (g2++ < 6 && !(await page.locator("#guideShort").count())) { const nm = page.locator("#tourName"); if (await nm.count()) await nm.fill("Tester"); await page.click("#guideNext"); await page.waitForTimeout(100); }
@@ -90,7 +90,7 @@ await tab("goals"); await page.waitForTimeout(300);
 const gtxt = await page.locator("#paceGoalPath").innerText();
 check("M1 three goals each get a card with their own next action", (await page.locator(".gp-card").count()) === 3 && (await page.locator(".gp-row").count()) === 3);
 check("M2 balanced pick suggests the goal with no wins this week", /Balanced pick today: Learn Spanish/.test(gtxt));
-check("M3 neglected goal gets a kind, guilt-free note", /No step this week\. That is okay/.test(gtxt) && !/behind|overdue|failed|late/i.test(gtxt));
+check("M3 neglected goal gets a kind, guilt-free note", /Quiet week/.test(gtxt) && !/behind|overdue|failed|late/i.test(gtxt));
 check("M4 each goal shows progress + remaining time + deadline", (gtxt.match(/Deadline/gi) || []).length >= 3 && /About/.test(gtxt));
 
 /* Whole-app language scan: no guilt words in the new UI text */

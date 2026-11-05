@@ -73,7 +73,7 @@ await page.evaluate(() => localStorage.removeItem("paceFold"));
 await page.evaluate(() => { const u = JSON.parse(localStorage.getItem("pace-auth-v1")).uid, k = "calmcal-v1:" + u, s = JSON.parse(localStorage.getItem(k)); const d = window.CalmLogic.todayKey(), L = window.CalmLogic; s.rewards = { xp: 0, log: [], badges: {}, captured: 0, rest: {} }; localStorage.setItem(k, JSON.stringify(s)); });
 await page.reload({ waitUntil: "networkidle" }); await page.locator("#welcomeSkip").click({ timeout: 800 }).catch(() => {}); await page.locator("#guideSkip").click({ timeout: 800 }).catch(() => {});
 await page.evaluate(() => document.querySelector('.side-item[data-panel="progress"]').click()); await page.waitForTimeout(250);
-check("P1 brand-new: first-win message, ring at 0", /first win is one tiny step away/i.test(await page.locator("#pgMot").innerText()) && (await page.locator(".pg-ring-mid b").innerText()) === "0");
+check("P1 brand-new: first-win message, ring at 0", /one tiny step = first win/i.test(await page.locator("#pgMot").innerText()) && (await page.locator(".pg-ring-mid b").innerText()) === "0");
 check("P2 goals show here with their own bar and next step", (await page.locator(".pg-goal").count()) === 1 && /Next: /.test(await page.locator(".pg-goal").first().innerText()));
 check("P3 'Almost there' shows a real count", /0 of 1|of 5/.test(await page.locator(".pg-near").innerText()));
 check("P4 old board is tucked away, not first", (await page.locator("details#pgBoard").count()) === 1 && !(await page.evaluate(() => document.getElementById("pgBoard").open)));
@@ -109,7 +109,7 @@ await page.evaluate(() => document.querySelector('.side-item[data-panel="calenda
 if (await page.locator("#ptHelp").count()) {
   await page.click("#ptHelp"); await page.waitForTimeout(250);
   check("K1 'I don't know where to start' opens Skip's one-thing sheet", /That's okay/.test(await page.locator("#planSheet").innerText()) && (await page.locator("#skipGentle").count()) === 1);
-  check("K2 it names ONE small thing", (await page.locator("#planSheet .pt-next-title").count()) === 1 || /Nothing is planned/.test(await page.locator("#planSheet").innerText()));
+  check("K2 it names ONE small thing", (await page.locator("#planSheet .pt-next-title").count()) === 1 || /Free day/.test(await page.locator("#planSheet").innerText()));
   await page.click("#psNo"); await page.waitForTimeout(100);
 } else check("K1 help button present", false);
 await page.evaluate(() => { const u = JSON.parse(localStorage.getItem("pace-auth-v1")).uid, k = "calmcal-v1:" + u, s = JSON.parse(localStorage.getItem(k)), L = window.CalmLogic, d = L.todayKey(); const t = L.addDays(d, 3);

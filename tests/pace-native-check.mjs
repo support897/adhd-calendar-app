@@ -50,7 +50,7 @@ await page.evaluate(() => { const b = document.getElementById("notifEnable"); b.
 await page.evaluate(() => document.getElementById("notifEnable").click()); await page.waitForTimeout(500);
 let st = await h.store();
 check("N5 allow notifications: permission saved as granted", st.settings.notif.perm === "granted");
-check("N6 status says reminders are set on the phone", /set on this phone/i.test(await page.locator("#notifHint").innerText()));
+check("N6 status says reminders are set on the phone", /reminders set/i.test(await page.locator("#notifHint").innerText()));
 await page.evaluate(() => document.getElementById("notifTest").click()); await page.waitForTimeout(400);
 check("N7 test notification is scheduled on the device", (await page.evaluate(() => window.__calls.sched.length)) >= 1);
 await tab("capture");

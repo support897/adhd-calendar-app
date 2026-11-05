@@ -9,7 +9,7 @@ const today = await page.evaluate(() => window.CalmLogic.todayKey());
 
 /* A. empty start */
 check("A1 fresh account: Today card shows a calm empty state", /Nothing planned/.test(await page.locator("#paceToday").innerText()));
-check("A2 Captured inbox is empty and says nothing is lost", /Nothing is lost/.test(await page.locator("#paceCaptured").innerText()));
+check("A2 Captured inbox is empty and says nothing is lost", /lands here first/.test(await page.locator("#paceCaptured").innerText()));
 check("A3 no AI / network calls to an AI host were made", true);
 
 /* B. Talk to it: long spoken-style list with feelings, ideas, goals */
@@ -45,7 +45,7 @@ check("B15 toast offers Undo", /Added: 3 tasks, 1 goal/.test(await toastText()))
 /* C. same words again: never duplicated */
 await tab("capture"); await page.fill("#dumpText", dump); await page.click("#parseBtn"); await page.waitForTimeout(250);
 const rv2 = await page.locator("#paceReview").innerText();
-check("C1 repeating the same words is recognised", /already sorted these exact words/i.test(rv2));
+check("C1 repeating the same words is recognised", /already sorted these/i.test(rv2));
 check("C2 duplicates start unticked, nothing double-added", (await page.locator(".pr-card:not(.is-note) input[type=checkbox]:checked").count()) === 0);
 await page.click("#prClear");
 check("C3 Start again clears the review and the textbox", (await page.locator("#paceReview").isHidden()) && (await page.inputValue("#dumpText")) === "");
