@@ -398,7 +398,7 @@ function load(fromKey) {
        a wrong-shaped value repairs to "no photo", never deletes by
        surprise beyond its own field. */
     if (typeof s.settings.appearance.photo !== "string" || s.settings.appearance.photo.indexOf("data:image/") !== 0 || s.settings.appearance.photo.length > 4200000) s.settings.appearance.photo = null;
-    if (s.settings.appearance.photoMode !== "dark") s.settings.appearance.photoMode = "light";
+    s.settings.appearance.photoMode = "light"; if (s.settings.appearance.theme === "dark") s.settings.appearance.theme = "white";
     if (s.settings.appearance.bgChoice !== "photo" || !s.settings.appearance.photo) s.settings.appearance.bgChoice = "theme";
     if (typeof s.settings.sidebarCollapsed !== "boolean") s.settings.sidebarCollapsed = !!s.settings.sidebarCollapsed;
     s.settings.sidebarCollapsed = true; // Sidebar Adaptive Law, final shape: hidden on EVERY load; opening is per-session only.
@@ -509,11 +509,11 @@ function applyAppearance() {
   var root = document.documentElement;
   var photoOn = a.bgChoice === "photo" && typeof a.photo === "string" && !!a.photo;
   if (photoOn) {
-    root.setAttribute("data-theme", a.photoMode === "dark" ? "photodark" : "photolight");
-    root.setAttribute("data-photo", a.photoMode);
+    root.setAttribute("data-theme", "photolight");
+    root.setAttribute("data-photo", "light");
     root.style.setProperty("--photo", 'url("' + a.photo + '")');
   } else {
-    root.setAttribute("data-theme", a.theme || "white");
+    root.setAttribute("data-theme", a.theme && a.theme !== "dark" ? a.theme : "white");
     root.removeAttribute("data-photo");
     root.style.removeProperty("--photo");
   }
@@ -570,7 +570,7 @@ $("bgPhotoFile").addEventListener("change", function () {
     lum /= (px.length / 4);
     var prev = { photo: state.settings.appearance.photo, photoMode: state.settings.appearance.photoMode, bgChoice: state.settings.appearance.bgChoice };
     state.settings.appearance.photo = cv.toDataURL("image/jpeg", 0.85);
-    state.settings.appearance.photoMode = lum >= 0.45 ? "light" : "dark";
+    state.settings.appearance.photoMode = "light";
     state.settings.appearance.bgChoice = "photo";
     save();
     var kept = false;
@@ -1007,7 +1007,7 @@ function fcEvents() {
 function initCalendar() {
   calendar = new FullCalendar.Calendar($("calendar"), {
     initialView: "timeGridDay",
-    initialDate: L.addDays(selected, -1),
+    initialDate: selected,
     locale: PACE_LANG === "es" ? "es" : "en",
     height: "auto",
     firstDay: 1,
@@ -1023,11 +1023,15 @@ function initCalendar() {
     dragRevertDuration: 0,
     views: {
       timeGridDay: {
-        /* Build 42: the day shows yesterday, today and tomorrow side by side,
-           so a task can be dragged to the next day (or back) in one move. */
-        duration: { days: 3 },
+        /* Build 50: one day fills the screen. Yesterday and tomorrow are small
+           peek strips at the edges (tap, swipe, or drop a task on them). */
+        duration: { days: 1 },
         dayHeaderFormat: { weekday: "short", day: "numeric" }
       }
+    },
+    dayHeaderContent: function (arg) {
+      if (arg.view.type === "timeGridDay" && arg.isToday) return { html: "\u2B50 " + esc(tr("Today")) + " \u00b7 " + esc(arg.text) };
+      return arg.text;
     },
     dayHeaderDidMount: function (info) {
       info.el.style.cursor = "pointer";
@@ -1120,9 +1124,10 @@ function initCalendar() {
       var mins = Math.max(5, Math.round((info.event.end - info.event.start) / 60000));
       t.durationMin = mins; save(); refreshAll();
     },
-    datesSet: function () { renderTitle(); markSelectedCols(); }
+    datesSet: function () { renderTitle(); markSelectedCols(); renderPeeks(); }
   });
   calendar.render();
+  setViewClass(); renderPeeks(); wireCalSwipe(); setTimeout(function () { calendar.updateSize(); }, 0);
   var style = document.createElement("style");
   style.textContent = ".ev-done{opacity:.45} .ev-done .fc-event-title{text-decoration:line-through}";
   document.head.appendChild(style);
@@ -1135,13 +1140,69 @@ function refreshCalendar() {
   if (!calendar) return;
   calendar.removeAllEvents();
   fcEvents().forEach(function (e) { calendar.addEvent(e); });
+  renderPeeks();
 }
 /* The day view is three columns wide (yesterday, today, tomorrow): the picked day sits in the middle. */
-function calGoto(key) { calendar.gotoDate(calendar.view.type === "timeGridDay" ? L.addDays(key, -1) : key); }
+function calGoto(key) { calendar.gotoDate(key); }
+/* Build 50: the view name goes on the panel so each view can look right (day strip, sticky header, peeks). */
+function setViewClass() {
+  var p = $("panel-calendar"); if (!p) return;
+  var map = { timeGridDay: "day", timeGridWeek: "week", dayGridMonth: "month", year: "year", listWeek: "agenda" };
+  ["day", "week", "month", "year", "agenda"].forEach(function (n) { p.classList.toggle("v-" + n, map[currentView] === n); });
+}
+/* Small strips for the day before and after: tap to go, or drop a task on one to move it. */
+function renderPeeks() {
+  var wrap = $("calendarWrap"); if (!wrap) return;
+  var on = currentView === "timeGridDay";
+  var pv = $("peekPrev"), nx = $("peekNext");
+  if (!pv) {
+    pv = document.createElement("button"); pv.id = "peekPrev"; pv.type = "button"; pv.className = "day-peek day-peek-prev";
+    nx = document.createElement("button"); nx.id = "peekNext"; nx.type = "button"; nx.className = "day-peek day-peek-next";
+    wrap.insertBefore(pv, wrap.firstChild); wrap.appendChild(nx);
+    pv.addEventListener("click", function () { selectDate(pv.getAttribute("data-date"), true); });
+    nx.addEventListener("click", function () { selectDate(nx.getAttribute("data-date"), true); });
+  }
+  pv.hidden = nx.hidden = !on; if (!on) return;
+  [[pv, -1, "\u2039"], [nx, 1, "\u203A"]].forEach(function (a) {
+    var key = L.addDays(selected, a[1]), d = L.parseKey(key);
+    var n = tasksOn(key).filter(function (t) { return t.status !== "done"; }).length;
+    var dots = ""; for (var i = 0; i < Math.min(n, 4); i++) dots += "<i></i>";
+    a[0].setAttribute("data-date", key);
+    a[0].classList.toggle("is-today", key === L.todayKey());
+    a[0].setAttribute("aria-label", (a[1] < 0 ? tr("Day before") : tr("Day after")) + ": " + d.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" }));
+    a[0].innerHTML = '<span class="pk-in"><b class="pk-chev">' + a[2] + '</b><span class="pk-wd">' + esc(d.toLocaleDateString(LOCALE, { weekday: "short" }).replace(".", "")) + '</span><span class="pk-num">' + d.getDate() + '</span><span class="pk-dots">' + dots + "</span></span>";
+  });
+}
+/* Swipe sideways to step: a day, a week or a month, depending on the view. */
+function stepView(dir) {
+  if (currentView === "timeGridDay") return selectDate(L.addDays(selected, dir), true);
+  if (currentView === "timeGridWeek") return selectDate(L.addDays(selected, 7 * dir), true);
+  if (currentView === "dayGridMonth") {
+    var d = L.parseKey(selected), last = new Date(d.getFullYear(), d.getMonth() + dir + 1, 0).getDate();
+    var nd = new Date(d.getFullYear(), d.getMonth() + dir, Math.min(d.getDate(), last));
+    return selectDate(L.toKey(nd), true);
+  }
+}
+function wireCalSwipe() {
+  var el = $("calendarWrap"), sx = null, sy = 0, st = 0;
+  el.addEventListener("touchstart", function (e) {
+    sx = null;
+    if (e.touches.length !== 1 || ["timeGridDay", "timeGridWeek", "dayGridMonth"].indexOf(currentView) < 0) return;
+    if (e.target.closest(".fc-timegrid-event, .fc-event-dragging")) return;
+    if (e.touches[0].clientX < 24) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+  }, { passive: true });
+  el.addEventListener("touchend", function (e) {
+    if (sx == null) return;
+    var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; sx = null;
+    if (document.body.classList.contains("is-dragging-task")) return;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 45 && Math.abs(dx) > Math.abs(dy) * 2 && Date.now() - st < 700) stepView(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
 function selectDate(key, jumpCalendar) {
   selected = key;
   if (calendar && jumpCalendar) calGoto(key);
-  renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderYear(); renderTray(); markSelectedCols();
+  renderTicker(); renderDayList(); renderUpNext(); renderCheckin(); renderYear(); renderTray(); markSelectedCols(); renderPeeks();
 }
 $("goalBtn").addEventListener("click", function () {
   var side = document.querySelector('.side-item[data-panel="goals"]'); if (side) side.click();
@@ -1157,7 +1218,8 @@ document.querySelectorAll(".segmented button").forEach(function (b) {
     setTimeout(renderTray, 0);
     setBottomTab("calendar");
     if (v === "year") { $("calendar").hidden = true; $("yearView").hidden = false; renderYear(); }
-    else { $("calendar").hidden = false; $("yearView").hidden = true; calendar.changeView(v, v === "timeGridDay" ? L.addDays(selected, -1) : selected); }
+    else { $("calendar").hidden = false; $("yearView").hidden = true; setViewClass(); renderPeeks(); calendar.changeView(v, selected); setTimeout(function () { calendar.updateSize(); }, 0); }
+    setViewClass(); renderPeeks();
   });
 });
 function renderYear() {
@@ -2849,9 +2911,9 @@ function showGuide(step) {
       $("addBtn").click();
     });
   } else if (s.themes) {
-    var GUIDE_THEMES = ["white", "dark"];
+    var GUIDE_THEMES = ["white", "brand"];
     ex.innerHTML = '<div class="guide-swatches">' + GUIDE_THEMES.map(function (t) {
-      return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + tr(t === "white" ? "White theme" : "Dark theme") + '"></button>';
+      return '<button class="g-swatch" data-g-theme="' + t + '" style="background:' + THEME_COLORS[t] + '" aria-label="' + tr(t === "white" ? "White theme" : "Brand theme") + '"></button>';
     }).join("") + "</div>";
     ex.querySelectorAll("[data-g-theme]").forEach(function (b) {
       b.addEventListener("click", function () { var t = b.getAttribute("data-g-theme"); state.settings.appearance.theme = t; state.settings.appearance.bgChoice = "theme"; save(); applyAppearance(); });
@@ -2919,112 +2981,11 @@ if ($("settingsTour")) $("settingsTour").addEventListener("click", function () {
   if (i >= 0) { $("guideSheet").hidden = false; showGuide(i); }
 });
 
-/* ---------- the upgrade moment ---------- */
-/* THE LOCKED TAP (the paid/free rules, 19 Oct: paid features release
-   only on an active entitlement; a locked tap SPEAKS and opens
-   the plans path — never silent, never a partial unlock).
-   plusGate(edge) is the single door every Plus feature's apply
-   point passes: entitled (a live subscriptions record or the
-   free month — PaceBilling.plusActive) applies silently; not
-   entitled speaks through maybePlus and the feature does NOT
-   apply. This supersedes the PACE-002 timing of the
-   nothing-locked era (first entry clean, speak on a repeat
-   visit): that ruling governed a popup over features that
-   still worked; with real locks the first locked tap speaks
-   too. (Pace has no repeat picker — repeats arrive through
-   Talk to it, already an edge, and through import, a completed
-   flow with no wanting-moment.) */
-var plusShown = {};
-function maybePlus(edge) {
-  return; /* all features free for now: no upgrade sheet */
-  if (DEMO_SESSION) return;
-  plusShown[edge] = 1;
-  $("plusArt").innerHTML = skipSvg("welcome");
-  $("plusSheet").hidden = false;
-  renderPlans();
-}
-function plusGate(edge) {
-  if (window.PaceBilling && PaceBilling.plusActive()) return true;
-  maybePlus(edge);
-  return false;
-}
-function closePlus() { $("plusSheet").hidden = true; }
-$("plusClose").addEventListener("click", closePlus);
-$("plusNotNow").addEventListener("click", closePlus);
-$("plusPlans").addEventListener("click", function () { closePlus(); renderPlans(); $("plansSheet").hidden = false; });
-$("plansOpen").addEventListener("click", function () { renderPlans(); $("plansSheet").hidden = false; });
-$("plansClose").addEventListener("click", function () { $("plansSheet").hidden = true; });
-
-/* ---------- plans + buying (the enabling build) ----------
-   The buy buttons are Pace's own (the sheet's classes, the
-   app's voice) and they live only where a store lives: the
-   packaged app, once billing is configured. Everywhere else
-   the sheet keeps the honest not-on-sale line. Prices on the
-   buttons are the store's own strings for the reader's
-   storefront, with the A$ anchors as the fallback. */
-function billingOnDevice() {
-  try { return !!(window.PaceBilling && PaceBilling.live() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases); } catch (e) { return false; }
-}
-function renderPlans() {
-  var on = billingOnDevice();
-  $("planBuy").hidden = !on;
-  $("planTerms").hidden = !on;
-  if (on) {
-    // The disclosure's prices come from the same source as
-    // the buttons' prices, so the two can never drift.
-    PaceBilling.storePrices().then(function (sp) {
-      var t = $("planTermsText"); if (!t) return;
-      t.textContent = tr("Plus, monthly ({m}) and Plus, yearly ({y}) renew automatically at those prices, until you cancel. Cancel anytime in your Apple ID subscriptions. Plus stays open until the end of the paid period. Plus for life ({l}) is one payment. It never renews.", {
-        m: sp[PaceBilling.products.monthly] || PaceBilling.productPrice("monthly"),
-        y: sp[PaceBilling.products.yearly] || PaceBilling.productPrice("yearly"),
-        l: sp[PaceBilling.products.lifetime] || PaceBilling.productPrice("lifetime")
-      });
-    }).catch(function () {});
-  }
-  var honest = $("plusHonest");
-  if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Plus is coming.");
-  var st = $("planState"); if (!st) return;
-  var holds = $("planHolds");
-  if (holds) holds.textContent = on
-    ? tr("Plus: more Looks · repeats · tiny steps.")
-    : tr("Plus: more Looks · repeats · tiny steps.");
-  if (!on) { st.textContent = tr("Not on sale yet."); return; }
-  var s = PaceBilling.state();
-  if (PaceBilling.plusActive() && s.owned) st.textContent = tr("Plus is yours. Everything is open.");
-  else if (PaceBilling.plusActive()) st.textContent = tr("First month free.");
-  else st.textContent = tr("Pick a plan to unlock everything.");
-  PaceBilling.storePrices().then(function (p) {
-    if (!p) return;
-    var pm = p[PaceBilling.products.monthly], py = p[PaceBilling.products.yearly], pl = p[PaceBilling.products.lifetime];
-    $("buyMonthly").textContent = tr("Plus, monthly") + " — " + (pm || "A$4.99");
-    $("buyYearly").textContent = tr("Plus, yearly") + " — " + (py || "A$39.99");
-    $("buyLifetime").textContent = tr("Plus for life") + " — " + (pl || "A$99.99");
-    // POLAR P2: the copy lines speak the SAME store prices as
-    // the buttons (never the A$ anchors beside live store
-    // numbers). Only overwrite when the store answered for
-    // that product; the static anchors stand otherwise.
-    if (pm && py) {
-      var pp = $("planPriceLine"); if (pp) pp.textContent = tr("{m} a month, or {y} a year. First month free.", { m: pm, y: py });
-      var xp = $("plusPriceLine"); if (xp) xp.textContent = tr("Plus is {m} a month, or {y} a year. Your first month is free.", { m: pm, y: py });
-    }
-    if (pl) { var lp = $("planLifeLine"); if (lp) lp.textContent = tr("Or Plus for life: {l}, once.", { l: pl }); }
-  }).catch(function () {});
-}
-function buyFlow(productId) {
-  PaceBilling.buy(productId).then(function () {
-    renderPlans();
-    toast(PaceBilling.plusActive() ? tr("Plus is yours. Everything is open.") : tr("That did not go through. Nothing was charged."));
-  }).catch(function () { toast(tr("That did not go through. Nothing was charged.")); });
-}
-$("buyMonthly").addEventListener("click", function () { buyFlow(PaceBilling.products.monthly); });
-$("buyYearly").addEventListener("click", function () { buyFlow(PaceBilling.products.yearly); });
-$("buyLifetime").addEventListener("click", function () { buyFlow(PaceBilling.products.lifetime); });
-$("buyRestore").addEventListener("click", function () {
-  PaceBilling.restore().then(function () {
-    renderPlans();
-    toast(PaceBilling.plusActive() ? tr("Welcome back. Plus is yours again.") : tr("No past purchase found for this account."));
-  }).catch(function () { toast(tr("That did not go through. Nothing was charged.")); });
-});
+/* ---------- the shop is parked (build 50) ----------
+   Every feature is free. No prices, no buy buttons, no purchase code ship in the app.
+   The code lives in shop-parked/ with steps to switch it back on (README-SHOP.md). */
+function maybePlus() { return; }
+function plusGate() { return true; }
 
 /* ---------- bring my calendar in (shared module: IMPORT-DESIGN.md) ---------- */
 var DEMO_SESSION = false; // build 33: the demo road is abolished by the door ruling (29 Oct) — no demo, guest or preview way into the app exists; the flag stays only so its old guards read false.
@@ -3255,7 +3216,6 @@ function reconcileAccount() {
     // The entitlement read rides the reconcile (the spine's
     // createdAt anchors the free month; the record read is the
     // billing layer's alone — it never writes).
-    if (window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(FB, ACTIVE_UID, spine && spine.createdAt); } catch (e) {} }
     return FB.fsGet(statePath());
   }).then(function (doc) {
     renderAccount();
@@ -3435,14 +3395,14 @@ function renderAccount() {
     $("accountLine").textContent = (firstName ? tr("Hi {name} 👋 {email} · saved to your account", { name: firstName, email: (sess.email || tr("your account")) }) : tr("☁️ {email} · saved to your account", { email: (sess.email || tr("your account")) }));
     var pnr = $("profileNameRow"), pni = $("profileName");
     if (pnr && pni) { pnr.hidden = false; if (document.activeElement !== pni) pni.value = myName; }
-    $("accountOpen").hidden = true; $("accountOut").hidden = false; $("accountDelete").hidden = false;
+    $("accountOpen").hidden = true; $("accountOut").hidden = false; $("accountDelete").hidden = false; $("pcOut").hidden = false;
     var potNow = guestPot();
     $("accountBring").hidden = !(potNow && localStorage.getItem("pace-pot-consumed") !== potGeneration(potNow));
     $("accountUncache").hidden = true;
     if (note && !note.textContent) note.textContent = "";
   } else {
     $("accountLine").textContent = tr("This device only. Sign in to sync ☁️");
-    $("accountOpen").hidden = false; $("accountOut").hidden = true; $("accountDelete").hidden = true;
+    $("accountOpen").hidden = false; $("accountOut").hidden = true; $("accountDelete").hidden = true; $("pcOut").hidden = true;
     $("accountBring").hidden = true;
     var pnr2 = $("profileNameRow"); if (pnr2) pnr2.hidden = true;
     var lastUid = null;
@@ -3707,45 +3667,65 @@ function bindAccounts() {
     toast(tr("Cleared. Account untouched."));
     renderAccount();
   });
-  $("accountDelete").addEventListener("click", function () { $("deleteMsg").textContent = ""; $("deleteSheet").hidden = false; });
+  /* Delete account (Apple 5.1.1(v)): works for EVERY sign-in door. Password users type it;
+     Google and Apple users confirm with their own button. No password is ever asked of someone who has none. */
+  function reauthFor(providers) {
+    if (providers.indexOf("google.com") >= 0 && providers.indexOf("password") < 0 || (providers.indexOf("google.com") >= 0 && !$("deletePass").value)) {
+      var nG = nativeAuthPlugin();
+      if (nG) return doorBound(nG.signInWithGoogle(), "google").then(function (res) { var tok = res && res.credential && res.credential.idToken; if (!tok) throw new Error("closed"); return FB.googleSignIn(tok); });
+      var cid = window.PACE_FB_CONFIG && window.PACE_FB_CONFIG.googleClientId;
+      if (!cid || !(window.google && window.google.accounts)) return Promise.reject(new Error("no-google"));
+      return new Promise(function (res, rej) {
+        window.google.accounts.id.initialize({ client_id: cid, callback: function (r) { FB.googleSignIn(r.credential).then(res, rej); } });
+        window.google.accounts.id.prompt(function (n) { try { if (n && (n.isNotDisplayed() || n.isSkippedMoment() || n.isDismissedMoment())) rej(new Error("closed")); } catch (e) {} });
+      });
+    }
+    if (providers.indexOf("apple.com") >= 0 && providers.indexOf("password") < 0) {
+      var nA = nativeAuthPlugin();
+      if (nA) return doorBound(nA.signInWithApple(), "apple").then(function (res) { var c = res && res.credential; if (!c || !c.idToken) throw new Error("closed"); return FB.appleSignIn(c.idToken, null, c.nonce || null); });
+      var cfgA = window.PACE_FB_CONFIG || {};
+      if (!(window.AppleID && window.AppleID.auth) || !cfgA.appleClientId) return Promise.reject(new Error("no-apple"));
+      window.AppleID.auth.init({ clientId: cfgA.appleClientId, scope: "name email", redirectURI: location.origin + location.pathname, state: "pace-door", usePopup: true });
+      return window.AppleID.auth.signIn().then(function (r) { return FB.appleSignIn(r.authorization.id_token); });
+    }
+    return FB.emailSignIn(FB.session().email, $("deletePass").value);
+  }
+  $("accountDelete").addEventListener("click", function () {
+    $("deleteMsg").textContent = ""; $("deletePass").value = ""; $("deletePassWrap").hidden = true; $("deleteSheet").hidden = false;
+    FB.providers().then(function (p) { $("deletePassWrap").hidden = p.indexOf("password") < 0; $("deleteSheet").setAttribute("data-prov", p.join(",")); }).catch(function () { $("deletePassWrap").hidden = false; });
+  });
   $("deleteCancel").addEventListener("click", function () { $("deleteSheet").hidden = true; });
   $("deleteGo").addEventListener("click", function () {
-    var pw = $("deletePass").value;
     var sess = FB.session();
     if (!sess) return;
-    // Disarm sync FIRST (Quality's held leg, diagnosed): a
-    // debounced save landing mid-sweep would resurrect the
-    // state doc after its delete — the sweep must be the
-    // only writer from here. A failed delete re-arms it.
+    var provs = ($("deleteSheet").getAttribute("data-prov") || "password").split(",").filter(Boolean);
+    if (provs.indexOf("password") >= 0 && !$("deletePass").value && provs.length === 1) { $("deleteMsg").textContent = tr("Type your password to be sure."); return; }
+    // Disarm sync FIRST: a debounced save landing mid-sweep would resurrect the state doc after its delete.
     DELETING = true;
     if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
     $("deleteMsg").textContent = tr("Checking it is you…");
-    FB.emailSignIn(sess.email, pw).then(function () {
+    reauthFor(provs).then(function () {
       $("deleteMsg").textContent = tr("Deleting…");
-      // The §6 sweep, in order (Security ruling, rules v2.2;
-      // v2.4 fold): state → spine → the aggregate shards → the
-      // subscription record → the Auth user. Erasure takes the
-      // shard: a uid-keyed row is the user's data however light
-      // its fields. subscriptions/{uid} is inside the deletion
-      // promise (an access record, not the money ledger — the
-      // stores keep the money truth), so it dies here too.
-      // aggSubs stays out — the owner-space aggregate mirror,
-      // no client path exists to it.
+      sess = FB.session() || sess;
       return FB.fsDelete(statePath())
         .then(function () { return FB.fsDelete(spinePath()); })
         .then(function () { return FB.fsDelete("aggSignups/" + sess.uid); })
         .then(function () { return FB.fsDelete("aggImports/" + sess.uid); })
         .then(function () { return FB.fsDelete("subscriptions/" + sess.uid); })
-        // Shared goals (build 39, rules v2.5): owned shared
-        // goals die with the account, memberships are left.
         .then(function () { return window.PaceShareUI ? window.PaceShareUI.leaveAllShared() : null; });
     }).then(function () { return FB.deleteAccount(); })
       .then(function () {
         try { localStorage.removeItem(storeKey()); localStorage.removeItem("pace-last-uid"); } catch (e) {}
         location.reload();
       })
-      .catch(function (e) { DELETING = false; $("deleteMsg").textContent = (e && e.code) ? tr(FB.userError(e)) : tr("That did not work. Nothing was deleted."); });
+      .catch(function (e) {
+        DELETING = false;
+        var m = e && e.message;
+        $("deleteMsg").textContent = (m === "closed") ? tr("Sign-in was closed. Nothing was deleted.") : (m === "no-google" || m === "no-apple") ? tr("Could not open sign-in. Nothing was deleted.") : (e && e.code) ? tr(FB.userError(e)) : tr("That did not work. Nothing was deleted.");
+      });
   });
+  /* One tap to sign out, right on the profile card. */
+  $("pcOut").addEventListener("click", function () { $("accountOut").click(); });
   reconcileAccount();
 }
 
@@ -3762,7 +3742,6 @@ renderTodos();
 renderHabits();
 checkNotifications();
 bindAccounts();
-if (!ACTIVE_UID && window.PaceBilling && PaceBilling.refresh) { try { PaceBilling.refresh(null, null, null); } catch (e) {} }
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js").catch(function () {}); }
 /* Bridge for goals-ui.js (the Goals screen and the Habits week view live there). */
 
@@ -3818,7 +3797,7 @@ function dropOutside(id, fromKey, ev, fromTray) {
   var stack = (document.elementsFromPoint ? document.elementsFromPoint(p.clientX, p.clientY) : [document.elementFromPoint(p.clientX, p.clientY)]).filter(function (n) { return n && n.closest; });
   var onFab = stack.some(function (n) { return n.closest("#fab"); });
   if (onFab) { deleteInstance(id, fromKey); return true; }
-  var SEL = fromTray ? "#ticker [data-date], [data-ydate], #calendar .fc-daygrid-day[data-date]" : "#ticker [data-date], [data-ydate]";
+  var SEL = fromTray ? "#ticker [data-date], .day-peek[data-date], [data-ydate], #calendar .fc-daygrid-day[data-date]" : "#ticker [data-date], .day-peek[data-date], [data-ydate]";
   var hit = stack.filter(function (n) { return n.closest(SEL); })[0];
   var cell = hit && hit.closest(SEL);
   if (cell) {

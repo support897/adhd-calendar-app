@@ -483,6 +483,9 @@
       });
       acts.appendChild(lv);
     }
+    /* Apple 1.2: every shared goal has a Report button that reaches a person (support, answered within 1 business day). */
+    var rp = el("a", "soft-btn", "\uD83D\uDEA9 " + tr("Report"), { href: "mailto:hello@pacecalendar.xyz?subject=" + encodeURIComponent("Report: shared goal " + (doc && doc.id || "")) + "&body=" + encodeURIComponent("What is wrong?\n\n(Goal id: " + (doc && doc.id || "") + ")") });
+    acts.appendChild(rp);
     card.appendChild(acts);
     var box = el("div", "goal-steps"); box.hidden = true; card.appendChild(box);
     seeBtn.addEventListener("click", function () {

@@ -691,6 +691,22 @@ function ringSvg(pct) {
   var c = 2 * Math.PI * 54, off = c * (1 - Math.max(0, Math.min(1, pct)));
   return '<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="pg-ring-bg" cx="60" cy="60" r="54"/><circle class="pg-ring-fg" cx="60" cy="60" r="54" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg>';
 }
+var BADGE_EMO = { first: "\u2B50", five: "\u270B", twentyfive: "\uD83C\uDF1F", ten: "\uD83D\uDD1F", fifty: "\uD83C\uDFC5", hundred: "\uD83D\uDCAF", fivehundred: "\uD83C\uDFC6", streak3: "\uD83D\uDD25", streak7: "\uD83D\uDCC5", streak14: "\uD83C\uDF08", streak30: "\uD83C\uDF19", low: "\uD83D\uDECB\uFE0F", comeback: "\uD83D\uDC4B", early: "\uD83C\uDF05", juggler: "\uD83E\uDD39", braindump: "\uD83E\uDDE0", smallest: "\uD83D\uDC23", goalHalf: "\u26F0\uFE0F", goalDone: "\uD83C\uDFAF", habit7: "\uD83C\uDF31", together: "\uD83E\uDD1D" };
+var LEVEL_EMO = ["\uD83C\uDF30", "\uD83C\uDF31", "\uD83C\uDF3F", "\uD83C\uDF38", "\uD83C\uDF33", "\uD83C\uDF32", "\uD83D\uDDFC"];
+/* A winding trail of levels, bottom to top. The ferry sits where you are. */
+function journeySvg(levelIdx, levels) {
+  var n = levels.length, H = 70, W = 300, y0 = (n - 1) * H + 46, pts = [], d = "";
+  for (var i = 0; i < n; i++) pts.push({ x: i % 2 ? 214 : 86, y: y0 - i * H });
+  d = "M" + pts[0].x + " " + pts[0].y;
+  for (var j = 1; j < n; j++) { var a = pts[j - 1], b = pts[j]; d += " C" + a.x + " " + (a.y - H / 2) + " " + b.x + " " + (b.y + H / 2) + " " + b.x + " " + b.y; }
+  var g = '<path class="jm-trail" d="' + d + '"/>';
+  pts.forEach(function (p, k) {
+    var on = k <= levelIdx;
+    g += '<g class="jm-node' + (on ? " is-on" : "") + (k === levelIdx ? " is-here" : "") + '" data-lv="' + k + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="24"/><text x="' + p.x + '" y="' + (p.y + 8) + '" text-anchor="middle" class="jm-emo">' + (on ? LEVEL_EMO[k] : "\uD83D\uDD12") + '</text><text x="' + (p.x + (k % 2 ? -34 : 34)) + '" y="' + (p.y + 5) + '" text-anchor="' + (k % 2 ? "end" : "start") + '" class="jm-lbl">' + esc(tr(levels[k].name)) + '</text></g>';
+    if (k === levelIdx) g += '<text x="' + (p.x + (k % 2 ? 30 : -30)) + '" y="' + (p.y - 22) + '" text-anchor="middle" class="jm-boat">\u26F5</text>';
+  });
+  return '<svg viewBox="0 0 ' + W + " " + (y0 + 40) + '" class="jm-svg" role="img" aria-label="' + esc(tr("Your journey")) + '">' + g + "</svg>";
+}
 var BADGE_PROGRESS = { first: 1, five: 5, twentyfive: 25 };
 function renderRewards() {
   var root = $("paceRewards"); if (!root) return;
@@ -706,11 +722,36 @@ function renderRewards() {
   var mid = el("div", "pg-ring-mid"); mid.appendChild(el("b", null, String(wk))); mid.appendChild(el("span", null, tr("of {n} wins", { n: target }))); ring.appendChild(mid);
   hero.appendChild(ring);
   var ht = el("div", "pg-hero-text");
-  ht.appendChild(el("h3", null, tr("This week")));
+  ht.appendChild(el("h3", null, "\uD83D\uDCC8 " + tr("This week")));
   ht.appendChild(el("p", "pg-mot", mot.t, { id: "pgMot", "data-k": mot.k }));
   ht.appendChild(el("p", "hint", tr("Your week goal is {n} wins. Pace sets it from your own pace.", { n: target })));
   hero.appendChild(ht);
   wrap.appendChild(hero);
+
+  /* 1b. All time: everything you have ever done, as pictures */
+  (function () {
+    var doneNow = (s.tasks || []).filter(function (t) { return t.status === "done"; }).length;
+    var habits = s.habits || [], hCheck = 0, hBest = 0;
+    habits.forEach(function (h) { var hs = G.habitStats(h.days, td); hCheck += hs.total || 0; hBest = Math.max(hBest, hs.best || 0); });
+    var gAll = s.goals || [], gDone = 0, shared = 0;
+    gAll.forEach(function (g) { var m = R.goalMomentum(g, s.tasks, td, s.rewards.log); if (m.complete) gDone++; if (g.sharedGoalId) shared++; });
+    var gotNew = false;
+    if (shared) gotNew = R.grantBadge(s, "together", td) || gotNew;
+    if (hBest >= 7) gotNew = R.grantBadge(s, "habit7", td) || gotNew;
+    if (gotNew) C.save();
+    var earnedN = Object.keys(s.rewards.badges || {}).length;
+    var items = [
+      ["\u2705", Math.max(snap.total, doneNow), tr("wins ever")], ["\u2728", s.rewards.xp, tr("sparks")],
+      ["\uD83D\uDD25", snap.streak.best, tr("best run")], ["\uD83C\uDFC5", earnedN + "/" + Object.keys(snap.allBadges).length, tr("badges")],
+      ["\uD83C\uDFAF", gDone + "/" + gAll.length, tr("goals done")], ["\uD83C\uDF31", hCheck, tr("habit ticks")],
+      ["\uD83E\uDD1D", shared, tr("shared goals")], ["\uD83E\uDDE0", s.rewards.captured || 0, tr("captured")]
+    ];
+    var at = el("section", "pg-card pg-alltime", null, { "aria-label": tr("All time") });
+    at.appendChild(el("h3", null, "\uD83D\uDCCA " + tr("All time")));
+    var gr = el("div", "pg-stats");
+    items.forEach(function (it) { var c = el("div", "pg-stat"); c.appendChild(el("span", "pg-stat-e", it[0])); c.appendChild(el("b", null, String(it[1]))); c.appendChild(el("span", "pg-stat-l", it[2])); gr.appendChild(c); });
+    at.appendChild(gr); wrap.appendChild(at);
+  })();
 
   /* 2. The last 7 days: a win, a rest, or just a day */
   var days = el("section", "pg-card pg-days", null, { "aria-label": tr("Last 7 days") });
@@ -734,25 +775,44 @@ function renderRewards() {
   var bar = el("div", "pt-cap"); var f = el("div", "pt-cap-fill"); f.style.width = Math.max(4, snap.level.pct) + "%"; bar.appendChild(f); lv.appendChild(bar);
   lv.appendChild(el("div", "hint", snap.level.next ? tr("{n} sparks to the next level", { n: snap.level.toNext }) : tr("You reached the top. Keep shining.")));
   wrap.appendChild(lv);
+  var jm = el("section", "pg-card pg-journey", null, { id: "pgJourney" });
+  jm.appendChild(el("h3", null, "\uD83D\uDDFA\uFE0F " + tr("Your journey")));
+  var jwrap = el("div", "jm-wrap"); jwrap.innerHTML = journeySvg(snap.level.index, R.LEVELS); jm.appendChild(jwrap);
+  wrap.appendChild(jm);
 
   /* 4. Streak, gently */
   var sk = el("section", "pg-card pg-streak");
-  sk.appendChild(el("div", "pg-sk-n", st.current ? tr("{n} days with a win in a row", { n: st.current }) : tr("A fresh start is always allowed.")));
+  sk.appendChild(el("div", "pg-sk-n", "\uD83D\uDD25 " + (st.current ? tr("{n} days with a win in a row", { n: st.current }) : tr("A fresh start is always allowed."))));
   sk.appendChild(el("div", "hint", tr("Best run") + ": " + st.best + (st.graceUsed ? " \u00b7 " + tr("a rest day was forgiven") : " \u00b7 " + tr("one gap day is forgiven"))));
   var rest = el("button", "soft-btn", tr("Take a rest day (keeps my streak)"), { type: "button", id: "rwRest" });
   rest.addEventListener("click", function () { R.markRest(s, today()); C.save(); renderRewards(); C.toast(tr("Rest day saved. Your streak is safe.")); });
   sk.appendChild(rest); wrap.appendChild(sk);
 
+  var hl = s.habits || [];
+  if (hl.length) {
+    var hs2 = el("section", "pg-card pg-habits", null, { id: "pgHabits" }); hs2.appendChild(el("h3", null, "\uD83C\uDF31 " + tr("Habits")));
+    hl.forEach(function (h) {
+      var st2 = G.habitStats(h.days, td), row = el("div", "pg-habit");
+      row.appendChild(el("span", "pg-habit-n", h.name));
+      var dots = el("span", "pg-habit-dots");
+      for (var q = 6; q >= 0; q--) dots.appendChild(el("i", (h.days || {})[L.addDays(td, -q)] ? "is-on" : ""));
+      row.appendChild(dots);
+      row.appendChild(el("span", "pg-habit-s", "\uD83D\uDD25 " + (st2.current != null ? st2.current : st2.cur || 0)));
+      hs2.appendChild(row);
+    });
+    wrap.appendChild(hs2);
+  }
+
   /* 5. Goals: each one with its own bar, so many goals stay visible */
   var goals = (s.goals || []);
-  var gs = el("section", "pg-card pg-goals", null, { id: "pgGoals" }); gs.appendChild(el("h3", null, tr("Your goals")));
+  var gs = el("section", "pg-card pg-goals", null, { id: "pgGoals" }); gs.appendChild(el("h3", null, "\uD83C\uDFAF " + tr("Your goals")));
   if (!goals.length) {
     gs.appendChild(el("p", "hint", tr("Add a goal 🌱")));
     var gb = el("button", "soft-btn", tr("Add a goal"), { type: "button", id: "pgAddGoal" }); gb.addEventListener("click", function () { C.showPanel("goals"); C.setBottomTab && C.setBottomTab("goals"); }); gs.appendChild(gb);
   } else goals.forEach(function (g) {
     var m = R.goalMomentum(g, s.tasks, td, s.rewards.log);
     var row = el("div", "pg-goal" + (m.complete ? " is-complete" : ""));
-    row.appendChild(el("div", "pg-goal-t", g.title));
+    row.appendChild(el("div", "pg-goal-t", (g.icon || "\uD83C\uDFAF") + " " + g.title + (g.sharedGoalId ? " \uD83E\uDD1D" : "")));
     var gbar = el("div", "pt-cap"); var gf = el("div", "pt-cap-fill"); gf.style.width = Math.max(m.pct ? m.pct : 3, 3) + "%"; gbar.appendChild(gf); row.appendChild(gbar);
     var line = m.complete ? tr("Finished. You did this.") : m.pct >= 75 ? tr("{n}% there. The finish line is close.", { n: m.pct }) : m.pct >= 50 ? tr("{n}% there. Past halfway.", { n: m.pct }) : m.done ? tr("{a} of {b} steps done.", { a: m.done, b: m.total }) : tr("Ready when you are. {n} small steps.", { n: m.total });
     row.appendChild(el("div", "hint", line));
@@ -765,7 +825,7 @@ function renderRewards() {
   var near = [], earned = s.rewards.badges || {};
   Object.keys(snap.allBadges).forEach(function (id) { if (!earned[id]) near.push(id); });
   near.sort(function (a, b) { var pa = BADGE_PROGRESS[a] ? 0 : 1, pb = BADGE_PROGRESS[b] ? 0 : 1; return pa - pb; });
-  var nb = el("section", "pg-card pg-near"); nb.appendChild(el("h3", null, tr("Almost there")));
+  var nb = el("section", "pg-card pg-near"); nb.appendChild(el("h3", null, "\uD83C\uDF81 " + tr("Almost there")));
   near.slice(0, 2).forEach(function (id) {
     var b = snap.allBadges[id], need = BADGE_PROGRESS[id], r = el("div", "pg-near-row");
     r.appendChild(el("b", null, tr(b.name)));
@@ -778,7 +838,7 @@ function renderRewards() {
 
   /* 7. Recent wins: proof that you are doing it */
   var recent = (s.rewards.log || []).slice(-5).reverse();
-  var rw = el("section", "pg-card pg-recent"); rw.appendChild(el("h3", null, tr("Recent wins")));
+  var rw = el("section", "pg-card pg-recent"); rw.appendChild(el("h3", null, "\uD83C\uDF89 " + tr("Recent wins")));
   if (!recent.length) rw.appendChild(el("p", "hint", tr("Your wins will show up here.")));
   recent.forEach(function (e) {
     var t = s.tasks.filter(function (x) { return x.id === e.taskId; })[0];
@@ -787,16 +847,19 @@ function renderRewards() {
   });
   wrap.appendChild(rw);
 
-  /* 8. All badges, tucked away */
-  var all = el("details", "pg-card pg-all"); all.appendChild(el("summary", null, tr("All badges") + " (" + Object.keys(earned).length + "/" + Object.keys(snap.allBadges).length + ")"));
-  var grid = el("div", "rw-badges");
-  Object.keys(snap.allBadges).forEach(function (id) {
+  /* 8. Badges: earned ones glow, the rest wait with a lock */
+  var all = el("section", "pg-card pg-all"); all.appendChild(el("h3", null, "\uD83C\uDFC5 " + tr("Badges") + " " + Object.keys(earned).length + "/" + Object.keys(snap.allBadges).length));
+  var grid = el("div", "rw-badges pg-badges");
+  Object.keys(snap.allBadges).sort(function (a, b) { return (earned[b] ? 1 : 0) - (earned[a] ? 1 : 0); }).forEach(function (id) {
     var on = !!earned[id], b = snap.allBadges[id];
-    var d = el("div", "rw-badge" + (on ? " is-on" : ""), null, { title: b.desc });
-    d.appendChild(el("b", null, tr(b.name))); d.appendChild(el("span", null, on ? tr("Earned") : tr(b.desc)));
+    var d = el("div", "rw-badge" + (on ? " is-on" : ""), null, { title: tr(b.desc), "data-b": id });
+    d.appendChild(el("span", "rw-b-e", on ? (BADGE_EMO[id] || "\u2B50") : "\uD83D\uDD12")); d.appendChild(el("b", null, tr(b.name)));
     grid.appendChild(d);
   });
   all.appendChild(grid); wrap.appendChild(all);
+  var why = el("details", "pg-card pg-why"); why.appendChild(el("summary", null, "\u2139\uFE0F " + tr("How it works")));
+  [["\u2705", "Finish a task = a win"], ["\u2728", "Wins give sparks"], ["\uD83D\uDDFA\uFE0F", "Sparks move you along the trail"], ["\uD83C\uDFC5", "New things you do unlock badges"], ["\uD83C\uDF19", "Rest days never break your streak"]].forEach(function (r) { why.appendChild(el("p", "pg-why-row", r[0] + " " + tr(r[1]))); });
+  wrap.appendChild(why);
   root.appendChild(wrap);
 }
 
@@ -839,6 +902,109 @@ function render() {
 
 function processing(label) { var s = ensure(); var e = { id: C.uid(), text: label, at: Date.now(), fp: "p" + Date.now(), status: "processing", taskIds: [], notes: [], counts: {} }; s.captured.unshift(e); renderCaptured(); return e.id; }
 function processingDone(id) { var s = ensure(); s.captured = s.captured.filter(function (c) { return c.id !== id; }); renderCaptured(); }
+/* ============ Build 50: natural gestures ============
+   Swipe a sheet down to close it. Swipe right from the left edge to go back one step:
+   wizard step, then sheet, then the panel you are on. Tap outside a sheet to close it. */
+(function () {
+  var NO = { welcome: 1, guideSheet: 1, authSheet: 1, focusScreen: 1 };
+  function topSheet() { var t = null; document.querySelectorAll(".sheet:not([hidden])").forEach(function (x) { if (!NO[x.id]) t = x; }); return t; }
+  function closeSheet(sh) {
+    var b = sh.querySelector("#dClose, #addCancel, #plusClose, #plansClose, #importClose, #deleteCancel, #shareClose, [id$='Close'], [id$='Cancel']");
+    if (b && b.offsetParent !== null) b.click(); else sh.hidden = true;
+  }
+  function goBack() {
+    var sh = topSheet();
+    if (sh) {
+      var ab = sh.querySelector("#awBack"); if (ab && !ab.hidden && ab.offsetParent !== null) { ab.click(); return true; }
+      closeSheet(sh); return true;
+    }
+    var gb = document.querySelector(".goal-form .pstep-back:not([hidden])"); if (gb && gb.offsetParent !== null) { gb.click(); return true; }
+    var act = document.querySelector(".panel.is-active");
+    if (act && act.id !== "panel-calendar") { var tab = document.querySelector('#bottomTabs [data-tab="calendar"]'); if (tab) { tab.click(); return true; } }
+    return false;
+  }
+  var drag = null, edge = null;
+  document.addEventListener("touchstart", function (e) {
+    drag = null; edge = null;
+    if (e.touches.length !== 1) return;
+    var t = e.touches[0], sh = topSheet();
+    if (t.clientX < 22) { edge = { x: t.clientX, y: t.clientY, at: Date.now() }; return; }
+    var card = e.target.closest && e.target.closest(".sheet-card");
+    if (sh && card && sh.contains(card) && card.scrollTop <= 0 && !(e.target.closest("input, textarea, select, [contenteditable]"))) drag = { sh: sh, card: card, y: t.clientY, x: t.clientX, dy: 0, at: Date.now(), on: false };
+  }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    if (!drag) return;
+    var t = e.touches[0], dy = t.clientY - drag.y, dx = t.clientX - drag.x;
+    if (!drag.on) { if (dy > 8 && dy > Math.abs(dx)) drag.on = true; else if (dy < -4 || Math.abs(dx) > 12) { drag = null; return; } else return; }
+    drag.dy = Math.max(0, dy);
+    drag.card.style.transition = "none"; drag.card.style.transform = "translateY(" + drag.dy + "px)";
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener("touchend", function (e) {
+    var t = (e.changedTouches && e.changedTouches[0]) || null;
+    if (edge && t) {
+      var dx = t.clientX - edge.x, dy = t.clientY - edge.y;
+      if (dx > 70 && Math.abs(dy) < 60 && Date.now() - edge.at < 800) goBack();
+      edge = null;
+    }
+    if (!drag) return;
+    var d = drag; drag = null;
+    if (!d.on) return;
+    var fast = d.dy / Math.max(1, Date.now() - d.at) > 0.6;
+    d.card.style.transition = "transform .18s ease";
+    if (d.dy > 110 || (fast && d.dy > 50)) { d.card.style.transform = "translateY(100%)"; setTimeout(function () { d.card.style.transform = ""; d.card.style.transition = ""; closeSheet(d.sh); }, 160); }
+    else { d.card.style.transform = ""; setTimeout(function () { d.card.style.transition = ""; }, 200); }
+  }, { passive: true });
+  document.addEventListener("click", function (e) {
+    var sh = e.target;
+    if (sh && sh.classList && sh.classList.contains("sheet") && !NO[sh.id] && sh.id !== "addSheet" && !sh.classList.contains("door-page")) closeSheet(sh);
+  });
+  window.PaceBack = goBack;
+})();
+
+/* ============ Build 50: every settings line gets a small picture ============ */
+(function () {
+  var MAP = [
+    [/sign out|log out/i, "\uD83D\uDEAA"], [/download|export/i, "\uD83D\uDCE5"], [/delete.*account|delete my/i, "\uD83D\uDDD1\uFE0F"],
+    [/your name|name/i, "\uD83C\uDFF7\uFE0F"], [/bad day/i, "\uD83D\uDE1F"], [/ok day/i, "\uD83D\uDE42"], [/great day/i, "\uD83D\uDE04"],
+    [/evening|look back/i, "\uD83C\uDF06"], [/real task|task lengths/i, "\u23F1\uFE0F"], [/block apps/i, "\uD83D\uDED1"], [/offer focus|focus/i, "\uD83C\uDFAF"],
+    [/leave this much|time open/i, "\uD83D\uDD4A\uFE0F"], [/quiet/i, "\uD83D\uDD07"], [/remind|notif/i, "\uD83D\uDD14"], [/replay|tour/i, "\uD83C\uDFAC"],
+    [/plan and rewards|rewards/i, "\uD83C\uDFC6"], [/privacy/i, "\uD83D\uDD12"], [/help|support/i, "\uD83D\uDC9B"], [/import|bring/i, "\uD83D\uDCC5"],
+    [/language/i, "\uD83C\uDF10"], [/sound/i, "\uD83D\uDD0A"], [/background|photo/i, "\uD83D\uDDBC\uFE0F"], [/plus|upgrade|billing/i, "\uD83D\uDC8E"],
+    [/account|sign in/i, "\uD83D\uDC64"], [/data|storage|device/i, "\uD83D\uDCBE"], [/round-up|digest/i, "\uD83E\uDDFE"], [/nudge/i, "\uD83D\uDE80"],
+    [/look|colour|color|theme/i, "\uD83C\uDFA8"], [/check-in|morning/i, "\uD83C\uDF24\uFE0F"], [/share|shared/i, "\uD83E\uDD1D"], [/habit/i, "\uD83C\uDF31"], [/goal/i, "\uD83C\uDFAF"]
+  ];
+  var HAS = /[\u2190-\u2BFF\uD83C-\uDBFF]/;
+  function pick(t) { for (var i = 0; i < MAP.length; i++) if (MAP[i][0].test(t)) return MAP[i][1]; return ""; }
+  function tag(node, target) {
+    if (!node || node.querySelector(":scope > .ic-e")) return;
+    var t = (node.textContent || "").trim(); if (!t || HAS.test(t.slice(0, 3))) return;
+    var e = pick(t); if (!e) return;
+    var sp = document.createElement("span"); sp.className = "ic-e"; sp.setAttribute("aria-hidden", "true"); sp.textContent = e;
+    (target || node).insertBefore(sp, (target || node).firstChild);
+  }
+  var busy = false;
+  function run() {
+    var root = document.getElementById("panel-settings"); if (!root || busy) return; busy = true;
+    try {
+      root.querySelectorAll(".settings-group .row").forEach(function (r) {
+        var pc = getComputedStyle(r, "::before").content;
+        if (pc && pc !== "none" && pc !== "normal") return;
+        tag(r);
+      });
+      root.querySelectorAll(".settings-group > summary, .settings-group > h3").forEach(function (h) { var pc = getComputedStyle(h, "::before").content; if (pc && pc !== "none" && pc !== "normal") return; tag(h); });
+      root.querySelectorAll(".settings-group button.soft-btn, .settings-group button.primary-btn, #accountGroup button").forEach(function (b) { tag(b); });
+    } catch (e) {}
+    busy = false;
+  }
+  var timer = null;
+  function later() { clearTimeout(timer); timer = setTimeout(run, 80); }
+  var root = document.getElementById("panel-settings");
+  if (root) { new MutationObserver(later).observe(root, { childList: true, subtree: true, characterData: true }); }
+  document.addEventListener("click", later);
+  later();
+})();
+
 var API = { processing: processing, processingDone: processingDone, render: render, capture: capture, onToggle: onToggle, planFor: planFor, previewMoves: previewMoves, createGoal: createGoal, celebrate: celebrate, get review() { return cur; } };
 window.PaceUI = API;
 wireLevelButtons(); wireSettings();
