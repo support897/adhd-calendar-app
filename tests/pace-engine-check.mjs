@@ -140,5 +140,9 @@ const U3 = B.understand("book flights for December", base, {});
 check("brain: month-only date is flagged as unsure", U3.items.length === 1 && U3.items[0].date.slice(5, 7) === "12" && (U3.items[0].unsure || []).some(u => /1st of the month/.test(u)));
 const U4 = B.understand("go to the gym around 6", base, {});
 check("brain: 'around 6' becomes 18:00 and stays out of the title", U4.items[0].time === "18:00" && !/around/.test(U4.items[0].title));
+const U5 = U("gym at 7am, team meeting at 10am for 1h, lunch with Sam at 12:30, call mum at 5pm, buy milk, finish tax forms by friday");
+
+check("brain: a run of timed items splits into one task each, keeping every time", U5.items.length === 6 && ["07:00", "10:00", "12:30", "17:00"].every(t => U5.items.some(i => i.time === t)) && U5.items.some(i => i.title === "Team meeting"));
+check("brain: 'buy milk, eggs and bread' stays one list", U("buy milk, eggs and bread").items.length === 1);
 
 console.log("\n" + pass + " passed, " + fail + " failed"); process.exit(fail ? 1 : 0);

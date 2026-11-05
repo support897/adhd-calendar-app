@@ -10,7 +10,7 @@
 // the tour teaches and stays done) is unchanged.
 import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const ROOT = process.env.APP_ROOT || "/Users/ilse/Apps/adhd-calendar-app";
+const ROOT = process.env.APP_ROOT || (process.env.APP_ROOT || process.cwd());
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 /* Battery care (29 Oct, build 33's door lock): no usable guest app
    remains, so every context runs as its own signed-in harness
@@ -38,7 +38,7 @@ await page.locator("#guideSkip").click({ timeout: 900 }).catch(() => {});
 const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem("calmcal-v1:" + JSON.parse(localStorage.getItem("pace-auth-v1")).uid)));
 
 /* ===== build 35 phase A: settings with email, jump chips, Skip's settings tour ===== */
-const SH = process.env.SHOTS || "/Users/ilse/Apps/_qa/shots"; fs.mkdirSync(SH, { recursive: true });
+const SH = process.env.SHOTS || "/tmp/qa-shots"; fs.mkdirSync(SH, { recursive: true });
 const mkPhone = async (email) => {
   const c = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const p = await c.newPage();

@@ -5,7 +5,7 @@
 // sandbox; what is proven here is the app's own hearing path end to end.
 import { chromium } from "playwright-core";
 import http from "http"; import fs from "fs"; import path from "path";
-const DIR = "/Users/ilse/Apps/adhd-calendar-app";
+const DIR = (process.env.APP_ROOT || process.cwd());
 const URL = "http://localhost:9119/";
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest", ".png": "image/png", ".ttf": "font/ttf", ".woff2": "font/woff2" };
 const srv = http.createServer((req, res) => { const p = decodeURIComponent(new globalThis.URL(req.url, "http://x").pathname); if (p === "/firebase-config.js") { res.writeHead(200, { "Content-Type": "text/javascript" }); return res.end("window.PACE_FB_CONFIG={};"); } const f = path.join(DIR, p === "/" ? "index.html" : p); if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); } res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "text/plain" }); res.end(fs.readFileSync(f)); });
@@ -61,7 +61,7 @@ const fakeSR = (script) => `
   const v = await p.inputValue("#dumpText");
   check("web final words land in the brain-dump box", v.includes("ring the dentist tomorrow"));
   const m = await p.textContent("#captureMsg");
-  check("web path confirms receipt in plain words", /Got it/.test(m));
+  check("web path confirms receipt in plain words", /Ready to review/.test(m));
   await p.close();
 }
 // 2b. After a final lands, later interim words must not stomp the
@@ -69,18 +69,18 @@ const fakeSR = (script) => `
 {
   const p = await freshPage(fakeSR([{ type: "final", text: "ring the dentist tomorrow" }, { type: "interim", text: "and also water the" }]));
   await p.click("#voiceBtn"); await p.waitForTimeout(500);
-  check("the check-the-words nudge survives later interim words", /Check the words/.test(await p.textContent("#captureMsg")));
+  check("the check-the-words nudge survives later interim words", /Check what Pace heard/.test(await p.textContent("#captureMsg")));
   await p.close();
 }
 // 3. Web error codes speak their real cause.
 {
   const p = await freshPage(fakeSR([{ type: "error", code: "not-allowed" }]));
   await p.click("#voiceBtn"); await p.waitForTimeout(200);
-  check("blocked mic says so (not a mystery failure)", /microphone is blocked/.test(await p.textContent("#captureMsg")));
+  check("blocked mic says so (not a mystery failure)", /microphone permission is off.*notes are safe/i.test(await p.textContent("#captureMsg")));
   await p.close();
   const p2 = await freshPage(fakeSR([{ type: "error", code: "no-speech" }]));
   await p2.click("#voiceBtn"); await p2.waitForTimeout(200);
-  check("silence says nothing was heard", /did not hear anything/.test(await p2.textContent("#captureMsg")));
+  check("silence says nothing was heard", /couldn.t hear anything.*notes are safe/i.test(await p2.textContent("#captureMsg")));
   await p2.close();
 }
 // 4. Native plugin path (the store app): granted + words land.
@@ -99,7 +99,7 @@ const fakeSR = (script) => `
       requestPermissions: async () => ({ speechRecognition: "denied" }), start: async () => ({}), stop: async () => {} } } };`;
   const p2 = await freshPage(denied);
   await p2.click("#voiceBtn"); await p2.waitForTimeout(300);
-  check("native permission denied says the mic is blocked", /microphone is blocked/.test(await p2.textContent("#captureMsg")));
+  check("native permission denied says the mic is blocked", /microphone permission is off.*notes are safe/i.test(await p2.textContent("#captureMsg")));
   await p2.close();
 }
 // 4b. POLAR P1 hardening: native platform, plugin MISSING from
