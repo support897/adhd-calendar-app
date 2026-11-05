@@ -4,6 +4,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 globalThis.window = { t: (s, v) => v ? String(s).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : s };
 const L = require("../logic.js"), B = require("../brain.js"), P = require("../planner.js"), R = require("../rewards.js");
+const G = require("../goals.js");
 let pass = 0, fail = 0; const check = (n, c) => { if (c) { pass++; console.log("PASS " + n); } else { fail++; console.log("FAIL " + n); } };
 const base = "2026-11-03"; // Tuesday
 const U = (t, ctx) => B.understand(t, base, ctx || {});
@@ -143,6 +144,8 @@ check("brain: 'around 6' becomes 18:00 and stays out of the title", U4.items[0].
 const U5 = U("gym at 7am, team meeting at 10am for 1h, lunch with Sam at 12:30, call mum at 5pm, buy milk, finish tax forms by friday");
 
 check("brain: a run of timed items splits into one task each, keeping every time", U5.items.length === 6 && ["07:00", "10:00", "12:30", "17:00"].every(t => U5.items.some(i => i.time === t)) && U5.items.some(i => i.title === "Team meeting"));
+check("goals: icons are read from the words", G.suggestIcons("launch my podcast")[0] === "\ud83c\udf99\ufe0f" && G.suggestIcons("save money for Japan trip", 3).length >= 2 && G.suggestIcons("zzz", 3, ["\ud83c\udfaf"])[0] === "\ud83c\udfaf");
+check("brain: 'gym at 7am' is a confident task, not a guess", U("gym at 7am").items[0] && U("gym at 7am").items[0].confident);
 check("brain: 'buy milk, eggs and bread' stays one list", U("buy milk, eggs and bread").items.length === 1);
 
 console.log("\n" + pass + " passed, " + fail + " failed"); process.exit(fail ? 1 : 0);
