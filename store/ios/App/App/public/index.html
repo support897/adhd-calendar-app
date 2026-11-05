@@ -175,7 +175,7 @@ try {
       <div id="paceReview" class="pace-review" hidden></div>
       <section id="paceCaptured" class="pace-captured"></section>
       <div id="draftArea" hidden>
-        <h3 data-i18n>Here is what I made from that. Fix any of it.</h3>
+        <h3 data-i18n>Fix anything.</h3>
         <div id="draftList"></div>
         <div class="draft-actions">
           <button id="draftAddAll" class="primary-btn" data-i18n>Add all to my calendar</button>
@@ -257,7 +257,7 @@ try {
       <button type="button" id="settingsTour" class="soft-btn set-tour" data-i18n>Skip shows me around settings</button>
             <div class="settings-group" id="accountGroup" hidden>
         <h3 data-i18n>Account</h3>
-        <p class="hint" id="accountLine" data-i18n>You are using Pace on this device only.</p>
+        <p class="hint" id="accountLine" data-i18n>This device only.</p>
         <label class="row" id="profileNameRow" hidden data-i18n>Your name <input type="text" id="profileName" data-i18n-ph autocomplete="name" placeholder="How should we address you?"></label>
         <div class="draft-actions">
           <button id="accountOpen" class="primary-btn" data-i18n>Sign in</button>
@@ -265,9 +265,9 @@ try {
           <button id="accountDownload" class="soft-btn" data-i18n>Download my data</button>
         </div>
         <div class="draft-actions">
-          <button id="accountBring" class="soft-btn" hidden data-i18n>Bring this device's guest things into my account</button>
+          <button id="accountBring" class="soft-btn" hidden data-i18n>Move guest items to my account</button>
           <button id="accountDelete" class="mini-btn" hidden data-i18n>Delete my account</button>
-          <button id="accountUncache" class="mini-btn" hidden data-i18n>Remove my cached data from this device</button>
+          <button id="accountUncache" class="mini-btn" hidden data-i18n>Clear this device</button>
         </div>
         <p class="hint" id="accountNote"></p>
       </div>
@@ -287,7 +287,7 @@ try {
           <button type="button" class="soft-btn" id="bgPhotoBtn" data-i18n>Upload your own photo</button>
           <input type="file" id="bgPhotoFile" accept="image/*" hidden>
           <button type="button" class="mini-btn" id="photoRemove" hidden data-i18n>Remove photo</button>
-          <span class="hint" data-i18n>A soft veil keeps every word readable over a photo.</span>
+          <span class="hint" data-i18n>Text stays readable.</span>
         </div>
         <label class="row check" data-i18n><input type="checkbox" id="cuteToggle"> Cute mode</label>
         <label class="row check" data-i18n><input type="checkbox" id="sbToggle"> Menu open <span class="hint">The Pace mark brings it back.</span></label>
@@ -303,43 +303,43 @@ try {
       </div>
       <div class="settings-group" id="setPace">
         <h3 data-i18n>Plan and rewards</h3>
-        <p class="hint" data-i18n>Pace plans with fixed rules. No AI, no account needed, free for everyone.</p>
-        <label class="row check"><input type="checkbox" id="pcQuiet"> <span data-i18n>Quiet mode: hide rewards, streaks and extras</span></label>
+        <p class="hint" data-i18n>No AI. Free for everyone.</p>
+        <label class="row check"><input type="checkbox" id="pcQuiet"> <span data-i18n>🔇 Quiet mode</span></label>
         <label class="row"><span data-i18n>My work day starts</span> <input type="time" id="pcStart" value="09:00"></label>
         <label class="row"><span data-i18n>My work day ends</span> <input type="time" id="pcEnd" value="17:30"></label>
         <label class="row"><span data-i18n>Leave this much time open</span> <select id="pcOpen"><option value="35">35%</option><option value="28">28%</option><option value="25">25%</option><option value="20">20%</option></select></label>
         <label class="row check"><input type="checkbox" id="pcReflect"> <span data-i18n>Evening look back (after 6pm)</span></label>
-        <label class="row check"><input type="checkbox" id="pcLearn"> <span data-i18n>Plan with how long my tasks really take</span></label>
+        <label class="row check"><input type="checkbox" id="pcLearn"> <span data-i18n>Use real task lengths</span></label>
         <button type="button" id="pcReplay" class="soft-btn" data-i18n>Replay Skip's tour</button>
       </div>
       <div class="settings-group" id="setFocus">
         <h3 data-i18n>Focus</h3>
-        <p class="hint" data-i18n>A calm timer for one task. Optional, always.</p>
-        <label class="row check" data-i18n><input type="checkbox" id="fcAuto"> Offer focus at the start of each timed task</label>
-        <label class="row check" data-i18n><input type="checkbox" id="fcBlock"> Keep me off these apps while I focus</label>
+        <p class="hint" data-i18n>Focus timer</p>
+        <label class="row check" data-i18n><input type="checkbox" id="fcAuto"> Offer focus at start</label>
+        <label class="row check" data-i18n><input type="checkbox" id="fcBlock"> Block apps while I focus</label>
         <div id="fcAppsWrap" hidden>
           <div id="fcApps" class="chip-row" role="group" aria-label="Apps to keep away from" data-i18n-aria></div>
-          <p class="hint" id="fcNote" data-i18n>Your picks are saved. Pace nudges you back if you leave during a focus. Full blocking needs Apple's Screen Time permission, which Pace will ask for when Apple approves it.</p>
+          <p class="hint" id="fcNote" data-i18n>Saved. Pace nudges you back.</p>
         </div>
       </div>
       <div class="settings-group" id="setNotif">
         <h3 data-i18n>Notifications</h3>
         <p class="hint" id="notifStatus" data-i18n>Notifications are off.</p>
         <label class="row check" data-i18n><input type="checkbox" id="nCheckin"> Morning check-in reminder</label>
-        <label class="row check" data-i18n><input type="checkbox" id="nStart"> Start nudge before each timed task</label>
-        <p class="task-look-label" data-i18n>Remind me before a timed task (tick all you want)</p>
+        <label class="row check" data-i18n><input type="checkbox" id="nStart"> Start nudge</label>
+        <p class="task-look-label" data-i18n>Remind me before</p>
         <div id="nLeads" class="chip-row" role="group" aria-label="Reminder times"></div>
         <label class="row" hidden>Nudge lead-in (minutes) <input type="number" id="nSetup" value="5" min="0" max="60"></label>
-        <label class="row check" data-i18n><input type="checkbox" id="nDigest"> A gentle round-up of what is left</label>
+        <label class="row check" data-i18n><input type="checkbox" id="nDigest"> Evening round-up</label>
         <label class="row" data-i18n>Round-up times <input type="text" id="nDigestTimes" value="12:30, 16:30" size="14"></label>
-        <label class="row check" data-i18n><input type="checkbox" id="nDone"> End of day done note (only what got done)</label>
+        <label class="row check" data-i18n><input type="checkbox" id="nDone"> End-of-day done note</label>
         <label class="row" data-i18n>Done note at <input type="time" id="nDoneTime" value="20:00"></label>
         <div class="draft-actions">
           <button id="notifEnable" class="primary-btn" data-i18n>Turn on notifications</button>
           <button id="notifTest" class="soft-btn" data-i18n>Send a test</button>
           <button id="notifPause" class="soft-btn" data-i18n>Pause all for today</button>
         </div>
-        <p class="hint" id="notifHint">Reminders fire while the app is open.</p>
+        <p class="hint" id="notifHint">Needs the app open.</p>
       </div>
       <div class="settings-group" id="setTasks">
         <h3 data-i18n>Your tasks</h3>
@@ -351,7 +351,7 @@ try {
           <button id="plansOpen" class="soft-btn" data-i18n hidden>Plans</button>
         </div>
         <p class="hint" data-i18n>On this device only.</p>
-        <p id="exportCalendarHint" class="hint" data-i18n>Calendar export contains calendar tasks. Times use this device's local clock.</p>
+        <p id="exportCalendarHint" class="hint" data-i18n>Times use this device's clock.</p>
         <p id="exportCalendarStatus" class="hint" role="status"></p>
       </div>
       <div class="settings-group" id="setHelp">
@@ -414,11 +414,11 @@ try {
         <button type="button" data-add="!!!">Important</button>
       </div>
       <div id="awSmart" class="aw-smart" hidden>
-        <p class="aw-smart-h" data-i18n>Pace read it like this. Tap to change anything.</p>
+        <p class="aw-smart-h" data-i18n>Tap to change.</p>
         <button type="button" id="awTag" class="aw-tag"><span class="aw-tag-dot"></span><span id="awTagTxt"></span><span class="aw-tag-edit" data-i18n>Change</span></button>
         <p id="awWhy" class="aw-why"></p>
         <button type="button" id="awGoalChip" class="aw-goalchip" hidden></button>
-        <div id="awGoalHint" class="aw-goalhint" hidden><span data-i18n>This sounds like a big goal, not one task.</span> <button type="button" id="awMakeGoal" class="soft-btn" data-i18n>Make it a goal</button></div>
+        <div id="awGoalHint" class="aw-goalhint" hidden><span data-i18n>Big goal? Make it a goal.</span> <button type="button" id="awMakeGoal" class="soft-btn" data-i18n>Make it a goal</button></div>
       </div>
       <div id="awCatBox" class="aw-pick" hidden>
         <p class="task-look-label" data-i18n>What is this? The colour follows it.</p>
@@ -448,7 +448,7 @@ try {
       <h3 data-i18n>Remind and repeat</h3>
       <div class="field"><span class="gf-label" data-i18n>Remind me for this task</span>
         <div id="fRemChips" class="chip-row" role="group" aria-label="Reminders for this task" data-i18n-aria></div>
-        <span class="hint" data-i18n>Reminders need a time. Each task keeps its own.</span></div>
+        <span class="hint" data-i18n>Needs a time.</span></div>
       <p class="task-look-label" data-i18n>Repeat</p>
       <div id="awRepChips" class="chip-row"></div>
       <select id="fRepeat" hidden>
@@ -520,7 +520,7 @@ try {
     </section>
       <section class="task-audio-section" aria-labelledby="dAudioHeading">
       <h4 id="dAudioHeading" data-i18n>Audio note</h4>
-      <p class="hint" data-i18n>Record up to 45 seconds. Signed-in calendars sync the note with your account.</p>
+      <p class="hint" data-i18n>Up to 45 seconds.</p>
       <div class="task-note-actions"><button id="dAudioStart" class="soft-btn" type="button" data-i18n>Start recording</button><button id="dAudioStop" class="soft-btn" type="button" hidden data-i18n>Stop recording</button><button id="dAudioDelete" class="soft-btn danger" type="button" hidden data-i18n>Remove audio note</button></div>
       <audio id="dAudioPlayer" controls preload="none" hidden></audio>
       <p id="dAudioStatus" role="status" class="hint" aria-live="polite"></p>
@@ -556,7 +556,7 @@ try {
     </details>
     <details class="task-more" id="dRemWrap"><summary data-i18n>Reminders</summary>
       <div class="task-more-body">
-        <p class="hint" data-i18n>Tick every reminder you want for this task.</p>
+        <p class="hint" data-i18n>Tick reminders.</p>
         <div id="dRemChips" class="chip-row" role="group" aria-label="Reminders for this task"></div>
         <label class="row check" data-i18n><input type="checkbox" id="dRemDefault"> Use my usual reminders</label>
       </div>
@@ -582,9 +582,9 @@ try {
     <button id="plusClose" class="icon-btn guide-x" aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
     <div id="plusArt" class="plus-badge" aria-hidden="true"></div>
     <h3 class="plus-title" data-i18n>That's a Plus thing.</h3>
-    <p class="plus-line" data-i18n>Plus holds the full set of Looks, Talk to it, repeating tasks, and a few more kind helpers.</p>
-    <p class="plus-line" id="plusPriceLine" data-i18n>Plus is A$4.99 a month, or A$39.99 a year. Your first month is free.</p>
-    <p class="plus-line plus-honest" id="plusHonest" data-i18n>Unlock with a paid plan when plans open at launch. Nothing can be charged today.</p>
+    <p class="plus-line" data-i18n>More Looks, repeats, tiny steps.</p>
+    <p class="plus-line" id="plusPriceLine" data-i18n>A$4.99/mo · A$39.99/yr · first month free</p>
+    <p class="plus-line plus-honest" id="plusHonest" data-i18n>Plans open at launch.</p>
     <div class="sheet-actions">
       <button id="plusNotNow" class="soft-btn" data-i18n>Not now</button>
       <button id="plusPlans" class="primary-btn" data-i18n>See the plans</button>
@@ -599,14 +599,14 @@ try {
     <h3 data-i18n>Plans</h3>
     <div class="plan-card">
       <h4 data-i18n>Free forever</h4>
-      <p data-i18n>The calendar, the White and Black looks, your lists and habits. Free means free.</p>
+      <p data-i18n>Calendar, looks, lists, habits. Free.</p>
     </div>
     <div class="plan-card plan-plus">
       <h4 data-i18n>Plus</h4>
-      <p id="planHolds" data-i18n>When Plus arrives, it holds: all six Looks and Cute mode · Talk to it · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.</p>
+      <p id="planHolds" data-i18n>More Looks · repeats · tiny steps · energy levels</p>
       <p class="plan-price" id="planPriceLine" data-i18n>A$4.99 a month, or A$39.99 a year. First month free.</p>
       <p id="planLifeLine" data-i18n>Or Plus for life: A$99.99, once.</p>
-      <p class="plan-state" id="planState" data-i18n>Not on sale yet. Nothing to pay today.</p>
+      <p class="plan-state" id="planState" data-i18n>Not on sale yet.</p>
       <div id="planBuy" class="plan-buy" hidden>
         <button id="buyYearly" class="primary-btn" data-i18n>Plus, yearly</button>
         <button id="buyMonthly" class="soft-btn" data-i18n>Plus, monthly</button>
@@ -643,7 +643,7 @@ try {
 <div id="importSheet" class="sheet" hidden>
   <div class="sheet-card">
     <h3 data-i18n>Bring my calendar in</h3>
-    <p class="hint" data-i18n>Read-only — this copies your events into Pace Calendar. Nothing in your old calendar changes, and importing again never doubles anything.</p>
+    <p class="hint" data-i18n>Copy only. Your old calendar never changes.</p>
     <div class="import-sources" role="group" aria-label="Where is your calendar?">
       <button class="soft-btn import-src is-active" data-src="google" data-i18n>Google Calendar</button>
       <button class="soft-btn import-src" data-src="apple" data-i18n>Apple / iCloud</button>
@@ -655,7 +655,7 @@ try {
       <input type="file" id="importFile" accept=".ics,text/calendar" hidden>
     </div>
     <p class="hint" data-i18n>Where do I get the file?</p>
-    <p class="hint" id="importGuide" data-i18n>calendar.google.com → the gear → Settings → Import &amp; export → Export. Inside the download is a file ending .ics. Bring that file here.</p>
+    <p class="hint" id="importGuide" data-i18n>Google Calendar → Settings → Import &amp; export → Export (.ics)</p>
     <p class="hint" id="importResult" role="status"></p>
     <div class="sheet-actions">
       <button id="importClose" class="soft-btn" data-i18n>Done</button>
@@ -715,7 +715,7 @@ try {
       <div class="draft-actions">
         <button id="authGo" class="primary-btn" data-i18n>Continue</button>
       </div>
-      <p class="door-note" data-i18n>This one button does both. It signs you in, or makes your account if you are new.</p>
+      <p class="door-note" data-i18n>Signs in, or creates your account.</p>
       <div class="draft-actions">
         <button id="authReset" class="mini-btn" data-i18n>Forgot password?</button>
       </div>
@@ -726,8 +726,8 @@ try {
 <!-- GUEST-UPLOAD DOOR (Security PC-1: explicit yes, offered once) -->
 <div id="potSheet" class="sheet" hidden>
   <div class="sheet-card">
-    <h3 data-i18n>Bring your things into your account?</h3>
-    <p class="hint" id="potText" data-i18n>This device has a guest calendar on it.</p>
+    <h3 data-i18n>Move your things?</h3>
+    <p class="hint" id="potText" data-i18n>Guest calendar found.</p>
     <div class="sheet-actions">
       <button id="potNo" class="soft-btn" data-i18n>Start fresh</button>
       <button id="potYes" class="primary-btn" data-i18n>Bring my things in</button>
@@ -739,7 +739,7 @@ try {
 <div id="deleteSheet" class="sheet" hidden>
   <div class="sheet-card">
     <h3 data-i18n>Delete your account?</h3>
-    <p class="hint" data-i18n>This deletes your account and everything saved to it. Your guest calendar on this device is not touched. This cannot be undone.</p>
+    <p class="hint" data-i18n>Deletes your account and its data. Cannot be undone.</p>
     <label class="field" data-i18n>Password, to be sure <input type="password" id="deletePass" autocomplete="current-password"></label>
     <p class="hint" id="deleteMsg" role="status"></p>
     <div class="sheet-actions">

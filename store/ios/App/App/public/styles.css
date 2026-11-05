@@ -1282,3 +1282,10 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .settings-group .row.check input[type="checkbox"]:checked::after { transform: translateX(20px); }
 .settings-group .row.check input[type="checkbox"]:checked::before { content: "\2713"; position: absolute; left: 11px; top: 4px; color: #fff; font-size: 16px; font-weight: 800; line-height: 24px; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { .settings-group .row.check input[type="checkbox"], .settings-group .row.check input[type="checkbox"]::after { transition: none; } }
+
+/* Build 49: less text, more picture. Empty states are big, friendly cards. */
+.empty-note{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:28px 16px;border:2px dashed var(--line,#d9dcf0);border-radius:22px;background:rgba(255,255,255,.55);font-size:1.05rem;font-weight:700;color:var(--ink,#25352f)}
+#paceToday .empty-note,.pace-empty{font-size:1.05rem}
+#sgJoinInput{font-size:.95rem}
+.settings-group .hint,.settings-group .note{font-size:.85rem;opacity:.75}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}

@@ -578,11 +578,11 @@ $("bgPhotoFile").addEventListener("change", function () {
     if (!kept) {
       state.settings.appearance.photo = prev.photo; state.settings.appearance.photoMode = prev.photoMode; state.settings.appearance.bgChoice = prev.bgChoice;
       save(); applyAppearance();
-      toast(tr("That photo is too big to keep on this device. A smaller one will fit."));
+      toast(tr("🖼️ Photo too big. Try smaller."));
       return;
     }
     applyAppearance();
-    toast(tr("Your photo is the background now. A soft veil keeps the words readable."));
+    toast(tr("Background set 🖼️"));
   };
   img.onerror = function () { URL.revokeObjectURL(url); toast(tr("That file did not read as a photo. Nothing changed.")); };
   img.src = url;
@@ -900,7 +900,7 @@ function renderCheckin() {
   sl.innerHTML = todayLevel ? tr("Today:") + " <strong>" + esc(displayLevelName(todayLevel)) + "</strong>" : tr("No check-in yet today");
   var adc = adaptedFor(selected), tot = adc.visible.length + adc.parked.length;
   var subEl = $("checkinSub");
-  if (subEl && state.feelings[selected]) subEl.textContent = adc.parked.length ? tr("Showing {a} of {b}. {c} resting until you feel up to it. You can change this any time.", { a: adc.visible.length, b: tot, c: adc.parked.length }) : tr("Showing everything for today. You can change this any time.");
+  if (subEl && state.feelings[selected]) subEl.textContent = adc.parked.length ? tr("Showing {a} of {b}. {c} resting until you feel up to it. You can change this any time.", { a: adc.visible.length, b: tot, c: adc.parked.length }) : tr("Showing all.");
   $("checkinQ").textContent = selected === L.todayKey() ? tr("How are you feeling today?") : tr("How does this day feel?");
 }
 /* ---------- Bad day: big things become small steps over the next days ----------
@@ -1796,7 +1796,7 @@ $("parseBtn").addEventListener("click", function () {
   var text = $("dumpText").value;
   if (window.PaceUI) { window.PaceUI.capture(text); return; }
   drafts = L.parseDump(text, L.todayKey());
-  if (!drafts.length) { $("captureMsg").textContent = tr("Nothing I could sort yet. Try one thing per line, like: call the dentist tomorrow at 3pm."); return; }
+  if (!drafts.length) { $("captureMsg").textContent = tr("Nothing found. One thing per line."); return; }
   $("captureMsg").textContent = "";
   renderDrafts(text);
 });
@@ -1893,8 +1893,8 @@ function failTaskAudio(session, error) {
   var denied = error && (error.name === "NotAllowedError" || error.name === "PermissionDeniedError" || /denied|permission/i.test(error.message || ""));
   finishTaskAudio(session);
   if (currentTaskId === taskId) $("dAudioStatus").textContent = denied
-    ? tr("Microphone access is blocked. Allow it, then try recording again.")
-    : tr("Audio recording did not work. Try again, or type a note instead.");
+    ? tr("Mic blocked. Allow it. Your notes are safe.")
+    : tr("Recording did not work. Your notes are safe. Type instead.");
 }
 async function saveTaskAudio(session, result) {
   if (taskAudioSession !== session) return;
@@ -1910,7 +1910,7 @@ async function saveTaskAudio(session, result) {
     var note = { dataUrl: dataUrl, mimeType: result.mimeType, durationMs: result.durationMs, savedAt: new Date().toISOString() };
     if (!window.PaceAudioNotes.fitsInState(state, taskId, note)) {
       finishTaskAudio(session);
-      if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("This audio note would make your saved calendar too large to sync. Remove an older audio note or record a shorter one.");
+      if (currentTaskId === taskId) $("dAudioStatus").textContent = tr("Note too big to sync. Record a shorter one.");
       return;
     }
     task.audioNote = note;
@@ -1928,15 +1928,15 @@ function startTaskAudio() {
   var task = baseTask(currentTaskId);
   if (!task) return;
   if (!window.PaceAudioNotes || !window.MediaRecorder) {
-    $("dAudioStatus").textContent = tr("Audio recording is not available in this browser. Typing works the same.");
+    $("dAudioStatus").textContent = tr("No recording here. Type instead.");
     return;
   }
   var session;
   try { session = window.PaceAudioNotes.start(); }
   catch (error) {
     $("dAudioStatus").textContent = error && error.message === "microphone-unavailable"
-      ? tr("Audio recording is not available in this browser. Typing works the same.")
-      : tr("Audio recording did not work. Try again, or type a note instead.");
+      ? tr("No recording here. Type instead.")
+      : tr("Recording did not work. Your notes are safe. Type instead.");
     return;
   }
   taskAudioSession = session; taskAudioTaskId = task.id;
@@ -1963,7 +1963,7 @@ window.addEventListener("beforeunload", function () { if (taskAudioSession) task
 
 var voiceSession = null;
 function voiceErrorText(code) {
-  if (code === "not-allowed" || code === "service-not-allowed") return tr("Your microphone permission is off. Allow the mic for Pace, then tap Speak again. Your notes are safe. Typing works the same.");
+  if (code === "not-allowed" || code === "service-not-allowed") return tr("Mic is off. Allow it. Your notes are safe.");
   if (code === "audio-capture") return tr("No microphone could be found. Typing works the same.");
   if (code === "no-speech") return tr("I couldn't hear anything. Try again, a little closer, or type. Your notes are safe.");
   if (code === "network") return tr("Voice recognition isn't available right now (it needs the internet on this device). Your notes are safe. You can try again or type.");
@@ -1992,7 +1992,7 @@ function toggleVoice(hooks) {
     // mic settings — wrongly. On native, no plugin means the
     // BUILD lacks voice: say that, honestly, and stop.
     var C2 = window.Capacitor;
-    if (C2 && typeof C2.isNativePlatform === "function" && C2.isNativePlatform()) { hooks.msg(tr("Voice is not in this build of the app. Typing works the same — your words land in the same place.")); return; }
+    if (C2 && typeof C2.isNativePlatform === "function" && C2.isNativePlatform()) { hooks.msg(tr("No voice here. Your notes are safe. Type instead.")); return; }
   }
   if (nat) {
     var stopped = false;
@@ -2015,7 +2015,7 @@ function toggleVoice(hooks) {
     return;
   }
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { hooks.msg("Voice is not offered by this browser. Typing in the box works exactly the same."); return; }
+  if (!SR) { hooks.msg("No voice here. Your notes are safe. Type instead."); return; }
   var rec = new SR();
   rec.lang = "en-AU"; rec.interimResults = true; rec.continuous = true;
   var heardFinal = false;
@@ -2044,7 +2044,7 @@ $("voiceBtn").addEventListener("click", function () {
     msg: function (t) { $("captureMsg").textContent = t; },
     final: function (said) {
       $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + said;
-      $("captureMsg").textContent = tr("Ready to review. Check what Pace heard before creating tasks.");
+      $("captureMsg").textContent = tr("Ready to review ✅");
     }
   });
 });
@@ -2076,9 +2076,9 @@ var OCR_OPTIONS = {
   gzip: !OCR_IN_APP
 };
 function ocrPhoto(f, msgEl, onText, onFail) {
-  msgEl.textContent = tr("Reading your photo. This can take a little while the first time.");
+  msgEl.textContent = tr("Reading photo…");
   if (!window.Tesseract) {
-    msgEl.textContent = tr("The reading tool did not load. Typing or speaking works the same.");
+    msgEl.textContent = tr("Photo reader off. Type instead.");
     if (onFail) onFail();
     return;
   }
@@ -2086,7 +2086,7 @@ function ocrPhoto(f, msgEl, onText, onFail) {
     var text = (res && res.data && res.data.text || "").trim();
     if (text) onText(text);
     else { msgEl.textContent = tr("I could not read words in that photo. Typing or speaking works the same."); if (onFail) onFail(); }
-  }).catch(function () { msgEl.textContent = tr("Reading the photo did not work this time. Your photo is safe. Typing or speaking works the same."); if (onFail) onFail(); });
+  }).catch(function () { msgEl.textContent = tr("Couldn't read photo. Your photo is safe."); if (onFail) onFail(); });
 }
 $("photoFile").addEventListener("change", function (e) {
   var f = e.target.files[0]; if (!f) return;
@@ -2094,7 +2094,7 @@ $("photoFile").addEventListener("change", function (e) {
   ocrPhoto(f, $("captureMsg"), function (text) {
     if (window.PaceUI) window.PaceUI.processingDone(procId);
     $("dumpText").value = ($("dumpText").value ? $("dumpText").value + "\n" : "") + text;
-    $("captureMsg").textContent = tr("Text extracted. Check the words, then tap Make my list. Nothing is added until you say so.");
+    $("captureMsg").textContent = tr("Check it, then Make my list.");
   }, function () { if (window.PaceUI) window.PaceUI.processingDone(procId); });
 });
 
@@ -2261,7 +2261,7 @@ $("todoPhoto").addEventListener("change", function (e) {
       lab.appendChild(cb); lab.appendChild(sp); list.appendChild(lab);
     });
     $("todoDraftArea").hidden = false;
-    $("todoMsg").textContent = "Here is what I could read. Untick anything that is not a to-do.";
+    $("todoMsg").textContent = "Untick what is not a to-do.";
   });
 });
 $("todoDraftAdd").addEventListener("click", function () {
@@ -2549,18 +2549,18 @@ function renderNotifStatus() {
   if (PaceRemind.available()) {
     $("notifStatus").textContent =
       n.perm === "granted" ? tr("Notifications are on. You choose what they say and when.") :
-      n.perm === "denied" ? tr("Notifications are blocked. You can allow them in your phone's settings for Pace.") :
+      n.perm === "denied" ? tr("Notifications blocked. Allow in phone settings.") :
       tr("Notifications are off.");
     /* PACE-007: the static hint line is web truth only — in the phone
        app the reminders are scheduled on the device and ring while
        the app is closed. */
-    $("notifHint").textContent = tr("Reminders are set on this phone, so they can ring even when the app is closed.");
+    $("notifHint").textContent = tr("Reminders set ✅");
     return;
   }
-  $("notifHint").textContent = tr("Reminders fire while the app is open.");
+  $("notifHint").textContent = tr("Needs the app open.");
   $("notifStatus").textContent = !("Notification" in window) ? tr("This browser does not offer notifications.") :
     n.perm === "granted" ? tr("Notifications are on. You choose what they say and when.") :
-    n.perm === "denied" ? tr("Notifications are blocked in the browser. You can allow them in the browser site settings.") :
+    n.perm === "denied" ? tr("Blocked. Allow in browser settings.") :
     tr("Notifications are off.");
 }
 function notify(title, body, key, tap) {
@@ -2746,23 +2746,23 @@ function buildTour() {
   TOUR = [];
   if (tourNeedsName()) TOUR.push({ kind: "name", pose: "welcome", bubble: "Ahoy! I'm Skip. Welcome aboard! What's your name?", next: "Next" });
   TOUR.push({ kind: "choose", pose: "welcome", bubble: "Hi, I'm Skip! I'll help you make your day feel a little easier. You don't have to figure everything out alone. How would you like to start?", next: "Show me around" });
-  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); if (step.action === "energy") { TOUR.push({ kind: "tour", pose: "point", bubble: "Low keeps only what matters and one small step. Steady is a balanced day. Full fits a bit more, and breaks stay protected. Pace shows you every change first.", next: "Next", action: "demo" }); TOUR.push({ kind: "tour", pose: "point", bubble: "Talk to it. Tell it what is on your mind. It sorts it into tasks, notes and goals, and you check everything before it is added.", next: "Next", action: "try" }); } });
-  TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar if you want. The file is copied; it is never changed.", next: "Next" });
-  TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders are optional. Choose if you want a gentle prompt.", next: "Next", panel: "settings" });
-  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Calendar is your day. A small red line shows where you are right now. Tap it again any time to jump back to today.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Talk to it turns a sentence into tasks. Speaking is optional.", next: "Next" });
+  GUIDE_STEPS.forEach(function (step) { TOUR.push(Object.assign({}, step)); if (step.action === "energy") { TOUR.push({ kind: "tour", pose: "point", bubble: "Low · Steady · Full. You see every change first.", next: "Next", action: "demo" }); TOUR.push({ kind: "tour", pose: "point", bubble: "Talk to Skip 💬 Say it. Check it. Add it.", next: "Next", action: "try" }); } });
+  TOUR.push({ kind: "import", pose: "point", bubble: "Bring in an old calendar (copy only).", next: "Next" });
+  TOUR.push({ kind: "reminders", pose: "point", bubble: "Reminders: optional 🔔", next: "Next", panel: "settings" });
+  TOUR.push({ kind: "tour", panel: "calendar", pose: "point", bubble: "Your day. Red line = now.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "capture", pose: "point", bubble: "Say it, get tasks. Voice is optional.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "todo", pose: "point", bubble: "To do keeps loose tasks beside the calendar.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "more", pose: "point", bubble: "More opens Progress and Settings.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Progress groups tasks by status. If it is locked, Pace will say so.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "progress", pose: "point", bubble: "Your wins 🏆", next: "Next" });
   TOUR.push({ kind: "tour", panel: "habits", pose: "point", bubble: "Habits helps you notice routines, one day at a time.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "goals", pose: "point", bubble: "Goals turns one big goal into one small step a day on your calendar.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "goals", pose: "point", bubble: "Big goal → small daily step.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "profileCard", pose: "welcome", bubble: "This is Settings. Your name and email are at the top.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "accountGroup", pose: "point", bubble: "Account: your name, sign out, and download your data.", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "setLook", pose: "point", bubble: "Look: pick a colour, a photo, or Cute mode.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "settings", section: "setCheckin", pose: "point", bubble: "Check-in: when I ask how you feel, and what you call Bad, Ok and Great.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "settings", section: "setNotif", pose: "point", bubble: "Reminders: choose how early each reminder comes. Each task can have its own.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setCheckin", pose: "point", bubble: "Check-in 😊 Name your moods.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setNotif", pose: "point", bubble: "Reminders ⏰ How early?", next: "Next" });
   TOUR.push({ kind: "tour", panel: "settings", section: "setTasks", pose: "point", bubble: "Tasks: bring a calendar in, or save yours as a file.", next: "Next" });
-  TOUR.push({ kind: "tour", panel: "settings", section: "setHelp", pose: "celebrate", bubble: "Help is here if you get stuck. Everything in Pace is free.", next: "Next" });
+  TOUR.push({ kind: "tour", panel: "settings", section: "setHelp", pose: "celebrate", bubble: "Stuck? Help 💛", next: "Next" });
   TOUR.push({ kind: "tour", panel: "calendar", pose: "celebrate", bubble: "What would you like to work on first?", next: "Done ✓", last: true, action: "first" });
 }
 var guideStep = 0;
@@ -2982,16 +2982,16 @@ function renderPlans() {
     }).catch(function () {});
   }
   var honest = $("plusHonest");
-  if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Unlock with a paid plan when plans open at launch. Nothing can be charged today.");
+  if (honest) honest.textContent = on ? tr("Unlock with a paid plan.") : tr("Plus is coming.");
   var st = $("planState"); if (!st) return;
   var holds = $("planHolds");
   if (holds) holds.textContent = on
-    ? tr("Plus holds: all six Looks and Cute mode · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.")
-    : tr("When Plus arrives, it holds: all six Looks and Cute mode · repeating tasks · breaking a task into small steps · a stretch task borrowed from tomorrow · the energy levels in your own words · the To Do board · the kind round-up.");
-  if (!on) { st.textContent = tr("Not on sale yet. Nothing to pay today."); return; }
+    ? tr("Plus: more Looks · repeats · tiny steps.")
+    : tr("Plus: more Looks · repeats · tiny steps.");
+  if (!on) { st.textContent = tr("Not on sale yet."); return; }
   var s = PaceBilling.state();
   if (PaceBilling.plusActive() && s.owned) st.textContent = tr("Plus is yours. Everything is open.");
-  else if (PaceBilling.plusActive()) st.textContent = tr("Your first month is free, on us. The buttons are here when you are ready.");
+  else if (PaceBilling.plusActive()) st.textContent = tr("First month free.");
   else st.textContent = tr("Pick a plan to unlock everything.");
   PaceBilling.storePrices().then(function (p) {
     if (!p) return;
@@ -3030,9 +3030,9 @@ $("buyRestore").addEventListener("click", function () {
 var DEMO_SESSION = false; // build 33: the demo road is abolished by the door ruling (29 Oct) — no demo, guest or preview way into the app exists; the flag stays only so its old guards read false.
 var IMPORT_GUIDE = {
   google: "calendar.google.com \u2192 the gear \u2192 Settings \u2192 Import & export \u2192 Export. Inside the download is a file ending .ics. Bring that file here.",
-  apple: "In a browser: iCloud.com \u2192 Calendar \u2192 the share icon by a calendar \u2192 Public Calendar. Open the link it gives you \u2014 a file downloads. Bring that file here.",
-  outlook: "Outlook on the web \u2192 the gear \u2192 Calendar \u2192 Shared calendars \u2192 Publish a calendar. Open the ICS link it gives you \u2014 a file downloads. Bring that file here.",
-  file: "Pick the .ics file your old calendar exported. It is read once, copied in, and the file itself is never changed."
+  apple: "iCloud.com → Calendar → share → Public. Save the file.",
+  outlook: "Outlook → Calendar → Publish. Save the ICS file.",
+  file: "Pick your .ics file. Copy only."
 };
 var IMPORT_LABELS = { google: "Google Calendar", apple: "Apple / iCloud", outlook: "Outlook", file: "a calendar file" };
 var importSource = "google";
@@ -3045,7 +3045,7 @@ function shapeToTask(s) {
 function runImport(text, label) {
   var parsed = window.CI.parseICS(text);
   if (parsed.error) {
-    var failed = [tr("That didn\u2019t read as a calendar. Nothing was brought in.")];
+    var failed = [tr("Not a calendar. Nothing added.")];
     if (parsed.malformedLines) failed.push(parsed.malformedLines + " " + tr(parsed.malformedLines === 1 ? "malformed line ignored" : "malformed lines ignored"));
     $("importResult").textContent = failed.join(" · ");
     return;
@@ -3393,7 +3393,7 @@ function resolvePot(bring) {
   var pot0 = guestPot();
   localStorage.setItem("pace-pot-offered", potGeneration(pot0));
   $("potSheet").hidden = true;
-  if (!bring) { toast(tr("Fresh start. Your guest calendar is still on this device.")); return; }
+  if (!bring) { toast(tr("Fresh start.")); return; }
   var pot = guestPot();
   if (!pot) return;
   adoptStateObject(pot);
@@ -3432,7 +3432,7 @@ function renderAccount() {
   if (ACTIVE_UID && sess) {
     var myName = (state.settings.profileName || "").trim();
     var firstName = myName ? myName.split(/\s+/)[0] : "";
-    $("accountLine").textContent = (firstName ? tr("Hi {name} — signed in as {email}. Your calendar saves to your account and this device.", { name: firstName, email: (sess.email || tr("your account")) }) : tr("Signed in as {email}. Your calendar saves to your account and this device.", { email: (sess.email || tr("your account")) }));
+    $("accountLine").textContent = (firstName ? tr("Hi {name} 👋 {email} · saved to your account", { name: firstName, email: (sess.email || tr("your account")) }) : tr("☁️ {email} · saved to your account", { email: (sess.email || tr("your account")) }));
     var pnr = $("profileNameRow"), pni = $("profileName");
     if (pnr && pni) { pnr.hidden = false; if (document.activeElement !== pni) pni.value = myName; }
     $("accountOpen").hidden = true; $("accountOut").hidden = false; $("accountDelete").hidden = false;
@@ -3441,7 +3441,7 @@ function renderAccount() {
     $("accountUncache").hidden = true;
     if (note && !note.textContent) note.textContent = "";
   } else {
-    $("accountLine").textContent = tr("You are using Pace on this device only. Sign in to keep your calendar safe across devices.");
+    $("accountLine").textContent = tr("This device only. Sign in to sync ☁️");
     $("accountOpen").hidden = false; $("accountOut").hidden = true; $("accountDelete").hidden = true;
     $("accountBring").hidden = true;
     var pnr2 = $("profileNameRow"); if (pnr2) pnr2.hidden = true;
@@ -3532,7 +3532,7 @@ function bindAccounts() {
           authBusy(tr("Creating your account…"));
           FB.emailSignUp(email, pw).then(function (s) { ACTIVE_UID = s.uid; afterSignIn(); })
             .catch(function (e2) {
-              if (e2 && e2.code === "EMAIL_EXISTS") authBusy(tr("That email has an account, but the password does not match it. Try again, or tap Forgot password."));
+              if (e2 && e2.code === "EMAIL_EXISTS") authBusy(tr("Wrong password. Try again."));
               else authBusy(tr(FB.userError(e2)));
             });
         } else authBusy(tr(FB.userError(e)));
@@ -3585,13 +3585,13 @@ function bindAccounts() {
         FB.googleSignIn(tok).then(function (s) { ACTIVE_UID = s.uid; afterSignIn(); })
           .catch(function (e) { authBusy(tr(FB.userError(e))); });
       }).catch(function (e) {
-        if (e && e.doorTimeout) authBusy(tr("Google did not answer. Nothing changed. Try again, or use email + password."));
+        if (e && e.doorTimeout) authBusy(tr("Google did not answer. Nothing changed."));
         else authBusy(tr("Google sign-in was closed. Nothing changed."));
       });
       return;
     }
     var cid = window.PACE_FB_CONFIG && window.PACE_FB_CONFIG.googleClientId;
-    if (!cid) { authBusy(tr("Google sign-in is not switched on yet. Email + password works now.")); return; }
+    if (!cid) { authBusy(tr("Google is off. Use email.")); return; }
     authBusy(tr("Opening Google…"));
     var go = function () {
       window.google.accounts.id.initialize({
@@ -3608,7 +3608,7 @@ function bindAccounts() {
       // miniature. Every non-display moment now speaks.
       window.google.accounts.id.prompt(function (n) {
         try {
-          if (n && (n.isNotDisplayed() || n.isSkippedMoment())) authBusy(tr("Google did not answer. Nothing changed. Try again, or use email + password."));
+          if (n && (n.isNotDisplayed() || n.isSkippedMoment())) authBusy(tr("Google did not answer. Nothing changed."));
           else if (n && n.isDismissedMoment()) authBusy(tr("Google sign-in was closed. Nothing changed."));
         } catch (e) {}
       });
@@ -3617,7 +3617,7 @@ function bindAccounts() {
     else {
       var sc = document.createElement("script");
       sc.src = "https://accounts.google.com/gsi/client";
-      sc.onload = go; sc.onerror = function () { authBusy("Google did not load. Check your connection, or use email + password."); };
+      sc.onload = go; sc.onerror = function () { authBusy("Google did not load. Use email."); };
       document.head.appendChild(sc);
     }
   });
@@ -3640,13 +3640,13 @@ function bindAccounts() {
         FB.appleSignIn(cred.idToken, null, cred.nonce || null).then(function (sess) { ACTIVE_UID = sess.uid; afterSignIn(); })
           .catch(function (e) { authBusy(tr(FB.userError(e))); });
       }).catch(function (e) {
-        if (e && e.doorTimeout) authBusy(tr("Apple did not answer. Nothing changed. Try again, or use email + password."));
+        if (e && e.doorTimeout) authBusy(tr("Apple did not answer. Nothing changed."));
         else authBusy(tr("Apple sign-in was closed. Nothing changed."));
       });
       return;
     }
     var cfgA = window.PACE_FB_CONFIG || {};
-    if (!cfgA.appleEnabled || !cfgA.appleClientId) { authBusy(tr("Apple sign-in is not switched on yet. Email + password works now.")); return; }
+    if (!cfgA.appleEnabled || !cfgA.appleClientId) { authBusy(tr("Apple is off. Use email.")); return; }
     authBusy(tr("Opening Apple…"));
     var go = function () {
       try {
@@ -3665,7 +3665,7 @@ function bindAccounts() {
     else {
       var sc = document.createElement("script");
       sc.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
-      sc.onload = go; sc.onerror = function () { authBusy(tr("Apple did not load. Check your connection, or use email + password.")); };
+      sc.onload = go; sc.onerror = function () { authBusy(tr("Apple did not load. Use email.")); };
       document.head.appendChild(sc);
     }
   });
@@ -3704,7 +3704,7 @@ function bindAccounts() {
     var lastUid = null;
     try { lastUid = localStorage.getItem("pace-last-uid"); } catch (e) {}
     if (lastUid) { try { localStorage.removeItem(STORE + ":" + lastUid); } catch (e) {} }
-    toast(tr("Your cached data is off this device. Your account itself is untouched."));
+    toast(tr("Cleared. Account untouched."));
     renderAccount();
   });
   $("accountDelete").addEventListener("click", function () { $("deleteMsg").textContent = ""; $("deleteSheet").hidden = false; });
@@ -3789,7 +3789,7 @@ function submitTsTodo() {
   $("tsInput").value = "";
   if (task.date !== selected) selectDate(task.date, true);
   refreshAll();
-  toast(tr("On your to-do for the day. Drag it onto a time whenever you like."));
+  toast(tr("Drag onto a time."));
 }
 $("tsForm").addEventListener("submit", function (e) { e.preventDefault(); submitTsTodo(); });
 
@@ -3836,7 +3836,7 @@ function renderTray() {
   var on = currentView === "year" || currentView === "listWeek" || currentView === "dayGridMonth";
   box.hidden = !on; if (!on) { box.innerHTML = ""; return; }
   var items = tasksOn(selected);
-  var head = '<p class="tray-hint">' + tr("Hold a task and drag it onto a day. Drop it on the + to delete.") + '</p>';
+  var head = '<p class="tray-hint">' + tr("Drag to a day. Drop on + to delete.") + '</p>';
   if (!items.length) { box.innerHTML = head + '<p class="tray-empty">' + tr("Nothing on this day.") + '</p>'; return; }
   box.innerHTML = head + '<div class="tray-row">' + items.map(function (t) {
     return '<div class="tray-chip" data-id="' + esc(t.id) + '" data-date="' + esc(t.instanceDate) + '" style="--c:' + esc(t.color) + '"><span class="tc-emo">' + esc(t.icon || "") + '</span><span class="tc-t">' + esc(t.title) + '</span></div>';

@@ -141,7 +141,7 @@ function renderToday() {
   }
 
   if (!hasAny) {
-    card.appendChild(el("p", "pt-empty", tr("Nothing planned. Add one thing, or tell Pace what is on your mind.")));
+    card.appendChild(el("p", "pt-empty", tr("Nothing planned 🌿")));
     var b1 = el("button", "primary-btn", tr("Talk to it"), { type: "button", id: "ptTalk" });
     b1.addEventListener("click", function () { C.showPanel("capture"); C.setBottomTab("capture"); });
     card.appendChild(b1); root.appendChild(card); return;
@@ -232,7 +232,7 @@ function skipHelp(plan, key) {
     card.appendChild(el("div", "ps-h", tr("Just this one thing")));
     card.appendChild(el("div", "pt-next-title", lead.minVersion || P.smallest(lead)));
     card.appendChild(el("p", "ps-explain", tr("Next action") + ": " + P.nextAction(lead).text));
-  } else card.appendChild(el("p", "ps-explain", tr("Nothing is planned. You could rest, or tell Pace what is on your mind.")));
+  } else card.appendChild(el("p", "ps-explain", tr("Free day 🌿")));
   var row = el("div", "ps-actions");
   if (lead) { var go = el("button", "primary-btn", tr("Start it"), { type: "button", id: "skipStart" }); go.addEventListener("click", function () { sheet.remove(); C.startFocus(lead.id, lead.date); }); row.appendChild(go); }
   var gentle = el("button", "soft-btn", tr("Make today gentler"), { type: "button", id: "skipGentle" });
@@ -285,7 +285,7 @@ function wireLevelButtons() {
       var movable = plan.moves;
       if (!movable.length && !plan.essential.length) return; /* nothing to preview: let it through */
       e.stopImmediatePropagation(); e.preventDefault();
-      previewMoves({ moves: movable, stay: plan.priorities.concat(plan.quickWin ? [plan.quickWin] : []), essential: plan.essential, waitLabel: tr("These wait for a lighter day"), explain: plan.explain.concat([tr("Bigger things become small steps. Nothing is deleted. You can undo it.")]), title: tr("A gentler day") }, tr("Make it gentler"), null);
+      previewMoves({ moves: movable, stay: plan.priorities.concat(plan.quickWin ? [plan.quickWin] : []), essential: plan.essential, waitLabel: tr("These wait for a lighter day"), explain: plan.explain.concat([tr("Big things become small steps.")]), title: tr("A gentler day") }, tr("Make it gentler"), null);
       var okb = $("psOk"); var clone = okb.cloneNode(true); okb.parentNode.replaceChild(clone, okb);
       clone.addEventListener("click", function () { $("planSheet").remove(); window.__paceBypass = true; try { b.click(); } finally { window.__paceBypass = false; } });
     }, true);
@@ -358,7 +358,7 @@ function renderReview() {
   var res = cur.res; root.hidden = false; root.innerHTML = "";
   root.appendChild(el("h3", null, tr("Here is what I understood")));
   root.appendChild(el("p", "pr-sum", tr(res.summary)));
-  if (res.alreadyProcessed) root.appendChild(el("p", "pr-dup", tr("You already sorted these exact words before. Nothing is added twice unless you tick it.")));
+  if (res.alreadyProcessed) root.appendChild(el("p", "pr-dup", tr("Already sorted these.")));
   /* tasks */
   if (res.items.length) {
     root.appendChild(el("div", "pr-h", tr("Tasks") + " (" + res.items.length + ")"));
@@ -427,7 +427,7 @@ function renderReview() {
         body.appendChild(opts);
         body.appendChild(el("div", "hint", tr("Or type it in the box above in your own words.")));
         title.addEventListener("change", function () { g.needsClarify = false; g.include = true; renderReview(); });
-      } else body.appendChild(el("div", "pr-small", g.end ? tr("Deadline") + " " + niceDate(g.end) + " · " + tr("Pace will make a step-by-step plan.") : tr("Pace will make a step-by-step plan, one small step a day.")));
+      } else body.appendChild(el("div", "pr-small", g.end ? tr("Deadline") + " " + niceDate(g.end) + " · " + tr("One small step a day.") : tr("One small step a day.")));
       var gico = el("span", "pr-ico is-static", (G.suggestIcons(g.title, 1, [G.goalCategory(g.category || "personal").emoji]) || [])[0] || "\ud83c\udfaf", { "aria-hidden": "true" });
       card.appendChild(chk); card.appendChild(gico); card.appendChild(body); root.appendChild(card);
     });
@@ -441,7 +441,7 @@ function renderReview() {
       card.appendChild(el("div", "pr-body", n.text));
       root.appendChild(card);
     });
-    root.appendChild(el("p", "hint", tr("These are saved as notes. They never turn into tasks on their own.")));
+    root.appendChild(el("p", "hint", tr("Saved as notes.")));
   }
   /* feelings */
   if (res.feelings.length) {
@@ -449,7 +449,7 @@ function renderReview() {
     res.feelings.forEach(function (f) { var c = el("div", "pr-card is-note"); c.appendChild(el("span", "pr-tag", tr("Journal"))); c.appendChild(el("div", "pr-body", f.text)); root.appendChild(c); });
     if (res.suggestLevel === "low") {
       var kind = el("div", "pr-kind");
-      kind.appendChild(el("p", null, tr("That sounds like a lot. You do not have to do it all. Want a gentler day?")));
+      kind.appendChild(el("p", null, tr("Lots today. Gentler day?")));
       var gb = el("button", "soft-btn", tr("Make today gentler"), { type: "button", id: "prGentle" });
       gb.addEventListener("click", function () { C.showPanel("calendar"); C.setBottomTab("calendar"); var lb = document.querySelector('.level-btn[data-level="low"]'); if (lb) lb.click(); });
       kind.appendChild(gb); root.appendChild(kind);
@@ -543,7 +543,7 @@ function renderCaptured() {
   var s = ensure(); root.innerHTML = "";
   var list = s.captured.filter(function (c) { return c.status !== "archived"; });
   root.appendChild(el("h3", null, tr("Captured") + " (" + list.length + ")"));
-  if (!list.length) { root.appendChild(el("p", "hint", tr("Everything you tell Pace lands here first. Nothing is lost."))); return; }
+  if (!list.length) { root.appendChild(el("p", "hint", tr("Everything lands here first."))); return; }
   list.slice(0, 20).forEach(function (c) {
     var row = el("div", "cap-row", null, { "data-status": c.status });
     var info = el("div", "cap-info");
@@ -651,7 +651,7 @@ function goalCard(g, m) {
     });
     row.appendChild(st); row.appendChild(sm); row.appendChild(ex); box.appendChild(row); box.appendChild(txt); card.appendChild(box);
   } else card.appendChild(el("p", "hint", tr("No open steps. Add one in your calendar.")));
-  if (m.stale) card.appendChild(el("p", "gp-stale", tr("No step this week. That is okay. The smallest version counts.")));
+  if (m.stale) card.appendChild(el("p", "gp-stale", tr("Quiet week. Smallest step counts.")));
   return card;
 }
 
@@ -675,10 +675,10 @@ function motivationLine(s, snap, target) {
   var td = today(), wk = snap.week.wins, lvl = C.levelFor ? C.levelFor(td) : "steady";
   var wd = L.parseKey(td).getDay(), left = Math.max(0, target - wk);
   var won = (s.rewards.log || []).some(function (e) { return e.key === td; });
-  if (!snap.total) return { t: tr("Your first win is one tiny step away. Pick the smallest thing and start."), k: "first" };
+  if (!snap.total) return { t: tr("One tiny step = first win."), k: "first" };
   var gap = 0, days = Object.keys(winDaySet(s)).filter(function (k) { return k < td; }).sort();
   if (days.length && !won) gap = Math.round((L.parseKey(td) - L.parseKey(days[days.length - 1])) / 86400000);
-  if (gap >= 3) return { t: tr("Welcome back. A fresh start. Nothing was lost, and your wins still count."), k: "back" };
+  if (gap >= 3) return { t: tr("Welcome back. Fresh start 🌱"), k: "back" };
   if (wk >= target) return { t: tr("You reached your week. Rest is allowed, and so is more."), k: "done" };
   if (won && left <= 2) return { t: left === 1 ? tr("You won today. One more win closes your week.") : tr("You won today. {n} more and your week is done.", { n: left }), k: "close" };
   if (won) return { t: tr("You already won today. Anything more is a bonus."), k: "won" };
@@ -747,7 +747,7 @@ function renderRewards() {
   var goals = (s.goals || []);
   var gs = el("section", "pg-card pg-goals", null, { id: "pgGoals" }); gs.appendChild(el("h3", null, tr("Your goals")));
   if (!goals.length) {
-    gs.appendChild(el("p", "hint", tr("Add a goal and watch it grow here, one small step at a time.")));
+    gs.appendChild(el("p", "hint", tr("Add a goal 🌱")));
     var gb = el("button", "soft-btn", tr("Add a goal"), { type: "button", id: "pgAddGoal" }); gb.addEventListener("click", function () { C.showPanel("goals"); C.setBottomTab && C.setBottomTab("goals"); }); gs.appendChild(gb);
   } else goals.forEach(function (g) {
     var m = R.goalMomentum(g, s.tasks, td, s.rewards.log);
