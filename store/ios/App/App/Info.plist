@@ -83,5 +83,9 @@
 	<string>Pace uses the microphone only when you tap Speak, to turn your words into tasks.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Pace uses speech recognition only when you tap Speak, to turn your words into tasks.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Pace uses the camera only when you choose Take Photo to read a note or list into tasks.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pace reads a photo only when you pick one, to read a note or list into tasks, or to use as your background.</string>
 </dict>
 </plist>
