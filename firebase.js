@@ -206,6 +206,8 @@
     },
     deleteAccount: function () { return token().then(function (tok) { return authCall("delete", { idToken: tok }); }).then(function () { session = null; saveSession(); }); },
     signOut: function () { session = null; saveSession(); },
+    /* Which doors does this account use? ("password", "google.com", "apple.com"). Decides how we re-check it is you before deleting. */
+    providers: function () { return token().then(function (tok) { return authCall("lookup", { idToken: tok }); }).then(function (j) { var u = (j.users && j.users[0]) || {}; return (u.providerUserInfo || []).map(function (x) { return x.providerId; }); }); },
     fsGet: function (path) { return fsReq("GET", path).then(docToObj); },
     fsSet: function (path, obj, mergeFields) {
       var url = path;
