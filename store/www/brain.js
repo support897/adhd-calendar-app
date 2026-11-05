@@ -152,7 +152,7 @@ function smallestVersion(title) {
 function stripFeel(t) { return t.replace(/\s*,?\s*(?:it'?s|its|this is|that'?s) (?:so |really |very |super )?(?:stressful|scary|annoying|overwhelming|hard|boring|exhausting)\b.*$/i, ""); }
 function cleanTitle(t) {
   t = stripFeel(t);
-  t = String(t || "");
+  t = String(t || "").replace(/\s+for\s+\d+(?:\.\d+)?\s*(?:h|hr|hrs|hours?|m|min|mins|minutes?)\b/i, "");
   t = t.replace(COMMIT_RE, " ").replace(/^\s*(?:and|then|also|plus|oh and|and also|and then|but|so|to)\b[\s,]*/i, "").replace(/\bi also\b/i, " ");
   t = t.replace(/^\s*(?:to\s+)/i, "").replace(/\s+/g, " ").replace(/^[\s,.\-:;]+|[\s,.\-:;]+$/g, "");
   t = t.replace(/,?\s*\b(?:all|both|everything)\s*$/i, "").replace(/\b(?:my|the)\s*$/i, "").replace(/^\s*(?:like|so|just)\s+/i, "").trim();
@@ -181,12 +181,12 @@ function splitClauses(sentence) {
   for (var i = 1; i < pieces.length; i++) {
     var p = pieces[i];
     p = p.replace(/^\s*(?:maybe|perhaps|probably|also|then|just)\s+/i, "");
-    var sched = /\b(?:every|daily|weekly|at \d|tomorrow|tonight|today|on (?:mon|tue|wed|thu|fri|sat|sun)\w*)\b/i;
+    var sched = /\b(?:every|daily|weekly|at \d\w*|tomorrow|tonight|today|on (?:mon|tue|wed|thu|fri|sat|sun)\w*)\b/i;
     var schedSplit = sched.test(p) && sched.test(cur) && p.trim().split(/\s+/).length >= 2;
     var FEELRE = /^(?:feeling|i(?:'m| am| feel| felt)|it(?:'s| is)|this is|that(?:'s| is)|so |honestly|ugh|stressed|anxious|worried|overwhelmed|tired|exhausted)\b/i;
     var feelStart = /^(?:feeling|i(?:'m| am| feel| felt)|it(?:'s| is)|this is|that(?:'s| is)|so |honestly|ugh|stressed|anxious|worried|overwhelmed|tired|exhausted)\b/i.test(p.trim());
     var startsAction = feelStart || schedSplit || VERB_RE.test(p.trim()) || COMMIT_RE.test(p.slice(0, 40)) || /^(?:i\b|we\b)/i.test(p.trim()) || /^(?:remember|don'?t forget|make sure)/i.test(p.trim());
-    var curHasAction = VERB_RE.test(cur.trim().replace(COMMIT_RE, "").trim()) || COMMIT_RE.test(cur) || /\b(?:meeting|appointment|lunch|dinner|class|call|flight|party|session|interview)\b/i.test(cur);
+    var curHasAction = VERB_RE.test(cur.trim().replace(COMMIT_RE, "").trim()) || COMMIT_RE.test(cur) || /\b(?:meeting|appointment|lunch|dinner|class|call|flight|party|session|interview)\b/i.test(cur) || /\b(?:at\s+\d{1,2}(?::\d\d)?\s*(?:am|pm)?|\d{1,2}(?::\d\d)?\s*(?:am|pm))\b/i.test(cur);
     var curFeel = FEELRE.test(cur.trim()) && !/\b(?:need|have|got|must|should|want|going) to\b/i.test(cur);
     if (feelStart && cur.trim()) { out.push(cur); cur = p; }
     else if (curFeel && (VERB_RE.test(p.trim()) || COMMIT_RE.test(p.slice(0, 40)))) { out.push(cur); cur = p; }

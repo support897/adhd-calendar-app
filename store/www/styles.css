@@ -1225,3 +1225,8 @@ body.is-dragging-task { user-select: none; -webkit-user-select: none; }
 .guide-choose { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .guide-choose button { min-height: 48px; }
 .pr-card .dc-del { min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; }
+
+/* Build 47: calmer polish from the app-feel research */
+.pr-card .dc-del { background: transparent; border: 0; box-shadow: none; color: var(--ink-2); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 700px) { .toast { bottom: calc(80px + var(--sab)); } }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
