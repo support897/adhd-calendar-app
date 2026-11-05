@@ -28,7 +28,15 @@ var BADGES = {
   braindump: { name: "Brain dump", desc: "Captured ten things from your head." },
   smallest: { name: "Tiny step, real step", desc: "Did the smallest version of a task." },
   goalHalf: { name: "Halfway there", desc: "A goal reached 50%." },
-  goalDone: { name: "Goal complete", desc: "Finished a whole goal." }
+  goalDone: { name: "Goal complete", desc: "Finished a whole goal." },
+  ten: { name: "Ten wins", desc: "Ten things done." },
+  fifty: { name: "Fifty wins", desc: "Fifty things done." },
+  hundred: { name: "One hundred wins", desc: "A hundred things done." },
+  fivehundred: { name: "Five hundred wins", desc: "Five hundred things done." },
+  streak14: { name: "Two weeks", desc: "Fourteen days with a win." },
+  streak30: { name: "A whole month", desc: "Thirty days with a win." },
+  habit7: { name: "Habit seven", desc: "A habit ticked seven days." },
+  together: { name: "Better together", desc: "Shared a goal with someone." }
 };
 var CHEERS = ["You made progress!", "That counts.", "Nice. One more thing off your mind.", "You did it.", "Look how far you have come.", "Small steps add up.", "Done. Take a breath.", "Well done. You showed up.", "That was real progress."];
 var LOW_CHEERS = ["On a Low day, this is a big deal.", "You did something on a gentle day. That counts double.", "Slow is still moving."];
@@ -88,14 +96,14 @@ function award(state, task, key, ctx) {
   var before = levelOf(r.xp), beforeStreak = streak(state, key).current;
   var daysAway = lastWinGap(state, key);
   r.log.push({ id: id, taskId: task.id, key: key, xp: sparks, goalId: task.goalId || null, low: ctx.level === "low", small: !!ctx.small, at: ctx.nowMin != null ? ctx.nowMin : null, title: String(task.title || "").slice(0, 60) });
-  r.xp += sparks;
+  r.xp += sparks; r.lifetime = (r.lifetime || 0) + 1;
   var after = levelOf(r.xp);
   var newBadges = [];
   function give(b) { if (!r.badges[b]) { r.badges[b] = key; newBadges.push(b); } }
   var count = r.log.length;
-  if (count >= 1) give("first"); if (count >= 5) give("five"); if (count >= 25) give("twentyfive");
+  if (count >= 1) give("first"); if (count >= 5) give("five"); if (count >= 25) give("twentyfive"); var life = Math.max(count, r.lifetime || 0); if (life >= 10) give("ten"); if (life >= 50) give("fifty"); if (life >= 100) give("hundred"); if (life >= 500) give("fivehundred");
   var st = streak(state, key);
-  if (st.current >= 3) give("streak3"); if (st.current >= 7) give("streak7");
+  if (st.current >= 3) give("streak3"); if (st.current >= 7) give("streak7"); if (st.current >= 14) give("streak14"); if (st.current >= 30) give("streak30");
   if (ctx.level === "low") give("low");
   if (daysAway >= 3) give("comeback");
   if (ctx.nowMin != null && ctx.nowMin < 540) give("early");
@@ -112,7 +120,7 @@ function revoke(state, task, key) {
   var r = R(state), id = task.id + "@" + key;
   var i = -1; r.log.forEach(function (e, n) { if (e.id === id) i = n; });
   if (i === -1) return 0;
-  var x = r.log[i].xp; r.log.splice(i, 1); r.xp = Math.max(0, r.xp - x); return x;
+  var x = r.log[i].xp; r.log.splice(i, 1); r.xp = Math.max(0, r.xp - x); r.lifetime = Math.max(0, (r.lifetime || 0) - 1); return x;
 }
 function lastWinGap(state, key) {
   var days = Object.keys(winDays(state)).filter(function (k) { return k < key; }).sort();
@@ -146,10 +154,11 @@ function weekSummary(state, today) {
 }
 function snapshot(state, today) {
   var r = R(state);
-  return { level: levelOf(r.xp), streak: streak(state, today), week: weekSummary(state, today), badges: Object.keys(r.badges).map(function (b) { return { id: b, name: BADGES[b] && BADGES[b].name, desc: BADGES[b] && BADGES[b].desc, on: r.badges[b] }; }), allBadges: BADGES, total: r.log.length };
+  return { level: levelOf(r.xp), streak: streak(state, today), week: weekSummary(state, today), badges: Object.keys(r.badges).map(function (b) { return { id: b, name: BADGES[b] && BADGES[b].name, desc: BADGES[b] && BADGES[b].desc, on: r.badges[b] }; }), allBadges: BADGES, total: Math.max(r.log.length, r.lifetime || 0) };
 }
 
-var api = { LEVELS: LEVELS, BADGES: BADGES, sparksFor: sparksFor, levelOf: levelOf, streak: streak, award: award, revoke: revoke, goalMomentum: goalMomentum, weekSummary: weekSummary, snapshot: snapshot, noteCaptured: noteCaptured, markRest: markRest, lastWinGap: lastWinGap };
+function grantBadge(state, id, key) { var r = R(state); if (!BADGES[id] || r.badges[id]) return false; r.badges[id] = key; return true; }
+var api = { grantBadge: grantBadge, LEVELS: LEVELS, BADGES: BADGES, sparksFor: sparksFor, levelOf: levelOf, streak: streak, award: award, revoke: revoke, goalMomentum: goalMomentum, weekSummary: weekSummary, snapshot: snapshot, noteCaptured: noteCaptured, markRest: markRest, lastWinGap: lastWinGap };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.PaceRewards = api;
 })(typeof window !== "undefined" ? window : globalThis);
