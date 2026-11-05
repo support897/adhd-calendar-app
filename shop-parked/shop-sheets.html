@@ -1,0 +1,51 @@
+<!-- PARKED SHOP MARKUP (removed from index.html in build 50). Paste before <div id="guideSheet"> to bring it back. -->
+<!-- THE UPGRADE MOMENT (never a nag): fires only when a
+     free user taps a Plus thing. It invites to Plans; it
+     never charges and never locks anything. -->
+<div id="plusSheet" class="sheet plus-sheet" hidden>
+  <div class="sheet-card plus-card">
+    <button id="plusClose" class="icon-btn guide-x" aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    <div id="plusArt" class="plus-badge" aria-hidden="true"></div>
+    <h3 class="plus-title" data-i18n>That's a Plus thing.</h3>
+    <p class="plus-line" data-i18n>More Looks, repeats, tiny steps.</p>
+    <p class="plus-line" id="plusPriceLine" data-i18n>A$4.99/mo · A$39.99/yr · first month free</p>
+    <p class="plus-line plus-honest" id="plusHonest" data-i18n>Plans open at launch.</p>
+    <div class="sheet-actions">
+      <button id="plusNotNow" class="soft-btn" data-i18n>Not now</button>
+      <button id="plusPlans" class="primary-btn" data-i18n>See the plans</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLANS (the truth, per state): chosen here or from the
+     popup — never during joining. Plus is not on sale yet. -->
+<div id="plansSheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <h3 data-i18n>Plans</h3>
+    <div class="plan-card">
+      <h4 data-i18n>Free forever</h4>
+      <p data-i18n>Calendar, looks, lists, habits. Free.</p>
+    </div>
+    <div class="plan-card plan-plus">
+      <h4 data-i18n>Plus</h4>
+      <p id="planHolds" data-i18n>More Looks · repeats · tiny steps · energy levels</p>
+      <p class="plan-price" id="planPriceLine" data-i18n>A$4.99 a month, or A$39.99 a year. First month free.</p>
+      <p id="planLifeLine" data-i18n>Or Plus for life: A$99.99, once.</p>
+      <p class="plan-state" id="planState" data-i18n>Not on sale yet.</p>
+      <div id="planBuy" class="plan-buy" hidden>
+        <button id="buyYearly" class="primary-btn" data-i18n>Plus, yearly</button>
+        <button id="buyMonthly" class="soft-btn" data-i18n>Plus, monthly</button>
+        <button id="buyLifetime" class="soft-btn" data-i18n>Plus for life</button>
+        <button id="buyRestore" class="soft-btn" data-i18n>Restore a past purchase</button>
+      </div>
+      <div id="planTerms" class="plan-terms" hidden>
+        <p id="planTermsText">Plus renews automatically at the price shown, until you cancel. Cancel anytime in your Apple ID subscriptions. Plus stays open until the end of the paid period. Plus for life is one payment. It never renews.</p>
+        <p class="plan-links"><a href="privacy.html" data-i18n>Privacy Policy</a> · <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" data-i18n>Terms of Use</a></p>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button id="plansClose" class="soft-btn" data-i18n>Close</button>
+    </div>
+  </div>
+</div>
+
