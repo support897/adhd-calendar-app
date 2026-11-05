@@ -25,6 +25,31 @@ var GOAL_CATEGORIES = [
   { id: "home",     label: "Home",     color: "#35704E", emoji: "🏠" },
   { id: "other",    label: "Other",    color: "#7A8699", emoji: "🎯" }
 ];
+/* Goal icons: picked from the words of the goal itself, so "launch my podcast"
+   gets a microphone and "save for Japan" gets a plane. Pure and offline. */
+var GOAL_ICONS = [
+  ["\ud83c\udf99\ufe0f", "podcast radio record episode show"], ["\ud83d\udcd6", "read book novel reading"], ["\u270d\ufe0f", "write writing blog journal essay novel draft"],
+  ["\ud83c\udfc3", "run running marathon 5k 10k jog race"], ["\ud83c\udfcb\ufe0f", "gym lift strength workout muscle fitness"], ["\ud83e\uddd8", "yoga meditate meditation mindful calm"],
+  ["\u2696\ufe0f", "weight lose slim diet"], ["\ud83e\udd57", "eat healthy nutrition meal cook diet"], ["\ud83d\ude34", "sleep bedtime rest"], ["\ud83d\udca7", "water drink hydrate"],
+  ["\ud83d\udc37", "save savings budget emergency fund"], ["\ud83d\udcb0", "money income earn revenue sales sell clients"], ["\ud83d\udcb3", "debt loan pay off credit card"], ["\ud83d\udcc8", "invest stocks grow portfolio"],
+  ["\ud83d\ude80", "launch startup business company product app ship"], ["\ud83d\udcbc", "job career promotion resume work interview"], ["\ud83c\udf93", "degree exam study school course class learn graduate"], ["\ud83d\udde3\ufe0f", "language spanish french english japanese speak fluent"],
+  ["\ud83d\udcbb", "code coding program website develop software portfolio"], ["\ud83c\udfa8", "paint draw art design create sketch"], ["\ud83c\udfb8", "guitar piano music song instrument sing band"], ["\ud83d\udcf7", "photo photography camera video film youtube"],
+  ["\u2708\ufe0f", "travel trip vacation holiday flight visit japan europe"], ["\ud83c\udfe0", "house home move apartment rent buy a home"], ["\ud83e\uddf9", "declutter clean tidy organise organize clear"], ["\ud83c\udf3f", "garden plants grow herbs"],
+  ["\u2764\ufe0f", "health doctor therapy heal wellbeing self care"], ["\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67", "family kids parent friends relationship partner"], ["\ud83d\udc36", "dog puppy pet cat"], ["\ud83d\udc8d", "wedding marry engagement"],
+  ["\ud83c\udfaf", "goal target aim"], ["\u2b50", "dream wish bucket list"], ["\ud83c\udf31", "habit routine better person grow"], ["\ud83e\uddf6", "craft knit sew crochet"], ["\ud83c\udf73", "bake cook recipe cooking chef"], ["\ud83d\udeb4", "bike cycle cycling swim swimming hike hiking"]
+];
+function suggestIcons(text, n, extra) {
+  var t = " " + String(text || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ") + " ", out = [], scored = [];
+  GOAL_ICONS.forEach(function (g, gi) {
+    var hit = 0; g[1].split(" ").forEach(function (w) { if (w.length > 2 && t.indexOf(" " + w) !== -1) hit += w.length > 4 ? 2 : 1; });
+    if (hit) scored.push({ icon: g[0], hit: hit, gi: gi });
+  });
+  scored.sort(function (a, b) { return b.hit - a.hit || a.gi - b.gi; });
+  scored.forEach(function (x) { if (out.indexOf(x.icon) === -1) out.push(x.icon); });
+  (extra || []).forEach(function (e) { if (e && out.indexOf(e) === -1) out.push(e); });
+  return out.slice(0, n || 8);
+}
+function goalIconList() { return GOAL_ICONS.map(function (g) { return g[0]; }); }
 function goalCategory(id) { return GOAL_CATEGORIES.filter(function (c) { return c.id === id; })[0] || GOAL_CATEGORIES[GOAL_CATEGORIES.length - 1]; }
 
 var TEMPLATES = {
@@ -478,7 +503,7 @@ function habitMessage(s) {
   return "One tick today keeps it going.";
 }
 
-var api = { GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeRevenue: analyzeRevenue, questionsFor: questionsFor, findPlaybook: findPlaybook, PLAYBOOKS: PLAYBOOKS, analyzeList: analyzeList,
+var api = { GOAL_ICONS: GOAL_ICONS, suggestIcons: suggestIcons, goalIconList: goalIconList, GOAL_CATEGORIES: GOAL_CATEGORIES, goalCategory: goalCategory, parseMilestones: parseMilestones, planDays: planDays, buildPlan: buildPlan, analyzeWork: analyzeWork, analyzeRevenue: analyzeRevenue, questionsFor: questionsFor, findPlaybook: findPlaybook, PLAYBOOKS: PLAYBOOKS, analyzeList: analyzeList,
   goalProgress: goalProgress, replan: replan, weekDays: weekDays, habitStats: habitStats, habitMessage: habitMessage, diffDays: diffDays };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.PaceGoals = api;

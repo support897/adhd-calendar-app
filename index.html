@@ -92,7 +92,7 @@ try {
       <button class="side-item" data-panel="habits"><svg class="ico side-ico"><use href="#i-habits"/></svg><span class="side-label" data-i18n>Habits</span></button>
       <button class="side-item" data-panel="goals"><svg class="ico side-ico"><use href="#i-goal"/></svg><span class="side-label" data-i18n>Goals</span></button>
       <div class="side-group" data-i18n>Add + app</div>
-      <button class="side-item" data-panel="capture"><svg class="ico side-ico"><use href="#i-chat"/></svg><span class="side-label" data-i18n>Talk to it</span></button>
+      <button class="side-item" data-panel="capture"><svg class="ico side-ico"><use href="#i-chat"/></svg><span class="side-label" data-i18n>Talk to Skip</span></button>
       <button class="side-item" data-panel="settings"><svg class="ico side-ico"><use href="#i-gear"/></svg><span class="side-label" data-i18n>Settings</span></button>
     </nav>
     <div class="side-foot">
@@ -160,7 +160,8 @@ try {
 
     <!-- CAPTURE PANEL -->
     <section class="panel" id="panel-capture">
-      <header class="topbar"><h2 data-i18n>Talk to it</h2></header>
+      <header class="topbar"><h2 data-i18n>Talk to Skip</h2></header>
+      <div id="skipTalk" class="skip-talk" role="status" aria-live="polite"></div>
       <div class="capture-box">
         <textarea id="dumpText" data-i18n-ph rows="7" placeholder="Try: call the dentist tomorrow at 3pm, then pick up a prescription. Pay the rent on Friday. Water the plants every weekday."></textarea>
         <div class="capture-actions">
@@ -369,7 +370,7 @@ try {
   <nav id="bottomTabs" aria-label="Main navigation" data-i18n-aria>
     <button type="button" data-tab="calendar" class="is-active" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg><span data-i18n>Calendar</span></button>
     <button type="button" data-tab="goals"><svg class="ico" aria-hidden="true"><use href="#i-goal"/></svg><span data-i18n>Goals</span></button>
-    <button type="button" data-tab="capture"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg><span data-i18n>Talk to it</span></button>
+    <button type="button" data-tab="capture"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg><span data-i18n>Skip</span></button>
     <button type="button" data-tab="todo"><svg class="ico" aria-hidden="true"><use href="#i-todo"/></svg><span data-i18n>To do</span></button>
     <button type="button" data-tab="habits"><svg class="ico" aria-hidden="true"><use href="#i-habits"/></svg><span data-i18n>Habits</span></button>
     <button type="button" data-tab="more"><svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg><span data-i18n>More</span></button>
