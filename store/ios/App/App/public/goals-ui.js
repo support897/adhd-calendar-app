@@ -297,13 +297,39 @@ function buildForm() {
     if (!t && n.trim()) t = n.trim().split(/\r\n|\n|\r/)[0].replace(/^\s*(?:[-*•]|\d{1,2}[.)])\s*/, "").slice(0, 60);
     if (!t) { err.textContent = tr("Give your goal a name first."); title.focus(); return; }
     if (!end.value || end.value <= today) { err.textContent = tr("Pick a finish date after today."); end.focus(); return; }
-    var base = { price: +price.value || 0, title: t, notes: n, category: picked, end: end.value, pace: pace.value, mins: +mins.value };
+    var base = { price: +price.value || 0, title: t, notes: n, category: picked, icon: pickedIcon || iconList()[0] || G.goalCategory(picked).emoji, end: end.value, pace: pace.value, mins: +mins.value };
     var qs = G.questionsFor(t, t + "\n" + n, picked, n);
     if (qs.length) { base.ask = qs; base.answers = {}; draft = base; renderGoals(true); return; }
     if (!finishPlan(base)) { err.textContent = tr("That date is too close for a plan. Pick a later date."); return; }
     renderGoals(true);
   });
   var kind = el("div", "gf-field"); kind.appendChild(cats);
+  /* Goal icon: Pace reads the goal and offers fitting icons; one tap changes it. */
+  var pickedIcon = (draft && draft.icon) || "";
+  var iconBox = el("div", "gf-icons", null, { role: "radiogroup", "aria-label": tr("Pick an icon") });
+  var iconMore = false;
+  function iconList() {
+    var cat = G.goalCategory(picked), sug = G.suggestIcons(title.value + " " + notes.value, 8, [cat.emoji]);
+    if (pickedIcon && sug.indexOf(pickedIcon) === -1) sug.unshift(pickedIcon);
+    return iconMore ? G.goalIconList() : sug;
+  }
+  function paintIcons() {
+    var list = iconList(), cur = pickedIcon || list[0];
+    iconBox.innerHTML = "";
+    list.forEach(function (ic) {
+      var b = el("button", "gf-ico" + (ic === cur ? " is-on" : ""), ic, { type: "button", role: "radio", "aria-checked": String(ic === cur), "aria-label": tr("Icon") + " " + ic, "data-icon": ic });
+      b.addEventListener("click", function () { pickedIcon = ic; paintIcons(); });
+      iconBox.appendChild(b);
+    });
+    var more = el("button", "gf-ico gf-ico-more", iconMore ? tr("Fewer") : tr("More"), { type: "button" });
+    more.addEventListener("click", function () { iconMore = !iconMore; paintIcons(); });
+    iconBox.appendChild(more);
+  }
+  paintIcons();
+  cats.addEventListener("click", function () { setTimeout(paintIcons, 0); });
+  title.addEventListener("input", function () { if (!pickedIcon) paintIcons(); });
+  var iconLine = el("p", "task-look-label", tr("Pick an icon"));
+  kind.appendChild(iconLine); kind.appendChild(iconBox);
   var priceBox = field(tr("Price of one sale (business goals)"), price);
   function syncPrice() { priceBox.hidden = !(picked === "work" || picked === "money"); }
   cats.addEventListener("click", syncPrice); syncPrice();
@@ -318,7 +344,7 @@ function buildForm() {
   var groups = [
     { h: tr("What is your goal?"), nodes: [title, tpl], check: function () { if (!title.value.trim() && !notes.value.trim()) return tr("Give your goal a name first."); return ""; } },
     { h: tr("Anything to add?"), sub: tr("Optional. Paste notes or an outline. One line becomes one stage."), nodes: [notes, fileWrap], skippable: true },
-    { h: tr("What kind of goal is it?"), nodes: [kind, priceBox] },
+    { h: tr("What kind of goal is it?"), nodes: [kind, priceBox], onShow: paintIcons },
     { h: tr("When do you want to finish?"), nodes: [endChips, end], check: function () { if (!end.value || end.value <= today) return tr("Pick a finish date after today."); return ""; } },
     { h: tr("How often, and how long?"), sub: tr("Small and steady wins. You can change this later."), nodes: [field(tr("How often?"), pace), field(tr("How long each day?"), mins)] }
   ];
@@ -427,7 +453,7 @@ function buildPreview(f) {
 }
 function commitDraft() {
   var d = draft, cat = G.goalCategory(d.category), today = L.todayKey();
-  var goal = { id: uid(), title: d.title, category: d.category, start: today, end: d.end, pace: d.pace, mins: d.mins, notes: String(d.notes || "").slice(0, 6000), created: Date.now() };
+  var goal = { id: uid(), title: d.title, icon: d.icon || G.suggestIcons(d.title, 1, [cat.emoji])[0], category: d.category, start: today, end: d.end, pace: d.pace, mins: d.mins, notes: String(d.notes || "").slice(0, 6000), created: Date.now() };
   ensureGoals().push(goal);
   var placed = [];
   d.steps.forEach(function (st) {
@@ -447,7 +473,7 @@ function goalCard(g, today) {
   var card = el("div", "goal-card", null, { "data-goal": g.id });
   card.style.setProperty("--gc", cat.color);
   var head = el("div", "goal-head");
-  head.appendChild(el("span", "goal-emoji", cat.emoji));
+  head.appendChild(el("span", "goal-emoji", g.icon || G.suggestIcons(g.title, 1, [cat.emoji])[0] || cat.emoji));
   var tx = el("div", "goal-title-wrap");
   tx.appendChild(el("span", "goal-title", g.title));
   tx.appendChild(el("span", "goal-chip", tr(cat.label) + (p.daysLeft != null ? " · " + (p.daysLeft === 1 ? tr("1 day left") : tr("{n} days left", { n: p.daysLeft })) : "")));

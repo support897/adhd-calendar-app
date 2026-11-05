@@ -11,6 +11,25 @@ function $(id) { return document.getElementById(id); }
 function S() { return C.state; }
 function esc(s) { return C.esc(s); }
 function el(tag, cls, text, attrs) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; if (attrs) Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); }); return n; }
+
+/* PaceTime: picking a time is one tap on a chip. The native time box stays
+   as "Other", so nothing is ever blocked. Used in Settings and on review cards. */
+function fmtClock(v) { var m = /^(\d{1,2}):(\d\d)/.exec(v || ""); if (!m) return ""; var h = +m[1], ap = h >= 12 ? "pm" : "am"; h = h % 12 || 12; return h + (m[2] === "00" ? "" : ":" + m[2]) + ap; }
+function timeChips(input, presets, onPick) {
+  if (!input || input.getAttribute("data-chips")) return null;
+  input.setAttribute("data-chips", "1");
+  var row = el("div", "time-chips", null, { role: "group", "aria-label": input.getAttribute("aria-label") || tr("Time") });
+  function paint() { Array.prototype.forEach.call(row.querySelectorAll("button[data-t]"), function (b) { var on = b.getAttribute("data-t") === input.value; b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", String(on)); }); }
+  presets.forEach(function (t) {
+    var b = el("button", "time-chip", fmtClock(t), { type: "button", "data-t": t });
+    b.addEventListener("click", function () { input.value = t; input.dispatchEvent(new Event("input", { bubbles: true })); input.dispatchEvent(new Event("change", { bubbles: true })); if (onPick) onPick(t); paint(); });
+    row.appendChild(b);
+  });
+  input.addEventListener("change", paint); input.addEventListener("input", paint);
+  input.parentNode.insertBefore(row, input);
+  paint();
+  return row;
+}
 function nowMin() { var d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
 function today() { return L.todayKey(); }
 function niceDate(k) { try { return L.parseKey(k).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }); } catch (e) { return k; } }
@@ -291,7 +310,48 @@ function capture(text, opts) {
   renderReview(); renderCaptured();
   return res;
 }
+
+/* ===== Talk to Skip: the mascot is the conversation. One step at a time. ===== */
+var skipMood = "idle", skipDoneAt = 0;
+var SKIP_LINES = {
+  idle: ["chill", "One step at a time. I'm right here. What's on your mind?", 1],
+  typing: ["listen", "I'm listening. Take all the time you need.", 1],
+  hearing: ["listen", "I'm all ears. Just talk, I'll keep up.", 1],
+  thinking: ["think", "Hmm, let me sort this out for you\u2026", 2],
+  result: ["point", "Here's what I found. You choose what happens next.", 2],
+  empty: ["chill", "I couldn't find a task in that, and that's okay. Your words are safe.", 1],
+  done: ["celebrate", "Done! That's one step. Take a breath, you did well.", 3]
+};
+function skipTalkPaint(mood) {
+  var box = $("skipTalk"); if (!box) return;
+  skipMood = mood || skipMood;
+  var L0 = SKIP_LINES[skipMood] || SKIP_LINES.idle;
+  var step = L0[2];
+  box.setAttribute("data-mood", skipMood);
+  box.innerHTML = "";
+  var art = el("div", "st-art"); art.innerHTML = C.skipSvg(L0[0]);
+  var bub = el("div", "st-bubble", L0[1]);
+  var dots = el("div", "st-steps", null, { "aria-hidden": "true" });
+  [["\ud83d\udcac", "Tell me"], ["\ud83d\udc40", "Check"], ["\u2705", "Add"]].forEach(function (x, i) {
+    var d = el("span", "st-step" + (i + 1 === step ? " is-on" : i + 1 < step ? " is-past" : ""));
+    d.appendChild(el("b", null, x[0])); d.appendChild(el("i", null, tr(x[1]))); dots.appendChild(d);
+  });
+  box.appendChild(art); box.appendChild(bub); box.appendChild(dots);
+}
+function skipTalkSync() {
+  if (cur) { skipTalkPaint(cur.res && cur.res.heard === false ? "empty" : "result"); return; }
+  if (Date.now() - skipDoneAt < 60000) { skipTalkPaint("done"); return; }
+  var dt = $("dumpText"); skipTalkPaint(dt && dt.value.trim() ? "typing" : "idle");
+}
+(function wireSkipTalk() {
+  var dt = $("dumpText"), vb = $("voiceBtn"), pb = $("parseBtn");
+  if (dt) dt.addEventListener("input", function () { skipDoneAt = 0; if (!cur) skipTalkSync(); });
+  if (vb) vb.addEventListener("click", function () { skipTalkPaint("hearing"); setTimeout(function () { if (!cur && !(vb.classList.contains("is-on") || vb.getAttribute("aria-pressed") === "true")) skipTalkSync(); }, 4000); });
+  if (pb) pb.addEventListener("click", function () { if (dt && dt.value.trim() && !cur) { skipTalkPaint("thinking"); } });
+  skipTalkSync();
+})();
 function renderReview() {
+  skipTalkSync();
   var root = $("paceReview"); if (!root) return;
   var old = $("draftArea"); if (old) old.hidden = true;
   if (!cur) { root.hidden = true; root.innerHTML = ""; return; }
@@ -335,7 +395,14 @@ function renderReview() {
       body.appendChild(el("div", "pr-small", tr("Smallest version") + ": " + d.minVersion));
       var del = el("button", "dc-del", tr("Remove"), { type: "button" });
       del.addEventListener("click", function () { res.items.splice(i, 1); cur.entry.counts.tasks = res.items.length; renderReview(); });
-      card.appendChild(chk); card.appendChild(body); card.appendChild(del); root.appendChild(card);
+      /* icon read from the words; tap it to try the next fitting one */
+      var an = C.TASK_ICONS ? L.analyzeTask(d.title, (S().goals || []), C.TASK_ICONS) : null;
+      var cands = an ? (an.icons && an.icons.length ? an.icons.slice(0, 8) : [an.icon]) : [];
+      if (d.icon == null) d.icon = (an && an.icon) || "";
+      var ib = el("button", "pr-ico", d.icon || "\u2795", { type: "button", "aria-label": tr("Change icon") });
+      ib.addEventListener("click", function () { if (!cands.length) return; var k = cands.indexOf(d.icon); d.icon = cands[(k + 1) % cands.length]; ib.textContent = d.icon; });
+      timeChips(time, ["07:00", "09:00", "12:00", "15:00", "18:00", "20:00"]);
+      card.appendChild(chk); card.appendChild(ib); card.appendChild(body); card.appendChild(del); root.appendChild(card);
     });
   }
   /* goals */
@@ -361,7 +428,8 @@ function renderReview() {
         body.appendChild(el("div", "hint", tr("Or type it in the box above in your own words.")));
         title.addEventListener("change", function () { g.needsClarify = false; g.include = true; renderReview(); });
       } else body.appendChild(el("div", "pr-small", g.end ? tr("Deadline") + " " + niceDate(g.end) + " · " + tr("Pace will make a step-by-step plan.") : tr("Pace will make a step-by-step plan, one small step a day.")));
-      card.appendChild(chk); card.appendChild(body); root.appendChild(card);
+      var gico = el("span", "pr-ico is-static", (G.suggestIcons(g.title, 1, [G.goalCategory(g.category || "personal").emoji]) || [])[0] || "\ud83c\udfaf", { "aria-hidden": "true" });
+      card.appendChild(chk); card.appendChild(gico); card.appendChild(body); root.appendChild(card);
     });
   }
   /* notes + ideas */
@@ -419,7 +487,7 @@ function createGoal(title, end) {
   var to = end || addDays(t0, 42);
   var steps = G.buildPlan({ title: title, category: cat, start: t0, end: to, pace: "daily", mins: 20, milestones: [], text: title, answers: {} });
   if (!steps || !steps.length) steps = [{ date: t0, title: "Write what done looks like for: " + title, durationMin: 20, minVersion: "Just 5 minutes: write one sentence" }];
-  var goal = { id: C.uid(), title: title, category: cat, start: t0, end: to, pace: "daily", mins: 20, notes: "", created: Date.now(), outcome: title };
+  var goal = { id: C.uid(), title: title, icon: (G.suggestIcons(title, 1, [G.goalCategory(cat).emoji]) || [])[0], category: cat, start: t0, end: to, pace: "daily", mins: 20, notes: "", created: Date.now(), outcome: title };
   if (!Array.isArray(s.goals)) s.goals = [];
   s.goals.push(goal);
   var gc = G.goalCategory(cat), ids = [];
@@ -439,7 +507,8 @@ function commitReview() {
     /* duplicate protection: the same title on the same day is never added twice */
     if (s.tasks.some(function (t) { return !t.repeat && t.status !== "done" && t.date === d.date && B.overlap(t.title, d.title) >= 0.9; })) return;
     var cat = L.categoryFor(d.title);
-    var task = { id: C.uid(), title: d.title, date: d.date, time: d.time, durationMin: d.durationMin, priority: d.priority, repeat: d.repeat, category: cat.id, color: cat.color, essential: d.essential, status: "todo", steps: d.steps || [], minVersion: d.minVersion, firstStep: d.firstStep, fullVersion: "", source: "capture", originalText: entry.text, skipDates: [], doneDates: [], captureId: entry.id };
+    var an = (C.TASK_ICONS ? L.analyzeTask(d.title, s.goals || [], C.TASK_ICONS) : null);
+    var task = { id: C.uid(), icon: (d.icon != null && d.icon !== "") ? d.icon : (an && an.icon) || "", title: d.title, date: d.date, time: d.time, durationMin: d.durationMin, priority: d.priority, repeat: d.repeat, category: cat.id, color: cat.color, essential: d.essential, status: "todo", steps: d.steps || [], minVersion: d.minVersion, firstStep: d.firstStep, fullVersion: "", source: "capture", originalText: entry.text, skipDates: [], doneDates: [], captureId: entry.id };
     if (d.deadline) task.deadline = d.deadline;
     if (d.optional) task.optional = true;
     if (d.goalId) task.goalId = d.goalId;
@@ -449,7 +518,7 @@ function commitReview() {
   entry.notes = res.notes.map(function (n) { return { kind: n.kind, text: n.text }; }).concat(res.feelings.map(function (f) { return { kind: "journal", text: f.text }; }));
   entry.taskIds = made; entry.counts.tasks = nTasks; entry.counts.goals = nGoals;
   entry.status = (nTasks || nGoals) ? "tasks" : (entry.notes.length ? "note" : "captured");
-  entry.doneAt = Date.now();
+  entry.doneAt = Date.now(); skipDoneAt = Date.now();
   var b = R.noteCaptured(s, nTasks);
   C.save(); if (nTasks || nGoals) C.markActivated("event");
   var summary = [];
@@ -773,6 +842,15 @@ function processingDone(id) { var s = ensure(); s.captured = s.captured.filter(f
 var API = { processing: processing, processingDone: processingDone, render: render, capture: capture, onToggle: onToggle, planFor: planFor, previewMoves: previewMoves, createGoal: createGoal, celebrate: celebrate, get review() { return cur; } };
 window.PaceUI = API;
 wireLevelButtons(); wireSettings();
+(function settingsTimes() {
+  [["wakeTime", ["06:00", "06:30", "07:00", "07:30", "08:00", "09:00"]], ["windTime", ["21:00", "21:30", "22:00", "22:30", "23:00", "23:30"]], ["checkinTime", ["07:00", "08:00", "09:00", "10:00", "12:00"]], ["pcStart", ["08:00", "08:30", "09:00", "09:30", "10:00"]], ["pcEnd", ["16:00", "17:00", "17:30", "18:00", "19:00"]], ["nDoneTime", ["18:00", "19:00", "20:00", "21:00", "22:00"]]].forEach(function (x) {
+    var inp = $(x[0]); if (!inp) return;
+    var lab = inp.closest("label");
+    /* the label is a <label>: put the chips after it so tapping a chip never re-clicks the input */
+    var row = timeChips(inp, x[1]); if (row && lab) { lab.classList.add("row-time"); lab.parentNode.insertBefore(row, lab.nextSibling); }
+  });
+})();
+
 var gr = $("goalsRoot");
 if (gr && window.MutationObserver) new MutationObserver(function () { if (!$("paceGoalPath") && (S().goals || []).length) renderGoalPaths(); }).observe(gr, { childList: true });
 var dt = $("dumpText"); if (dt) dt.addEventListener("input", function () { var m = $("captureMsg"); if (m && /safe here/.test(m.textContent)) m.textContent = ""; });

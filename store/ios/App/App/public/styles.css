@@ -1230,3 +1230,55 @@ body.is-dragging-task { user-select: none; -webkit-user-select: none; }
 .pr-card .dc-del { background: transparent; border: 0; box-shadow: none; color: var(--ink-2); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 700px) { .toast { bottom: calc(80px + var(--sab)); } }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* ===== Build 48: very visual, one-step-at-a-time ===== */
+/* Talk to Skip */
+.skip-talk { display: grid; grid-template-columns: 112px 1fr; gap: 6px 14px; align-items: center; margin: 4px 0 14px; padding: 14px; border-radius: 22px; background: var(--today-tint); }
+.skip-talk .st-art svg { width: 112px; height: auto; display: block; animation: skipBob 4s ease-in-out infinite; }
+@keyframes skipBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .skip-talk .st-art svg { animation: none; } }
+.st-bubble { position: relative; background: var(--card); border: 2px solid var(--hair); border-radius: 18px; padding: 12px 14px; font-size: 16px; line-height: 1.35; font-weight: 600; color: var(--ink); }
+.st-bubble::before { content: ""; position: absolute; left: -9px; top: 50%; width: 14px; height: 14px; margin-top: -7px; background: var(--card); border-left: 2px solid var(--hair); border-bottom: 2px solid var(--hair); transform: rotate(45deg); }
+.st-steps { grid-column: 1 / -1; display: flex; justify-content: center; gap: 10px; margin-top: 4px; }
+.st-step { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; padding: 6px 10px; border-radius: 14px; opacity: .55; font-size: 12px; font-style: normal; }
+.st-step b { font-size: 20px; line-height: 1; font-weight: 400; }
+.st-step i { font-style: normal; font-weight: 600; color: var(--ink-2); }
+.st-step.is-on { opacity: 1; background: var(--card); box-shadow: 0 0 0 2px var(--accent); }
+.st-step.is-past { opacity: .9; }
+.st-step.is-past b::after { content: " \2713"; font-size: 12px; color: var(--accent-strong); }
+@media (max-width: 360px) { .skip-talk { grid-template-columns: 84px 1fr; } .skip-talk .st-art svg { width: 84px; } .st-bubble { font-size: 15px; } }
+/* big icon tiles for how to tell Skip */
+.capture-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.capture-actions .soft-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; padding: 10px 6px; border-radius: 18px; font-size: 13px; font-weight: 700; text-align: center; }
+.capture-actions .soft-btn .ico { width: 28px; height: 28px; }
+.capture-actions .primary-btn { grid-column: 1 / -1; min-height: 56px; font-size: 18px; border-radius: 18px; }
+/* review: icons */
+.pr-ico { flex: none; width: 48px; height: 48px; border-radius: 16px; border: 2px solid var(--hair); background: var(--card); font-size: 26px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.pr-ico.is-static { border-style: dashed; }
+/* goal icon picker */
+.gf-icons { display: flex; flex-wrap: wrap; gap: 8px; }
+.gf-ico { min-width: 48px; min-height: 48px; border-radius: 16px; border: 2px solid var(--hair); background: var(--card); font-size: 26px; line-height: 1; padding: 0 8px; }
+.gf-ico.is-on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; background: var(--today-tint); }
+.gf-ico-more { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+/* time chips */
+.time-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; }
+.time-chip { min-height: 44px; min-width: 64px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--hair); background: var(--card); font-size: 15px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.time-chip.is-on { border-color: var(--accent); background: var(--today-tint); box-shadow: 0 0 0 2px var(--accent) inset; }
+.time-chip.is-on::before { content: "\2713\00a0"; color: var(--accent-strong); }
+/* settings: every group and row has a picture */
+.settings-group > h3::before, .set-jump button::before { margin-right: 10px; font-weight: 400; }
+#accountGroup > h3::before { content: "\1F464"; } #setLook > h3::before { content: "\1F3A8"; } #setCheckin > h3::before { content: "\1F324\FE0F"; } #setNotif > h3::before { content: "\1F514"; } #setTasks > h3::before { content: "\1F4CB"; } #setHelp > h3::before { content: "\1F6DF"; }
+[data-jump="accountGroup"]::before { content: "\1F464 "; } [data-jump="setLook"]::before { content: "\1F3A8 "; } [data-jump="setCheckin"]::before { content: "\1F324\FE0F "; } [data-jump="setNotif"]::before { content: "\1F514 "; } [data-jump="setTasks"]::before { content: "\1F4CB "; } [data-jump="setHelp"]::before { content: "\1F6DF "; }
+.settings-group .row:has(#wakeTime)::before { content: "\2600\FE0F"; } .settings-group .row:has(#windTime)::before { content: "\1F319"; } .settings-group .row:has(#checkinTime)::before { content: "\1F4AC"; }
+.settings-group .row:has(#pcStart)::before { content: "\1F4BC"; } .settings-group .row:has(#pcEnd)::before { content: "\1F3E0"; }
+.settings-group .row:has(#cuteToggle)::before { content: "\1F9F8"; } .settings-group .row:has(#sbToggle)::before { content: "\1F4C2"; }
+.settings-group .row:has(#nCheckin)::before { content: "\1F4AC"; } .settings-group .row:has(#nStart)::before { content: "\23F0"; } .settings-group .row:has(#nDigest)::before { content: "\1F9FE"; } .settings-group .row:has(#nDone)::before { content: "\2705"; } .settings-group .row:has(#nDoneTime)::before { content: "\1F319"; }
+.settings-group .row:has(input[type="time"])::before, .settings-group .row.check::before { font-size: 22px; width: 28px; text-align: center; }
+/* big, clear switches for every tick box in settings */
+.settings-group .row.check { min-height: 52px; gap: 12px; }
+.settings-group .row.check input[type="checkbox"] { appearance: none; -webkit-appearance: none; order: 3; margin-left: auto; flex: none; width: 52px; height: 32px; border-radius: 999px; background: var(--hair); position: relative; transition: background .15s; }
+.settings-group .row.check input[type="checkbox"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s; }
+.settings-group .row.check input[type="checkbox"]:checked { background: var(--accent); }
+.settings-group .row.check input[type="checkbox"]:checked::after { transform: translateX(20px); }
+.settings-group .row.check input[type="checkbox"]:checked::before { content: "\2713"; position: absolute; left: 11px; top: 4px; color: #fff; font-size: 16px; font-weight: 800; line-height: 24px; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .settings-group .row.check input[type="checkbox"], .settings-group .row.check input[type="checkbox"]::after { transition: none; } }
