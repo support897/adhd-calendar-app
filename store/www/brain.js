@@ -186,7 +186,7 @@ function splitClauses(sentence) {
     var FEELRE = /^(?:feeling|i(?:'m| am| feel| felt)|it(?:'s| is)|this is|that(?:'s| is)|so |honestly|ugh|stressed|anxious|worried|overwhelmed|tired|exhausted)\b/i;
     var feelStart = /^(?:feeling|i(?:'m| am| feel| felt)|it(?:'s| is)|this is|that(?:'s| is)|so |honestly|ugh|stressed|anxious|worried|overwhelmed|tired|exhausted)\b/i.test(p.trim());
     var startsAction = feelStart || schedSplit || VERB_RE.test(p.trim()) || COMMIT_RE.test(p.slice(0, 40)) || /^(?:i\b|we\b)/i.test(p.trim()) || /^(?:remember|don'?t forget|make sure)/i.test(p.trim());
-    var curHasAction = VERB_RE.test(cur.trim().replace(COMMIT_RE, "").trim()) || COMMIT_RE.test(cur) || /\b(?:meeting|appointment|lunch|dinner|class|call|flight|party|session|interview)\b/i.test(cur) || /\b(?:at\s+\d{1,2}(?::\d\d)?\s*(?:am|pm)?|\d{1,2}(?::\d\d)?\s*(?:am|pm))\b/i.test(cur);
+    var curHasAction = VERB_RE.test(cur.trim().replace(COMMIT_RE, "").trim()) || COMMIT_RE.test(cur) || /\b(?:meeting|appointment|lunch|dinner|class|call|flight|party|session|interview|gym|workout|yoga|swim|swimming|therapy|haircut|practice|training|shift|lesson|church|rehearsal)\b/i.test(cur) || /\b(?:at\s+\d{1,2}(?::\d\d)?\s*(?:am|pm)?|\d{1,2}(?::\d\d)?\s*(?:am|pm))\b/i.test(cur);
     var curFeel = FEELRE.test(cur.trim()) && !/\b(?:need|have|got|must|should|want|going) to\b/i.test(cur);
     if (feelStart && cur.trim()) { out.push(cur); cur = p; }
     else if (curFeel && (VERB_RE.test(p.trim()) || COMMIT_RE.test(p.slice(0, 40)))) { out.push(cur); cur = p; }
@@ -266,7 +266,7 @@ function understand(text, baseKey, ctx) {
       clause = clause.trim(); if (!clause) return;
       if (tail && ci < clauses.length - 1 && !/\b(?:by|before|due|on|tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(clause) && /\b(?:all|both|everything)\b/i.test(prepared)) clause += " by " + tail[1];
       var l = lc(clause);
-      var hasAction = VERB_RE.test(clause.replace(COMMIT_RE, "").replace(/^(?:and|then|also|to)\s+/i, "").trim()) || COMMIT_RE.test(clause) || /\b(?:meeting|appointment|lunch|dinner|class|flight|party|interview|exam|deadline|due)\b/i.test(clause) || ESSENTIAL_RE.test(clause) || (/\b(?:at \d|tomorrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next week|next month|this weekend|in \d+ (?:days|weeks))\b/i.test(clause) && clause.split(/\s+/).length <= 8 && !/\b(?:feel|felt|think)\b/i.test(clause));
+      var hasAction = VERB_RE.test(clause.replace(COMMIT_RE, "").replace(/^(?:and|then|also|to)\s+/i, "").trim()) || COMMIT_RE.test(clause) || /\b(?:meeting|appointment|lunch|dinner|class|flight|party|interview|exam|deadline|due|gym|workout|yoga|swim|swimming|therapy|haircut|practice|training|lesson|rehearsal)\b/i.test(clause) || ESSENTIAL_RE.test(clause) || (/\b(?:at \d|tomorrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next week|next month|this weekend|in \d+ (?:days|weeks))\b/i.test(clause) && clause.split(/\s+/).length <= 8 && !/\b(?:feel|felt|think)\b/i.test(clause));
       var fm = clause.match(FEEL_RE);
       /* Feelings and "too much" are journal entries, never tasks. */
       if ((fm && !/\b(?:need|have|must|should|going) to\b/i.test(clause) && !(VERB_RE.test(clause) && !/^(?:i|i'm|i am|feeling|so)\b/i.test(clause))) || (TOO_MUCH_RE.test(l) && !hasAction)) {

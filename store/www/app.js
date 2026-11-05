@@ -2713,8 +2713,13 @@ function skipSvg(pose) {
   var flag = '<g transform="rotate(' + flagRot + ' 120 30)"><line x1="120" y1="8" x2="120" y2="48" stroke="' + ink + '" stroke-width="6.5" stroke-linecap="round"/><path d="M120 10 L149 19.5 L120 29 Z" fill="' + flagGreen + '"/></g>';
   var spray = pose === "celebrate" ? '<path d="M27 103 q-9 -9 -17 -7 M29 115 q-10 -3 -15 3" fill="none" stroke="' + apricot + '" stroke-width="5" stroke-linecap="round"/>' : "";
   var trail = pose === "goodbye" ? '<path d="M2 172 q8 -8 16 0 q8 8 16 0" fill="none" stroke="' + wave + '" stroke-width="5" stroke-linecap="round" opacity="0.55"/>' : "";
+  /* Talk-to-Skip props only (the master art is untouched): a warm cup, listening arcs, thought dots. */
+  var props = "";
+  if (pose === "chill") props = '<g><path d="M176 98 h26 v10 a13 13 0 0 1 -26 0 Z" fill="' + cream + '" stroke="' + ink + '" stroke-width="5" stroke-linejoin="round"/><path d="M202 101 q9 1 8 8 q-1 6 -9 5" fill="none" stroke="' + ink + '" stroke-width="4.5" stroke-linecap="round"/><path d="M183 88 q-5 -7 0 -13 M194 88 q-5 -7 0 -13" fill="none" stroke="' + wave + '" stroke-width="4" stroke-linecap="round"/></g>';
+  if (pose === "listen") props = '<g fill="none" stroke="' + apricot + '" stroke-width="5" stroke-linecap="round"><path d="M172 78 q10 10 0 22"/><path d="M184 70 q16 18 0 38"/><path d="M196 62 q22 26 0 54" opacity="0.6"/></g>';
+  if (pose === "think") props = '<g fill="' + wave + '" stroke="' + ink + '" stroke-width="3"><circle cx="176" cy="52" r="4"/><circle cx="188" cy="38" r="6"/><circle cx="206" cy="20" r="9"/></g>';
   var tilt = pose === "celebrate" ? ' transform="rotate(2 120 110)"' : pose === "point" ? ' transform="rotate(-2 120 110)"' : "";
-  return '<svg viewBox="0 0 240 196" class="skip-svg" aria-hidden="true"><g' + tilt + '>' + spray +
+  return '<svg viewBox="0 0 240 196" class="skip-svg" aria-hidden="true"><g' + tilt + '>' + spray + props +
     '<path d="M22 118 H218 L186 164 H54 Z" fill="' + hull + '" stroke="' + ink + '" stroke-width="7" stroke-linejoin="round"/>' +
     '<rect x="80" y="46" width="80" height="78" rx="13" fill="' + cream + '" stroke="' + ink + '" stroke-width="7"/>' +
     '<circle cx="98" cy="40" r="8" fill="none" stroke="' + ink + '" stroke-width="6"/>' +
@@ -4002,7 +4007,7 @@ $("faStart").addEventListener("click", function () { startFocus($("focusAsk").ge
 $("faNo").addEventListener("click", function () { $("focusAsk").hidden = true; });
 setInterval(focusWatch, 15000);
 
-window.PaceCtx = { get selected() { return selected; }, levelFor: levelFor, esc: esc, skipSvg: skipSvg, showPanel: showPanel, setBottomTab: setBottomTab, selectDate: selectDate, baseTask: baseTask, markActivated: markActivated, openQuickAdd: function () { $("addBtn").click(); }, startFocus: startFocus, focusWatch: focusWatch, get focus() { return FOCUS; }, dropOutside: dropOutside, renderFocusSettings: renderFocusSettings, deleteInstance: deleteInstance,  get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
+window.PaceCtx = { TASK_ICONS: TASK_ICONS, get selected() { return selected; }, levelFor: levelFor, esc: esc, skipSvg: skipSvg, showPanel: showPanel, setBottomTab: setBottomTab, selectDate: selectDate, baseTask: baseTask, markActivated: markActivated, openQuickAdd: function () { $("addBtn").click(); }, startFocus: startFocus, focusWatch: focusWatch, get focus() { return FOCUS; }, dropOutside: dropOutside, renderFocusSettings: renderFocusSettings, deleteInstance: deleteInstance,  get state() { return state; }, toggleDone: toggleDone, startNote: startNote, save: save, uid: uid, toast: toast, refreshAll: refreshAll, restoreAt: restoreAt, icon: icon, habitIconId: habitIconId, habitPick: function () { return habitPick; }, submitHabit: submitHabit, renderIconPicker: renderIconPicker };
 })();
 
 
