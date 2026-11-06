@@ -27,12 +27,12 @@ await page.evaluate(() => window.PaceCtx.showPanel("settings")); await page.wait
 await page.locator("#wakeTime").scrollIntoViewIfNeeded();
 await page.locator('.time-chips button[data-t="06:30"]').first().click();
 check("V11 one tap on '6:30am' sets the wake-up time", (await page.inputValue("#wakeTime")) === "06:30" && (await page.locator('.time-chips button[data-t="06:30"].is-on').count()) >= 1);
-check("V12 the tapped time shows a tick, not only a colour", await page.locator('.time-chips button[data-t="06:30"].is-on').first().evaluate(e => getComputedStyle(e, "::before").content.includes("\u2713")));
+check("V12 the tapped time shows a tick, not only a colour", await page.locator('.time-chips button[data-t="06:30"].is-on').first().evaluate(e => /--i-check|mask/.test(getComputedStyle(e, "::before").maskImage + getComputedStyle(e, "::before").webkitMaskImage) || getComputedStyle(e, "::before").maskImage !== "none"));
 const sw = await page.locator("#nCheckin").boundingBox();
 check("V13 tick boxes in settings are big switches (52 x 32)", sw && sw.width >= 50 && sw.height >= 30);
 await page.locator("#nCheckin").scrollIntoViewIfNeeded(); const was = await page.locator("#nCheckin").isChecked(); await page.locator("#nCheckin").click({ force: true });
 check("V14 a switch still toggles", (await page.locator("#nCheckin").isChecked()) !== was);
-check("V15 every settings group has a picture (icon) in its title", await page.evaluate(() => ["setLook", "setCheckin", "setNotif", "setTasks", "setHelp"].every(id => getComputedStyle(document.querySelector("#" + id + " > h3"), "::before").content.length > 2)));
+check("V15 every settings group has a picture (icon) in its title", await page.evaluate(() => ["setLook", "setCheckin", "setNotif", "setTasks", "setHelp"].every(id => (getComputedStyle(document.querySelector("#" + id + " > h3"), "::before").maskImage || "none") !== "none")));
 /* goals: icon picker */
 await tab("goals"); await page.locator("#goalsRoot button:has-text('New goal')").first().click(); await page.waitForTimeout(250);
 await page.fill("#goalTitle", "Run a marathon"); await page.click(".goal-form .pstep-next"); await page.waitForTimeout(150); await page.click(".goal-form .pstep-next"); await page.waitForTimeout(150);

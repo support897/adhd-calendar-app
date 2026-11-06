@@ -68,6 +68,14 @@ await page.evaluate(() => { const t = window.PaceCtx.state.tasks.find(x => x.tit
 await page.evaluate(() => window.PaceCtx.showPanel("calendar")); await page.evaluate(() => window.PaceCtx.showPanel("progress")); await page.waitForTimeout(400);
 const first = await page.locator(".pg-stat b").first().innerText();
 check("G26 finishing a task raises the all-time wins", +first >= 1, first);
+await page.evaluate(() => window.PaceCtx.showPanel("settings")); await page.waitForTimeout(500);
+await page.evaluate(() => { const t0 = document.querySelector("#panel-settings h2, #panel-settings"); const mk = (type, x) => { const e = new Event(type, { bubbles: true, cancelable: true }); const tt = [{ clientX: x, clientY: 300, target: t0 }]; Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : tt }); Object.defineProperty(e, "changedTouches", { value: tt }); t0.dispatchEvent(e); }; mk("touchstart", 120); mk("touchmove", 200); mk("touchend", 260); });
+await page.waitForTimeout(500);
+check("G28 a right swipe anywhere on Settings goes back", await page.locator("#panel-calendar.is-active").count() === 1);
+await page.evaluate(() => window.PaceCtx.showPanel("progress")); await page.waitForTimeout(500);
+const raw = await page.evaluate(() => { const rx = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n, bad = []; while ((n = w.nextNode())) { const p = n.parentElement; if (p && !["SCRIPT", "STYLE", "OPTION", "TEXTAREA"].includes(p.tagName) && !p.closest(".pi") && rx.test(n.nodeValue)) bad.push(n.nodeValue.slice(0, 20)); } return bad; });
+console.log("RAW", JSON.stringify(raw.map(x => [...x].map(c => c.codePointAt(0).toString(16)).join(" "))));
+check("G29 no raw emoji shows on the Progress page", raw.length === 0, JSON.stringify(raw.map(x => [...x].map(c => c.codePointAt(0).toString(16)).join(" "))));
 check("G27 no page errors", h.errors.length === 0, h.errors.slice(0, 3).join(" | "));
 summary();
 process.exit(0);
