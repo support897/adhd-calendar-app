@@ -928,7 +928,9 @@ function processingDone(id) { var s = ensure(); s.captured = s.captured.filter(f
     drag = null; edge = null;
     if (e.touches.length !== 1) return;
     var t = e.touches[0], sh = topSheet();
-    if (t.clientX < 22) { edge = { x: t.clientX, y: t.clientY, at: Date.now() }; return; }
+    if (t.clientX < 36) { edge = { x: t.clientX, y: t.clientY, at: Date.now() }; return; }
+    var inCal = e.target.closest && e.target.closest("#panel-calendar");
+    if (!inCal && !(e.target.closest && e.target.closest("input, textarea, select, [contenteditable], .no-swipe-back, .time-chips, .gf-icons"))) edge = { x: t.clientX, y: t.clientY, at: Date.now(), any: true };
     var card = e.target.closest && e.target.closest(".sheet-card");
     if (sh && card && sh.contains(card) && card.scrollTop <= 0 && !(e.target.closest("input, textarea, select, [contenteditable]"))) drag = { sh: sh, card: card, y: t.clientY, x: t.clientX, dy: 0, at: Date.now(), on: false };
   }, { passive: true });
@@ -944,7 +946,7 @@ function processingDone(id) { var s = ensure(); s.captured = s.captured.filter(f
     var t = (e.changedTouches && e.changedTouches[0]) || null;
     if (edge && t) {
       var dx = t.clientX - edge.x, dy = t.clientY - edge.y;
-      if (dx > 70 && Math.abs(dy) < 60 && Date.now() - edge.at < 800) goBack();
+      if (dx > (edge.any ? 90 : 70) && Math.abs(dy) < (edge.any ? 45 : 60) && Math.abs(dx) > Math.abs(dy) * 2 && Date.now() - edge.at < 800) { goBack(); drag = null; }
       edge = null;
     }
     if (!drag) return;
