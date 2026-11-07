@@ -163,6 +163,7 @@
       ownerName: myName(), members: mm, steps: steps,
     }).then(function (doc) {
       goal.sharedGoalId = doc.id;
+      C.state.tasks.forEach(function (t) { if (t.goalId === goal.id) { t.sharedGoalId = doc.id; t.sharedStepId = t.id; } });
       var ids = ensureSharedIds(); if (ids.indexOf(doc.id) < 0) ids.push(doc.id);
       C.save();
       if (cur && cur.goal === goal) { cur.doc = doc; renderShareBody(); }
@@ -312,6 +313,13 @@
       return changed;
     }
     var mine = {};
+    var myGoal = (C.state.goals || []).filter(function (g) { return g.sharedGoalId === doc.id; })[0];
+    if (myGoal) {
+      var stepIds = {}; (doc.steps || []).forEach(function (st) { stepIds[st.sid] = 1; });
+      C.state.tasks.forEach(function (t) {
+        if (t.goalId === myGoal.id && stepIds[t.id] && !t.sharedGoalId) { t.sharedGoalId = doc.id; t.sharedStepId = t.id; changed = true; }
+      });
+    }
     C.state.tasks.forEach(function (t) { if (t.sharedGoalId === doc.id) mine[t.sharedStepId] = t; });
     var seen = {};
     (doc.steps || []).forEach(function (step) {
@@ -335,12 +343,44 @@
     if (changed) C.save();
     return changed;
   }
+  /* Auto-divide (owner's device): whenever the people in a shared
+     goal change (someone joins or leaves), the open steps are
+     divided again between everyone, by the goal's own split mode.
+     Finished steps never move. The last people-set is remembered
+     on this device, so it runs once per change, not every beat. */
+  var dividing = {};
+  function autoDivide(doc) {
+    var me = myUid();
+    if (!me || !doc || doc.closed || doc.ownerUid !== me || dividing[doc.id] || !doc._stepsLoaded) return;
+    var sig = Object.keys(doc.members || {}).sort().join(",");
+    if (!C.state.sharedDivided || typeof C.state.sharedDivided !== "object") C.state.sharedDivided = {};
+    if (C.state.sharedDivided[doc.id] === sig) return;
+    dividing[doc.id] = true;
+    S.act(doc.id, function (d) {
+      var plan = divideSteps(d.steps, memberList(d), d.splitMode || "strengths");
+      var any = false;
+      (d.steps || []).forEach(function (s) {
+        if (s.status !== "done" && plan[s.sid] !== undefined && (s.assignee || null) !== plan[s.sid]) { s.assignee = plan[s.sid]; any = true; }
+      });
+      if (!any) return false;
+    }).then(function (d2) {
+      C.state.sharedDivided[doc.id] = sig;
+      docCache[doc.id] = d2;
+      applyAssignmentsToMine(d2);
+      syncSharedGoal(d2);
+      if (C.refreshAll) { try { C.refreshAll(); } catch (e) {} }
+      if (window.renderGoals) window.renderGoals(true);
+      dividing[doc.id] = false;
+    }).catch(function () { dividing[doc.id] = false; });
+  }
   function refreshShared(id, rerender) {
     return S.get(id).then(function (doc) {
       if (!doc) return null;
       docCache[id] = doc;
-      syncSharedGoal(doc);
+      var moved = syncSharedGoal(doc);
+      if (moved && C.refreshAll) { try { C.refreshAll(); } catch (e) {} }
       if (rerender && window.renderGoals) window.renderGoals();
+      autoDivide(doc);
       return doc;
     }).catch(function () { return null; });
   }
@@ -420,7 +460,7 @@
     var me = myUid(); if (!me || !root) return;
     var sec = el("div", null, null, { id: "sgSection" });
     var ids = ensureSharedIds().slice();
-    if (ids.length) sec.appendChild(el("h3", "gf-h", tr("Shared goals")));
+    if (ids.length && ids.some(function (i) { var d0 = docCache[i]; return !d0 || !(d0.closed && d0.ownerUid === me); })) sec.appendChild(el("h3", "gf-h", tr("Shared goals")));
     ids.forEach(function (id) {
       var doc = docCache[id];
       if (!doc) {
@@ -428,6 +468,7 @@
         if (!fetching[id]) { fetching[id] = true; refreshShared(id, true).then(function () { fetching[id] = false; }); }
         return;
       }
+      if (doc.closed && doc.ownerUid === me) return;
       sec.appendChild(sharedCard(doc));
     });
     // paste-a-link row, always there
@@ -593,7 +634,7 @@
       if (!busy) openJoin(id);
     }
   }, 2000);
-  /* The team's truth, refreshed gently: on boot, and every 45 s
+  /* The team's truth, refreshed gently: on boot, and every 12 s
      while the app is in front. Ticks of my own write at once. */
   function beat() {
     var panel = $("panel-goals");
@@ -601,7 +642,13 @@
     ensureSharedIds().forEach(function (id) { refreshShared(id, onGoals); });
   }
   setTimeout(beat, 3500);
-  setInterval(function () { if (typeof document !== "undefined" && document.visibilityState === "visible") beat(); }, 45000);
+  setInterval(function () { if (typeof document !== "undefined" && document.visibilityState === "visible") beat(); }, 12000);
+  // Catch up the moment the app comes back to the front or the network returns.
+  try {
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") beat(); });
+    window.addEventListener("focus", beat);
+    window.addEventListener("online", beat);
+  } catch (e) {}
 
   window.PaceShareUI = { openShare: openShare, renderSharedSection: renderSharedSection, divideSteps: divideSteps, applyAssignmentsToMine: applyAssignmentsToMine, onLocalTick: onLocalTick, syncSharedGoal: syncSharedGoal, leaveAllShared: leaveAllShared, _docCache: docCache };
 })();
