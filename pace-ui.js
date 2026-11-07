@@ -575,7 +575,7 @@ function stagesFor(tasks) {
 function renderGoalPaths() {
   var root = $("goalsRoot"); if (!root) return;
   var old = $("paceGoalPath"); if (old) old.remove();
-  var s = ensure(), goals = (s.goals || []);
+  var s = ensure(), goals = (s.goals || []).filter(function (g) { return !g.sharedGoalId; }); // shared goals show once, as their shared card
   if (!goals.length) return;
   var wrap = el("section", "pace-goalpath", null, { id: "paceGoalPath" });
   var moms = goals.map(function (g) { return { g: g, m: R.goalMomentum(g, s.tasks, today(), s.rewards.log) }; }).filter(function (x) { return !x.m.complete; });
