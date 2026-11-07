@@ -225,7 +225,11 @@ function renderGoals(force) {
   }
 
   if (!goals.length && !showForm) root.appendChild(el("div", "empty-note", tr("🎯 No goals yet.")));
-  goals.forEach(function (g) { root.appendChild(goalCard(g, today)); });
+  // A goal that is being shared shows once, as its shared card below (not twice).
+  goals.forEach(function (g) {
+    if (g.sharedGoalId && window.PaceShareUI) return;
+    root.appendChild(goalCard(g, today));
+  });
   // Shared goals (build 39): goals other people shared with me.
   if (window.PaceShareUI) window.PaceShareUI.renderSharedSection(root);
   var why = el("details", "why-box");
