@@ -80,6 +80,19 @@ final class PaceDoorUITests: XCTestCase {
     func testTeamLegEmailDoorTwin() throws {
         app.launchArguments = ["-PaceTwinConfig"]
         app.launch()
+        // Normaliser: a session from an earlier run can
+        // outlive the install on this runtime and open the
+        // app already inside (QA's sim B run 2: the app
+        // opened on the home, the door never stood). If the
+        // home already stands, sign out through More first,
+        // so the door flow below starts from the door.
+        let standingGreeting = app.staticTexts["proof.greeting"]
+        if standingGreeting.waitForExistence(timeout: 8) {
+            app.tabBars.buttons["More"].tap()
+            let signOut = app.buttons["more.signOut"]
+            XCTAssertTrue(signOut.waitForExistence(timeout: 10))
+            signOut.tap()
+        }
         XCTAssertTrue(app.buttons["door.emailInstead"].waitForExistence(timeout: 20))
         app.buttons["door.emailInstead"].tap()
 
@@ -95,10 +108,31 @@ final class PaceDoorUITests: XCTestCase {
         app.buttons["email.submit"].tap()
 
         let greeting = app.staticTexts["proof.greeting"]
-        XCTAssertTrue(greeting.waitForExistence(timeout: 30))
+        // The greeting stands a beat before the saved name
+        // lands with the async state load — and the load
+        // itself can land past a flat wait (QA's run 1: the
+        // failure snapshot showed the app inside with the
+        // name standing, a beat after the flat 30 s
+        // existence wait expired). Poll for the greeting
+        // WITH its name, up to 60 s — the FIX C poll shape,
+        // widened to the existence wait itself.
+        let greetDeadline = Date().addingTimeInterval(60)
+        while !(greeting.exists && greeting.label.contains("Team")) && Date() < greetDeadline {
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        XCTAssertTrue(greeting.exists,
+                      "greeting never stood after the twin sign-in")
         XCTAssertTrue(greeting.label.contains("Team"),
                       "greeting should use the seeded saved name, got: \(greeting.label)")
-        XCTAssertTrue(app.staticTexts[TeamAccount.seededTaskTitle].waitForExistence(timeout: 10))
+        // The seeded task stands in the Today list. Its row
+        // carries the auto short-version suffix by design
+        // (DayAdapter.autoVersion: "title (short version)"),
+        // so the bare title never stands as an exact label —
+        // match the row whose label BEGINS WITH the title.
+        let seededRow = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", TeamAccount.seededTaskTitle)).firstMatch
+        XCTAssertTrue(seededRow.waitForExistence(timeout: 10),
+                      "seeded task never stood in the Today list")
 
         // Finished-state look check of the proof screen
         // (the one picture P2 keeps, as evidence — never a

@@ -6,8 +6,7 @@ tools/seed-team-leg.py + the P4UITests drive, same day:
   kind 4 todo done:   todos[td1 "Buy milk"].done == true
   kind 5 todo add:    a todo "Water the plants" stands
   kind 6 habit tick:  habits[h1 "Stretch"].days[today] true
-  kind 7 habit add:   (driven at P4 gate round if wanted;
-                      not part of this drive)
+  kind 7 habit add:   a habit "Meditate" stands
 Also: the doc still carries exactly the two fields.
 Usage: TZ=Australia/Sydney python3 tools/verify-writes-p4.py
 """
@@ -80,6 +79,10 @@ def main():
     h1days = (habits.get("h1", {}).get("days") or {})
     print("kind6 h1 days[today]:", h1days.get(today))
     ok = ok and h1days.get(today) is True
+
+    meditate = [h for h in state.get("habits", []) if h.get("name") == "Meditate"]
+    print("kind7 habit added:", len(meditate) == 1)
+    ok = ok and len(meditate) == 1
 
     print("VERIFY P4:", "OK" if ok else "MISMATCH")
     return 0 if ok else 1

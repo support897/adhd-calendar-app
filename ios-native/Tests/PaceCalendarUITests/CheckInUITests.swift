@@ -2,9 +2,11 @@ import XCTest
 
 /// P3 check-in drive (local-xcuitest): the morning question
 /// stands while today has no answer; her three words in her
-/// order; Great shows the whole day; Bad parks the longest
-/// thing, gently (the parked line stands, the task rests out
-/// of sight — parked, not dropped); re-answering from Today
+/// order; Great shows the whole day; Bad keeps the
+/// essentials and every bare minimum standing (minimums
+/// shown shrunk), fills the day to three from the rest in
+/// day order, and parks everything else, counted on the
+/// parked line — parked, never dropped; re-answering from Today
 /// restores it. The feelings write itself is proven by the
 /// REST read-back after the run (tools/verify-writes.py) —
 /// this drive is the in-app half of the twin proof.
@@ -57,7 +59,13 @@ final class CheckInUITests: XCTestCase {
         XCTAssertTrue(parked.waitForExistence(timeout: 10))
         XCTAssertTrue(parked.label.contains("1"), "expected exactly one parked thing, got: \(parked.label)")
         XCTAssertFalse(app.staticTexts["Morning shift at the café"].exists)
-        XCTAssertTrue(app.staticTexts["Read two chapters"].exists)
+        // On a Bad day the row stands under its minimum
+        // version ('Read two chapters (1 page only)'), so
+        // this match is BEGINS WITH — the team-leg fix (c)
+        // shape (FIX (d)); the meaning — the small thing
+        // still stands — is unchanged.
+        let readRow = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Read two chapters")).firstMatch
+        XCTAssertTrue(readRow.waitForExistence(timeout: 10))
 
         // Great again: everything returns, and the day ends on
         // "full" — the value the REST read-back verifies.

@@ -80,7 +80,13 @@ case "$STAGE" in
     run_tests p4 -only-testing:PaceCalendarUITests/P4UITests
     ;;
   p5)
-    run_tests p5 -only-testing:PaceCalendarUITests/P5UITests -only-testing:PaceCalendarUITests/P5JoinUITests
+    # Designed order (the join test's own header: it runs
+    # AFTER P5UITests, joining the goal that drive shares).
+    # One combined invocation runs the classes alphabetically
+    # — join first — and the join leaves team 2 signed in,
+    # which then silently re-accounts the goal drive.
+    run_tests p5a -only-testing:PaceCalendarUITests/P5UITests
+    run_tests p5b -only-testing:PaceCalendarUITests/P5JoinUITests
     ;;
   p6p7)
     run_tests p6p7 -only-testing:PaceCalendarUITests/P6UITests -only-testing:PaceCalendarUITests/P7UITests

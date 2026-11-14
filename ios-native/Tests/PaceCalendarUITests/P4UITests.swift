@@ -51,6 +51,17 @@ final class P4UITests: XCTestCase {
         XCTAssertTrue(stretchTick.waitForExistence(timeout: 10))
         stretchTick.tap()
 
+        // Habits: add one through the app's own UI (kind 7).
+        let habitAdd = app.buttons["habits.add"]
+        XCTAssertTrue(habitAdd.waitForExistence(timeout: 10))
+        habitAdd.tap()
+        let habitField = app.textFields["habits.nameField"]
+        XCTAssertTrue(habitField.waitForExistence(timeout: 10))
+        habitField.tap()
+        habitField.typeText("Meditate")
+        app.buttons["habits.addSave"].tap()
+        XCTAssertTrue(app.staticTexts["Meditate"].waitForExistence(timeout: 15))
+
         // Progress: the ring and the line stand.
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["more.progress"].tap()

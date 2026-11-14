@@ -73,7 +73,6 @@ struct TodosView: View {
         }
         .background(ThemedBackground())
         .navigationTitle("To do")
-        .accessibilityIdentifier("todos.list")
     }
 
     private func toggle(_ todo: PaceTodo) {

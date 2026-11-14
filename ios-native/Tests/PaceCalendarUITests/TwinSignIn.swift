@@ -5,11 +5,28 @@ import XCTest
 /// the app's own email door — the same standing as
 /// PaceDoorUITests' team leg. Seeded beforehand, the same
 /// day, by tools/seed-team-leg.py. If a previous test in the
-/// same run already signed in, the greeting is simply there.
+/// same run already signed in AS THE TEAM TESTER, the
+/// greeting is simply there. A greeting alone is not proof
+/// of the account: sessions outlive uninstalls on this
+/// runtime, so a leftover session (the second tester's,
+/// above all) would silently re-account a whole drive. The
+/// standing greeting's name is checked; a different name
+/// signs out and falls through to the door.
 enum TwinSignIn {
     static func signIn(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
-        if app.staticTexts["proof.greeting"].waitForExistence(timeout: 8) {
-            return
+        let greeting = app.staticTexts["proof.greeting"]
+        if greeting.waitForExistence(timeout: 8) {
+            let nameDeadline = Date().addingTimeInterval(10)
+            while !greeting.label.contains("Team") && Date() < nameDeadline {
+                Thread.sleep(forTimeInterval: 0.5)
+            }
+            if greeting.label.contains("Team") {
+                return
+            }
+            app.tabBars.buttons["More"].tap()
+            let signOut = app.buttons["more.signOut"]
+            XCTAssertTrue(signOut.waitForExistence(timeout: 10), file: file, line: line)
+            signOut.tap()
         }
         let door = app.buttons["door.emailInstead"]
         XCTAssertTrue(door.waitForExistence(timeout: 20), file: file, line: line)

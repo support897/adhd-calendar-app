@@ -88,7 +88,6 @@ struct TalkView: View {
         .padding(.top, 20)
         .background(ThemedBackground())
         .navigationTitle("Talk")
-        .accessibilityIdentifier("talk.screen")
     }
 
     private func send() {

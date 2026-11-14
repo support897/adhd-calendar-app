@@ -76,7 +76,6 @@ struct TodayView: View {
                                     .accessibilityIdentifier("today.parked")
                             }
                         }
-                        .accessibilityIdentifier("today.list")
 
                         if !needsCheckIn {
                             Button("How do you feel?") { showCheckInAgain = true }

@@ -37,6 +37,11 @@ struct SharedGoal: Identifiable {
     var stepCount: Int = 0
     var closed: Bool = false
     var splitMode: String = "strengths"
+    // The rules fence reads these on every shared-goal
+    // write; the model carries them so a rebuild never
+    // drops one (FIX G: the join body did).
+    var category: String = "other"
+    var createdAt: Int = 0
     var end: String?
     var steps: [SharedStep] = []
     var stepsLoaded: Bool = false
@@ -65,13 +70,20 @@ enum SharedGoals {
 
     // MARK: Create (sharing.js create of record)
 
-    static func create(uid: String, ownerName: String, title: String, end: String?,
-                       steps: [SharedStep]) async -> String? {
+    static func create(uid: String, ownerName: String, title: String, category: String?,
+                       end: String?, steps: [SharedStep]) async -> String? {
         let id = newId()
         var body: [String: Any] = [
             "ownerUid": uid,
             "ownerName": ownerName,
             "title": title,
+            // The rules fence reads category and end on every
+            // create; an absent key fails its checks, so both
+            // keys always stand — the web caller of record
+            // sends exactly this shape (category from the
+            // goal, "other" when the goal carries none; end
+            // null when unset).
+            "category": category ?? "other",
             "members": [uid: ["name": ownerName, "focus": ""]],
             "createdAt": Int(Date().timeIntervalSince1970 * 1000),
             "updatedAt": Int(Date().timeIntervalSince1970 * 1000),
@@ -79,7 +91,7 @@ enum SharedGoals {
             "splitMode": "strengths",
             "stepCount": steps.count,
         ]
-        if let end { body["end"] = end }
+        if let end { body["end"] = end } else { body["end"] = NSNull() }
         do {
             try await db.collection("sharedGoals").document(id).setData(body)
             for step in steps {
@@ -132,6 +144,8 @@ enum SharedGoals {
             goal.ownerName = (data["ownerName"] as? String) ?? ""
             goal.closed = (data["closed"] as? Bool) ?? false
             goal.splitMode = (data["splitMode"] as? String) ?? "strengths"
+            goal.category = (data["category"] as? String) ?? "other"
+            goal.createdAt = (data["createdAt"] as? NSNumber)?.intValue ?? 0
             goal.end = data["end"] as? String
             goal.stepCount = (data["stepCount"] as? NSNumber)?.intValue ?? 0
             if let rawMembers = data["members"] as? [String: Any] {
@@ -182,15 +196,20 @@ enum SharedGoals {
         var members = goal.members
         members[uid] = (name: String(name.prefix(100)), focus: "")
         do {
-            var body: [String: Any] = [
-                "ownerUid": goal.ownerUid, "ownerName": goal.ownerName,
-                "title": goal.title, "closed": goal.closed,
-                "splitMode": goal.splitMode, "stepCount": goal.stepCount,
+            // FIX G2: the join writes ONLY the fields it
+            // changes, as an update. The web join of record
+            // writes through a REST PATCH (its fsSet), so the
+            // rules' join arm evaluates the MERGED doc; the
+            // native port's full setData overwrite was denied
+            // to a non-owner even with a complete body, as
+            // proven by a REST probe (members-only PATCH
+            // allowed, setData denied, same goal, same
+            // account). The fence fields (category, createdAt,
+            // end) now stand untouched on the stored doc.
+            try await db.collection("sharedGoals").document(id).updateData([
                 "members": members.mapValues { ["name": $0.name, "focus": $0.focus] },
                 "updatedAt": Int(Date().timeIntervalSince1970 * 1000),
-            ]
-            if let end = goal.end { body["end"] = end }
-            try await db.collection("sharedGoals").document(id).setData(body)
+            ])
             return await get(id: id, uid: uid)
         } catch {
             print("Shared goal join ended: \(error.localizedDescription)")

@@ -149,8 +149,8 @@ struct ShareGoalView: View {
         }
         Task {
             if let id = await SharedGoals.create(uid: uid, ownerName: name,
-                                                 title: goal.title, end: goal.end,
-                                                 steps: sharedSteps) {
+                                                 title: goal.title, category: goal.category,
+                                                 end: goal.end, steps: sharedSteps) {
                 if let fresh = await StateStore.setGoalSharedId(uid: uid, goalId: goal.id, sharedId: id) {
                     session.applyFreshState(fresh)
                 }

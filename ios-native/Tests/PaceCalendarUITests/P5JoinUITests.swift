@@ -2,12 +2,14 @@ import XCTest
 
 /// P5 join drive: the SECOND team account joins the shared
 /// goal the first account made. The goal's id is found over
-/// Firestore REST from inside the test (the goal doc is
-/// readable by any signed-in user — the link is the secret;
-/// its steps stay members-only until the join lands). Then
-/// the app's own Join door does the join, and the steps
-/// stand in the app. Run AFTER P5UITests in the same drive;
-/// seeded by tools/seed-team2.py.
+/// Firestore REST from inside the test: the deployed rules
+/// deny LISTING sharedGoals to everyone (the link is the
+/// secret; a goal doc is readable by id only), so the id is
+/// read from the OWNER's own state doc, where the app
+/// itself records it after sharing. Then the app's own Join
+/// door does the join, and the steps stand in the app. Run
+/// AFTER P5UITests in the same drive; seeded by
+/// tools/seed-team2.py.
 final class P5JoinUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -44,6 +46,13 @@ final class P5JoinUITests: XCTestCase {
         app.buttons["email.submit"].tap()
         let greeting = app.staticTexts["proof.greeting"]
         XCTAssertTrue(greeting.waitForExistence(timeout: 30))
+        // The saved name lands with the state load, a beat
+        // after the greeting itself stands — poll the label
+        // for it instead of reading it once, instantly.
+        let nameDeadline = Date().addingTimeInterval(20)
+        while !greeting.label.contains("Second") && Date() < nameDeadline {
+            Thread.sleep(forTimeInterval: 0.5)
+        }
         XCTAssertTrue(greeting.label.contains("Second"),
                       "second tester's greeting should use their saved name, got: \(greeting.label)")
 
@@ -67,22 +76,24 @@ final class P5JoinUITests: XCTestCase {
                       || app.staticTexts["Finish: Read 12 chapters (final look, then celebrate)"].exists)
     }
 
-    /// REST: sign in as team2, list sharedGoals, return the
-    /// id of the one titled "Read 12 chapters". The twin key
-    /// and project stand in the app target's twin branch of
-    /// record; the values are read from the same public web
-    /// config the seed scripts use.
+    /// REST: sign in as the FIRST tester (the owner), read
+    /// their own state doc, return the sharedGoalId the app
+    /// recorded on the goal titled "Read 12 chapters". The
+    /// twin key and project stand in the app target's twin
+    /// branch of record; the values are read from the same
+    /// public web config the seed scripts use.
     private static func findSharedGoalId() -> String? {
         let sema = DispatchSemaphore(value: 0)
         var found: String?
         Task {
             defer { sema.signal() }
             let key = TwinRest.apiKey
-            guard let token = await TwinRest.signIn(email: team2Email,
-                                                    password: TeamAccount.password,
-                                                    key: key) else { return }
-            found = await TwinRest.findSharedGoalId(token: token, key: key,
-                                                    title: "Read 12 chapters")
+            guard let account = await TwinRest.signIn(email: TeamAccount.email,
+                                                      password: TeamAccount.password,
+                                                      key: key) else { return }
+            found = await TwinRest.ownerSharedGoalId(token: account.token,
+                                                     uid: account.uid,
+                                                     title: "Read 12 chapters")
         }
         sema.wait()
         return found
@@ -100,7 +111,7 @@ enum TwinRest {
         "AIzaSyDummyKeyReplacedAtDriveTime000000"
     }
 
-    static func signIn(email: String, password: String, key: String) async -> String? {
+    static func signIn(email: String, password: String, key: String) async -> (token: String, uid: String)? {
         var req = URLRequest(url: URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=\(key)")!)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -108,22 +119,28 @@ enum TwinRest {
             "email": email, "password": password, "returnSecureToken": true,
         ])
         guard let (data, _) = try? await URLSession.shared.data(for: req),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
-        return json["idToken"] as? String
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let token = json["idToken"] as? String,
+              let uid = json["localId"] as? String else { return nil }
+        return (token, uid)
     }
 
-    static func findSharedGoalId(token: String, key: String, title: String) async -> String? {
-        var req = URLRequest(url: URL(string: "https://firestore.googleapis.com/v1/projects/pace-test-c00fa/databases/(default)/documents/sharedGoals")!)
+    /// The owner's own state doc (an owner reads their own
+    /// doc under the rules): find the goal by title and
+    /// return the sharedGoalId the app recorded on it when
+    /// the share was created.
+    static func ownerSharedGoalId(token: String, uid: String, title: String) async -> String? {
+        var req = URLRequest(url: URL(string: "https://firestore.googleapis.com/v1/projects/pace-test-c00fa/databases/(default)/documents/users/\(uid)/data/state")!)
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let docs = json["documents"] as? [[String: Any]] else { return nil }
-        for doc in docs {
-            let fields = doc["fields"] as? [String: Any]
-            let docTitle = (fields?["title"] as? [String: Any])?["stringValue"] as? String
-            if docTitle == title, let name = doc["name"] as? String {
-                return name.components(separatedBy: "/").last
-            }
+              let fields = json["fields"] as? [String: Any],
+              let stateJson = (fields["stateJson"] as? [String: Any])?["stringValue"] as? String,
+              let stateData = stateJson.data(using: .utf8),
+              let state = try? JSONSerialization.jsonObject(with: stateData) as? [String: Any],
+              let goals = state["goals"] as? [[String: Any]] else { return nil }
+        for goal in goals where (goal["title"] as? String) == title {
+            return goal["sharedGoalId"] as? String
         }
         return nil
     }

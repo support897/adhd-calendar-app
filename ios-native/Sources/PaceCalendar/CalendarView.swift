@@ -32,6 +32,9 @@ struct CalendarView: View {
     }
 
     var body: some View {
+        // Own stack, like Today and Goals: the toolbar
+        // (Today · Add) needs one to stand in.
+        NavigationStack {
         VStack(spacing: 0) {
             Picker("View", selection: $mode) {
                 Text("Day").tag(Mode.day)
@@ -92,6 +95,7 @@ struct CalendarView: View {
         }
         .sheet(isPresented: $showAdd) {
             AddEventView(dayKey: selectedKey)
+        }
         }
     }
 

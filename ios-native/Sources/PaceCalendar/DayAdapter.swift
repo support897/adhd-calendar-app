@@ -169,16 +169,21 @@ enum DayAdapter {
         var visible: [PaceInstance] = []
         var parked: [PaceInstance] = []
         if level == "low" {
+            // Ruled shape (Pace Boss desk ruling, 2026-11-15;
+            // the commission's words govern): essentials stand
+            // in day order; taught stand after them in day
+            // order, shown shrunk — the bare minimum never
+            // parks, no cap on minimums; from the rest, in day
+            // order, add only while the visible day is under
+            // three; everything else parks in day order,
+            // counted on the parked line, never dropped.
             let essential = sorted.filter { $0.task.essential }
             let taught = sorted.filter { !$0.task.essential && $0.task.minVersion != nil }
-            var rest = sorted.filter { !$0.task.essential && $0.task.minVersion == nil }
-            visible = Array(essential.prefix(4)) + Array(taught.prefix(3))
-            visible = Array(visible.prefix(6))
-            if taught.isEmpty && visible.count < 4 && !rest.isEmpty {
-                let tinies = Array(rest.sorted { $0.task.durationMin < $1.task.durationMin }.prefix(4 - visible.count))
-                visible += tinies
-                let tinyIds = Set(tinies.map { $0.task.id })
-                rest = rest.filter { !tinyIds.contains($0.task.id) }
+            let rest = sorted.filter { !$0.task.essential && $0.task.minVersion == nil }
+            visible = essential + taught
+            for item in rest {
+                if visible.count >= 3 { break }
+                visible.append(item)
             }
             let visibleIds = Set(visible.map { $0.task.id })
             parked = sorted.filter { !visibleIds.contains($0.task.id) }
