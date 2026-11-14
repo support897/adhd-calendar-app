@@ -1,0 +1,98 @@
+name: iOS native (SwiftUI) build
+
+# Pace cloud test lane, copied from Fit Hard's proven ios-native.yml
+# (their run 68 green, 2026-11-14) so Pace can be tested on GitHub's
+# cloud Macs while her Mac is unreachable.
+# Push to ios-native/** compiles the app for the simulator (no signing)
+# and runs the full UI test suite. TESTING ONLY — see adaptation (b).
+on:
+  push:
+    paths: ["ios-native/**", ".github/workflows/ios-native.yml"]
+  # Adaptation (b): workflow_dispatch carries NO inputs — Fit Hard's
+  # ship=true input and its signing/archive/TestFlight steps are NOT
+  # carried. Nothing in this lane can sign, archive or upload; nothing
+  # goes to Apple from here.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Adaptation (a): NO media-bundling step — that step is
+      # Fit Hard-only (it copies the web app's media into their app).
+
+      - name: Install XcodeGen and generate the project
+        working-directory: ios-native
+        run: |
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild -version
+
+      # Adaptation (c): project and scheme names are Pace's, taken from
+      # ios-native/project.yml — its name field is "Pace", so xcodegen
+      # generates Pace.xcodeproj and the scheme is "Pace" (the same
+      # names the Mac drive scripts of record use).
+      - name: Compile for the simulator (no signing)
+        working-directory: ios-native
+        run: |
+          set -o pipefail
+          xcodebuild build -project Pace.xcodeproj -scheme Pace \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Print errors on failure
+        if: failure()
+        working-directory: ios-native
+        run: grep -n "error:" build.log | head -60 || true
+
+      # Adaptation (e): SEED STEP — the UI suite assumes twin seed
+      # state on the TEST project pace-test-c00fa: TwinSignIn and the
+      # door team leg use the primary team account seeded the SAME DAY
+      # (seeded tasks stand on "today") by tools/seed-team-leg.py, and
+      # the P5 join drive uses the second account from
+      # tools/seed-team2.py. Both scripts are REST-only, so they run
+      # here on the runner before the tests. TZ is pinned to
+      # Australia/Sydney so "today" in the seed matches the tests.
+      - name: Seed the twin test accounts (REST)
+        working-directory: ios-native
+        run: |
+          TZ=Australia/Sydney python3 tools/seed-team-leg.py
+          TZ=Australia/Sydney python3 tools/seed-team2.py
+
+      # Adaptation (d): Pace has exactly ONE test target,
+      # PaceCalendarUITests (project.yml names no unit-test target),
+      # so there is a single test step running the whole suite —
+      # door floor + stage tests — instead of Fit Hard's
+      # unit/UI two-step split, and no unit.log exists.
+      - name: UI tests (door floor + P3-P7 stage tests)
+        working-directory: ios-native
+        run: |
+          set -o pipefail
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone" | head -1 | grep -oE "[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}")
+          echo "UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID" || true
+          xcodebuild test -project Pace.xcodeproj -scheme Pace -destination "id=$UDID" \
+            -only-testing:PaceCalendarUITests -resultBundlePath "$RUNNER_TEMP/ui.xcresult" CODE_SIGNING_ALLOWED=NO 2>&1 | tee ui.log | grep -E "Test Case|error:|Executed|TEST (SUCCEEDED|FAILED)" || true
+          grep -q "TEST SUCCEEDED" ui.log
+
+      # Adaptation (f): the artifact is the xcresult bundle plus the
+      # tee'd logs (build.log, ui.log), uploaded always — instead of
+      # Fit Hard's screenshots path.
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pace-test-results
+          path: |
+            ${{ runner.temp }}/ui.xcresult
+            ios-native/build.log
+            ios-native/ui.log
+          if-no-files-found: warn
+
+      - name: UI test failures
+        if: failure()
+        working-directory: ios-native
+        run: grep -nE "error:|failed" ui.log | head -60 || true
