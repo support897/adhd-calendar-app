@@ -150,11 +150,16 @@ def main():
     # spine when it is missing (a re-run's fresh stamp would be
     # refused by the write-once fence — by design, not a fault).
     s0, _ = call(FS + "users/" + uid, token=token)
+    # Spine stamps go as real Firestore timestamps: the twin's
+    # v2.6 freshCreate fence requires a timestamp type (proven
+    # 2026-11-15: stringValue creates 403; the standing team
+    # spine carries timestampValue stamps).
+    spine_fields = {"fields": {
+        "createdAt": {"timestampValue": spine_iso},
+        "lastActiveAt": {"timestampValue": spine_iso},
+        "deletedByUser": {"booleanValue": False}}}
     if s0 == 404:
-        s1, _ = call(FS + "users/" + uid,
-                     fields({"createdAt": spine_iso,
-                             "lastActiveAt": spine_iso,
-                             "deletedByUser": False}),
+        s1, _ = call(FS + "users/" + uid, spine_fields,
                      token, method="PATCH")
     else:
         s1 = s0
