@@ -39,7 +39,7 @@ run_tests() {
   xcrun simctl uninstall "$SIM" shop.ilseplacencia.pace 2>&1
   xcodebuild test-without-building -project Pace.xcodeproj -scheme Pace \
     -destination "platform=iOS Simulator,id=$SIM" \
-    -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO \
+    -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO \
     "$@" > "tests-$label.log" 2>&1
   echo "$label exit $?"
   grep -E "Test Case '.*' (passed|failed)" "tests-$label.log" | sed 's/^ *//'
@@ -63,7 +63,7 @@ case "$STAGE" in
     echo "STEP build-for-testing"
     xcodebuild build-for-testing -project Pace.xcodeproj -scheme Pace \
       -destination "platform=iOS Simulator,id=$SIM" \
-      -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO \
+      -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO \
       > build-final.log 2>&1
     echo "build exit $?"
     grep -E "(BUILD|TEST BUILD) (SUCCEEDED|FAILED)" build-final.log | tail -1

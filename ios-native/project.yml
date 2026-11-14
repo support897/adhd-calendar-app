@@ -41,6 +41,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: shop.ilseplacencia.pace
         PRODUCT_NAME: PaceCalendar
+        CODE_SIGN_ENTITLEMENTS: Sources/PaceCalendar/Pace.entitlements
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "1.0"

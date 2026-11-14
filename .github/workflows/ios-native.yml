@@ -3,15 +3,22 @@ name: iOS native (SwiftUI) build
 # Pace cloud test lane, copied from Fit Hard's proven ios-native.yml
 # (their run 68 green, 2026-11-14) so Pace can be tested on GitHub's
 # cloud Macs while her Mac is unreachable.
-# Push to ios-native/** compiles the app for the simulator (no signing)
-# and runs the full UI test suite. TESTING ONLY — see adaptation (b).
+# Push to ios-native/** compiles the app for the simulator and runs
+# the full UI test suite. TESTING ONLY — see adaptation (b).
+# SIGNING (2026-11-15, the run-2 cure): the test builds are signed
+# AD-HOC (CODE_SIGN_IDENTITY=-) with the app's Pace.entitlements
+# (keychain-access-groups). Run 2 proved an UNSIGNED build can never
+# sign in: FirebaseAuth died at the keychain with SecItemCopyMatching
+# (-34018) errSecMissingEntitlement on all 12 sign-in tests. Ad-hoc
+# signing is the CareSpace-proven cure shape; it cannot archive or
+# upload anything to Apple.
 on:
   push:
     paths: ["ios-native/**", ".github/workflows/ios-native.yml"]
   # Adaptation (b): workflow_dispatch carries NO inputs — Fit Hard's
-  # ship=true input and its signing/archive/TestFlight steps are NOT
-  # carried. Nothing in this lane can sign, archive or upload; nothing
-  # goes to Apple from here.
+  # ship=true input and its archive/TestFlight steps are NOT carried.
+  # Nothing in this lane can archive or upload; nothing goes to
+  # Apple from here.
   workflow_dispatch:
 
 jobs:
@@ -34,13 +41,13 @@ jobs:
       # ios-native/project.yml — its name field is "Pace", so xcodegen
       # generates Pace.xcodeproj and the scheme is "Pace" (the same
       # names the Mac drive scripts of record use).
-      - name: Compile for the simulator (no signing)
+      - name: Compile for the simulator (ad-hoc signed)
         working-directory: ios-native
         run: |
           set -o pipefail
           xcodebuild build -project Pace.xcodeproj -scheme Pace \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
 
       - name: Print errors on failure
@@ -75,7 +82,7 @@ jobs:
           echo "UDID=$UDID" >> $GITHUB_ENV
           xcrun simctl boot "$UDID" || true
           xcodebuild test -project Pace.xcodeproj -scheme Pace -destination "id=$UDID" \
-            -only-testing:PaceCalendarUITests -resultBundlePath "$RUNNER_TEMP/ui.xcresult" CODE_SIGNING_ALLOWED=NO 2>&1 | tee ui.log | grep -E "Test Case|error:|Executed|TEST (SUCCEEDED|FAILED)" || true
+            -only-testing:PaceCalendarUITests -resultBundlePath "$RUNNER_TEMP/ui.xcresult" CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO 2>&1 | tee ui.log | grep -E "Test Case|error:|Executed|TEST (SUCCEEDED|FAILED)" || true
           grep -q "TEST SUCCEEDED" ui.log
 
       # Adaptation (f): the artifact is the xcresult bundle plus the
