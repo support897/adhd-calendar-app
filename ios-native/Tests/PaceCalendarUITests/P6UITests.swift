@@ -23,7 +23,7 @@ final class P6UITests: XCTestCase {
     }
 
     func testMenuKindnessFirst() throws {
-        app.tabBars.buttons["More"].tap()
+        app.buttons["tab.more"].tap()
         let kindness = app.buttons["more.kindness"]
         let talk = app.buttons["more.talk"]
         XCTAssertTrue(kindness.waitForExistence(timeout: 10))
@@ -43,7 +43,7 @@ final class P6UITests: XCTestCase {
     }
 
     func testTalkParsesOnDevice() throws {
-        app.tabBars.buttons["More"].tap()
+        app.buttons["tab.more"].tap()
         app.buttons["more.talk"].tap()
         let box = app.textViews["talk.box"]
         XCTAssertTrue(box.waitForExistence(timeout: 10))
@@ -54,7 +54,7 @@ final class P6UITests: XCTestCase {
     }
 
     func testSettingsDoor() throws {
-        app.tabBars.buttons["More"].tap()
+        app.buttons["tab.more"].tap()
         app.buttons["more.settings"].tap()
         let name = app.textFields["settings.name"]
         XCTAssertTrue(name.waitForExistence(timeout: 10))

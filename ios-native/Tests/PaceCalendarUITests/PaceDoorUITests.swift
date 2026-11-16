@@ -88,7 +88,7 @@ final class PaceDoorUITests: XCTestCase {
         // so the door flow below starts from the door.
         let standingGreeting = app.staticTexts["proof.greeting"]
         if standingGreeting.waitForExistence(timeout: 8) {
-            app.tabBars.buttons["More"].tap()
+            app.buttons["tab.more"].tap()
             let signOut = app.buttons["more.signOut"]
             XCTAssertTrue(signOut.waitForExistence(timeout: 10))
             signOut.tap()

@@ -22,7 +22,7 @@ final class P5UITests: XCTestCase {
     }
 
     func testGoalPlanShareDivide() throws {
-        app.tabBars.buttons["Goals"].tap()
+        app.buttons["tab.goals"].tap()
         app.buttons["goals.add"].tap()
 
         let title = app.textFields["goalNew.title"]

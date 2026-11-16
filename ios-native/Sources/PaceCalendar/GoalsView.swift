@@ -12,6 +12,7 @@ import SwiftUI
 /// Text budget: 8 app words (Goals · Add · Join · Done).
 struct GoalsView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     @State private var showAdd = false
     @State private var showJoin = false
 
@@ -30,7 +31,7 @@ struct GoalsView: View {
                             Text("Done")
                                 .font(.paceBody(13))
                                 .fontWeight(.bold)
-                                .foregroundStyle(PaceColor.stillWater)
+                                .foregroundStyle(theme.accentOnBackground)
                                 .textCase(.uppercase)
                                 .padding(.top, 10)
                             ForEach(done) { goal in
@@ -40,7 +41,7 @@ struct GoalsView: View {
                         if state.goals.isEmpty {
                             Text("Nothing here yet")
                                 .font(.paceBody(16))
-                                .foregroundStyle(PaceColor.pine.opacity(0.6))
+                                .foregroundStyle(theme.secondaryOnBackground)
                                 .padding(.top, 8)
                         }
                     }
@@ -64,6 +65,11 @@ struct GoalsView: View {
                         }
                         .accessibilityIdentifier("goals.add")
                     }
+                    // The toolbar words sit on the system glass
+                    // capsule (FAULT 4: the tint on grey measured
+                    // 2.32) — they take the glass ink of the
+                    // pinned scheme instead of the tint.
+                    .foregroundStyle(theme.inkOnGlass)
                 }
             }
             .sheet(isPresented: $showAdd) { AddGoalView() }
@@ -112,7 +118,7 @@ struct GoalsView: View {
                     Text(goal.shortName)
                         .font(.paceBody(17))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.pine)
+                        .foregroundStyle(theme.inkOnCard)
                         .multilineTextAlignment(.leading)
                     Spacer(minLength: 0)
                     Circle().fill(colour).frame(width: 10, height: 10)
@@ -123,23 +129,36 @@ struct GoalsView: View {
                             .foregroundStyle(colour)
                         Text("All done")
                             .font(.paceBody(15))
-                            .foregroundStyle(PaceColor.pine.opacity(0.7))
+                            .foregroundStyle(theme.secondaryOnCard)
                     }
                 } else if let next = progress.next {
                     Text(next.title)
                         .font(.paceBody(15))
-                        .foregroundStyle(PaceColor.pine.opacity(0.75))
+                        .foregroundStyle(theme.secondaryOnCard)
                         .lineLimit(1)
                 }
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(colour.opacity(0.18))
-                        Capsule().fill(colour)
-                            .frame(width: progress.total > 0
-                                   ? geo.size.width * CGFloat(progress.done) / CGFloat(progress.total) : 0)
+                // Her word (16 Nov, steer 4): every card
+                // shows its percentage done — one small
+                // number WITH the soft bar (the bar stays).
+                // Steps done of total, from the plan data
+                // the card already holds. This supersedes
+                // the 13 Nov no-percent shape line.
+                HStack(spacing: 8) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(colour.opacity(0.18))
+                            Capsule().fill(colour)
+                                .frame(width: progress.total > 0
+                                       ? geo.size.width * CGFloat(progress.done) / CGFloat(progress.total) : 0)
+                        }
                     }
+                    .frame(height: 7)
+                    Text("\(progress.total > 0 ? Int((100.0 * Double(progress.done) / Double(progress.total)).rounded()) : 0)%")
+                        .font(.paceBody(12))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(theme.secondaryOnCard)
+                        .accessibilityIdentifier("goals.percent.\(goal.id)")
                 }
-                .frame(height: 7)
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -147,7 +166,7 @@ struct GoalsView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(colour.opacity(0.55), lineWidth: 1.5)
+                    .stroke(colour, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)
@@ -163,14 +182,14 @@ struct GoalsView: View {
            let value = UInt32(hex.dropFirst(), radix: 16) {
             return Color(hex: value)
         }
-        let palette: [UInt32] = [0x5B6BD5, 0xF0A868, 0x8E7CC3, 0x35704E, 0xE85D75, 0x3F536E, 0xC9920E, 0x7A8699]
+        let palette: [UInt32] = [0x5B6BD5, 0xCA6914, 0x8E7CC3, 0x35704E, 0xE85D75, 0x3F536E, 0xB6840D, 0x7A8699]
         let hash = abs(goal.id.hashValue)
         return Color(hex: palette[hash % palette.count])
     }
 
     static let categoryColours: [String: String] = [
         "personal": "#8E7CC3", "school": "#5B6BD5", "work": "#3F536E",
-        "health": "#E85D75", "money": "#C9920E", "home": "#35704E",
+        "health": "#E85D75", "money": "#B6840D", "home": "#35704E",
         "other": "#7A8699",
     ]
 

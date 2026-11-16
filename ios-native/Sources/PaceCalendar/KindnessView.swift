@@ -9,6 +9,7 @@ import SafariServices
 /// The amounts ride to the giving page as its `amount`
 /// word, the same shape the sister apps use.
 struct KindnessView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @State private var ownAmount: String = ""
     @State private var safariURL: URL?
 
@@ -34,7 +35,7 @@ struct KindnessView: View {
                 Text("Small kindness, shared wide.")
                     .font(.paceHeading(22))
                     .fontWeight(.semibold)
-                    .foregroundStyle(PaceColor.pine)
+                    .foregroundStyle(theme.inkOnBackground)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     ForEach(amounts, id: \.self) { amount in
@@ -44,13 +45,13 @@ struct KindnessView: View {
                             Text("$\(amount)")
                                 .font(.paceHeading(20))
                                 .fontWeight(.semibold)
-                                .foregroundStyle(PaceColor.pine)
+                                .foregroundStyle(theme.inkOnCard)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
                                 .background(PaceColor.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(PaceColor.apricot.opacity(0.7), lineWidth: 1.5))
+                                    .stroke(PaceColor.apricotDeep, lineWidth: 1.5))
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("kindness.amount.\(amount)")
@@ -61,12 +62,13 @@ struct KindnessView: View {
                     TextField("Your own amount", text: $ownAmount)
                         .keyboardType(.numberPad)
                         .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 12)
                         .background(PaceColor.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(PaceColor.waterLight.opacity(0.6), lineWidth: 1))
+                            .stroke(PaceColor.waterMid, lineWidth: 1))
                         .accessibilityIdentifier("kindness.ownField")
                     Button("Give") {
                         if let amount = Int(ownAmount), amount > 0 {

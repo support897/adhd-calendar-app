@@ -25,7 +25,7 @@ final class CalendarUITests: XCTestCase {
     func testCalendarStandsAndFilters() throws {
         let today = TwinSignIn.todayKey()
 
-        app.tabBars.buttons["Calendar"].tap()
+        app.buttons["tab.calendar"].tap()
         XCTAssertTrue(app.otherElements["calendar.monthGrid"].waitForExistence(timeout: 10)
                       || app.descendants(matching: .any)["calendar.monthGrid"].waitForExistence(timeout: 5))
 
@@ -54,7 +54,7 @@ final class CalendarUITests: XCTestCase {
     }
 
     func testGoalsEntryFiltersCalendar() throws {
-        app.tabBars.buttons["Goals"].tap()
+        app.buttons["tab.goals"].tap()
         let entry = app.buttons["goals.entry.g1"]
         XCTAssertTrue(entry.waitForExistence(timeout: 10))
         entry.tap()

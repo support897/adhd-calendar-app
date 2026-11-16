@@ -10,6 +10,31 @@ enum PaceColor {
     static let apricot = Color(hex: 0xF0A868)
     static let pine = Color(hex: 0x21392E)
     static let white = Color.white
+    /// The guide's own deeper water (--water-deep in
+    /// SPEC-VISUAL): the accent step that passes as TEXT on
+    /// the light surfaces (5.5+ : 1 where Still Water is 4.27).
+    static let waterDeep = Color(hex: 0x4858C4)
+    /// The guide's own soft ink (--soft in SPEC-VISUAL): the
+    /// secondary-ink role, a solid colour where faded Pine
+    /// (0.4–0.6 opacity) measured 2.2–3.6 : 1 and failed.
+    static let softInk = Color(hex: 0x5C6B62)
+    /// Water Light deepened with its hue held (computed in
+    /// tools/contrast_audit.py): the muted-icon and control-
+    /// boundary role on light surfaces — 4.05 on white,
+    /// 3.71 on Porcelain, 3.39 on Beige (Water Light itself
+    /// measured 1.6–1.9 and failed every boundary it drew).
+    static let waterMid = Color(hex: 0x6477DB)
+    /// Apricot deepened with its hue held (same script): the
+    /// apricot role wherever apricot carries meaning on a
+    /// light surface (state dots, card borders, goal colour)
+    /// — 3.78 on white (Apricot itself measured 2.00).
+    static let apricotDeep = Color(hex: 0xCA6914)
+    /// Secondary ink for the dark world (on #14181F: 9.89).
+    static let mistSoft = Color(hex: 0xB9C4BB)
+    /// The guide's line colour (--line in SPEC-VISUAL):
+    /// decoration only — hairlines and the progress ring's
+    /// track, where the ring's FILL carries the meaning.
+    static let lineMist = Color(hex: 0xDFE4F2)
 }
 
 extension Color {
@@ -61,11 +86,89 @@ final class ThemeStore: ObservableObject {
     }
 
     /// Ink for words that sit directly on the background.
+    /// White on the brand world is deliberate: it is the only
+    /// ink that reaches 4.5:1 on Still Water — Porcelain
+    /// measures 4.27 there and fails as text. Every view takes
+    /// its on-background words from these role tokens; before
+    /// the contrast round this token existed and NO view used
+    /// it, while the views hardcoded Pine — invisible on the
+    /// dark and brand worlds (measured in CONTRAST-RESEARCH).
     var inkOnBackground: Color {
         switch key {
-        case "dark", "brand": return PaceColor.porcelain
+        case "dark": return PaceColor.porcelain
+        case "brand": return PaceColor.white
         default: return PaceColor.pine
         }
+    }
+
+    /// Secondary words on the background: the guide's soft
+    /// ink on the light worlds (5.16 white · 4.71 beige), a
+    /// mist step on the dark one (9.89), white on brand.
+    var secondaryOnBackground: Color {
+        switch key {
+        case "dark": return PaceColor.mistSoft
+        case "brand": return PaceColor.white
+        default: return PaceColor.softInk
+        }
+    }
+
+    /// The accent as TEXT on the background (links, small
+    /// action words): the deep step on the light worlds, the
+    /// light step on the dark one, white on brand.
+    var accentOnBackground: Color {
+        switch key {
+        case "dark": return PaceColor.waterLight
+        case "brand": return PaceColor.white
+        default: return PaceColor.waterDeep
+        }
+    }
+
+    /// Meaningful icons that sit on the background (open tick
+    /// circles, status icons): the mid step on the light
+    /// worlds, Water Light on dark, white on brand.
+    var iconOnBackground: Color {
+        switch key {
+        case "dark": return PaceColor.waterLight
+        case "brand": return PaceColor.white
+        default: return PaceColor.waterMid
+        }
+    }
+
+    // Cards are white paper in every theme (the standing
+    // design above), so the on-card roles are constants —
+    // on white: ink Pine 12.43 · secondary Soft 5.62 ·
+    // accent Water Deep 6.05 · muted icon and boundary
+    // waterMid 4.05 (tools/contrast_audit.py).
+    var inkOnCard: Color { PaceColor.pine }
+    var secondaryOnCard: Color { PaceColor.softInk }
+    var accentOnCard: Color { PaceColor.waterDeep }
+    var iconOnCard: Color { PaceColor.waterMid }
+
+    /// Accent text whose surface is the SYSTEM's own (Form
+    /// rows): the form card is white in the light worlds and
+    /// #1C1C1E in the dark one — Water Deep 6.05 on white,
+    /// Water Light 8.80 on the dark card.
+    var accentOnSystemSurface: Color {
+        key == "dark" ? PaceColor.waterLight : PaceColor.waterDeep
+    }
+
+    /// Toolbar words (the Goals Join / Add pair) sit on the
+    /// system glass capsule, which follows the pinned scheme:
+    /// a light glass in the light worlds (Pine ink), a dark
+    /// glass in the dark one (Porcelain ink). The rendered
+    /// pairings are pixel-measured in the look proof.
+    var inkOnGlass: Color {
+        key == "dark" ? PaceColor.porcelain : PaceColor.pine
+    }
+
+    /// The colour scheme the system chrome (navigation titles,
+    /// list and form surfaces, the tab bar, pickers, sheets)
+    /// must follow: the app's chosen world, never the phone's.
+    /// This one pin is the cure for her build-55 pictures —
+    /// dark system chrome over the light Porcelain world made
+    /// titles white-on-white and the More card near-black.
+    var scheme: ColorScheme {
+        key == "dark" ? .dark : .light
     }
 
     var accent: Color {
@@ -100,7 +203,7 @@ struct PacePill: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(PaceColor.waterLight.opacity(prominent ? 0 : 0.7), lineWidth: 1)
+                        .stroke(PaceColor.waterMid.opacity(prominent ? 0 : 1), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)

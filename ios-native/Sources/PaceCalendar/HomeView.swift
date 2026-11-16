@@ -1,31 +1,106 @@
 import SwiftUI
 
-/// HOME — the landing shell in her home order (Phase 1):
-/// (1) Today, (2) Goals, (3) the calendar calm behind them,
-/// then More, the quiet hub the later steps fill (to do,
-/// habits, progress, talk, settings, Plus, kindness).
+/// HOME — the landing shell in her home order: (1) Today,
+/// (2) Goals, (3) the calendar calm behind them, then —
+/// round 2, her order of 16 Nov — (4) Habits and (5) Talk
+/// standing on the bar themselves, then (6) More, the quiet
+/// hub (to do, progress, settings, Plus, kindness first).
 /// ProofView is retired here by name, per the P3 commission —
 /// its greeting anchor lives on in TodayView.
 struct HomeView: View {
+    @EnvironmentObject private var theme: ThemeStore
+    @State private var selection = "today"
+
     var body: some View {
-        TabView {
-            TodayView()
-                .tabItem { Label("Today", systemImage: "sun.max") }
-                .accessibilityIdentifier("tab.today")
-
-            GoalsView()
-                .tabItem { Label("Goals", systemImage: "target") }
-                .accessibilityIdentifier("tab.goals")
-
-            CalendarView()
-                .tabItem { Label("Calendar", systemImage: "calendar") }
-                .accessibilityIdentifier("tab.calendar")
-
-            MoreView()
-                .tabItem { Label("More", systemImage: "ellipsis") }
-                .accessibilityIdentifier("tab.more")
+        ZStack {
+            tabLayer("today") { TodayView() }
+            tabLayer("goals") { GoalsView() }
+            tabLayer("calendar") { CalendarView() }
+            tabLayer("habits") { NavigationStack { HabitsView() } }
+            tabLayer("talk") { NavigationStack { TalkView() } }
+            tabLayer("more") { MoreView() }
         }
-        .tint(PaceColor.stillWater)
+        .safeAreaInset(edge: .bottom, spacing: 0) { bar }
+        // Toolbar words inside the tabs take the tint: the
+        // accent step that measures on the pinned scheme's
+        // surfaces (Water Deep in the light worlds, Water
+        // Light in the dark one).
+        .tint(theme.accentOnSystemSurface)
+    }
+
+    /// One tab's world, kept alive the way the system bar
+    /// kept them: only the chosen one shows, touches and
+    /// speaks; the rest stand silent with their state kept.
+    /// An unchosen layer is .hidden() — TRULY out of the
+    /// accessibility tree, as an unselected system tab was.
+    /// (Opacity + accessibilityHidden leaked: the first bar
+    /// drive found Today's and the Calendar's same task
+    /// tick twice — "multiple matching elements" — because
+    /// a faded layer still speaks to the tree.)
+    private func tabLayer<Content: View>(_ id: String,
+                                         @ViewBuilder content: () -> Content) -> some View {
+        Group {
+            if selection == id {
+                content()
+            } else {
+                content()
+                    .hidden()
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    /// THE BAR (round 2): her six items in her order —
+    /// Today · Goals · Calendar · Habits · Talk · More. The
+    /// bar is hand-built because the system tab bar folds
+    /// everything past five into its own overflow "More":
+    /// proven on this build's first combined drive, where
+    /// six items showed as four plus the system's More and
+    /// MoreView never stood (the P4 leg's "more.todos"
+    /// found no match). Calm, per her clean steer: an icon
+    /// over a small word; the chosen item in the accent ink,
+    /// the rest in the secondary ink — both roles measured
+    /// at 4.5:1 or better on the world's colour in every
+    /// theme (CONTRAST-RESEARCH). The identifiers are the
+    /// standing tab.* contract, unchanged.
+    private var bar: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(PaceColor.lineMist)
+                .frame(height: 1)
+            HStack(spacing: 0) {
+                barItem("today", "Today", "sun.max")
+                barItem("goals", "Goals", "target")
+                barItem("calendar", "Calendar", "calendar")
+                barItem("habits", "Habits", "leaf")
+                barItem("talk", "Talk", "mic")
+                barItem("more", "More", "ellipsis")
+            }
+            .padding(.top, 7)
+            .padding(.bottom, 2)
+        }
+        .background(ThemedBackground())
+    }
+
+    private func barItem(_ id: String, _ label: String, _ symbol: String) -> some View {
+        Button {
+            selection = id
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: symbol)
+                    .font(.system(size: 20))
+                Text(label)
+                    .font(.paceBody(10))
+                    .fontWeight(.semibold)
+            }
+            .foregroundStyle(selection == id ? theme.accentOnBackground
+                                             : theme.secondaryOnBackground)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("tab.\(id)")
     }
 }
 
@@ -48,6 +123,7 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.kindness")
+                .listRowBackground(PaceColor.white)
 
                 NavigationLink {
                     TalkView()
@@ -57,6 +133,7 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.talk")
+                .listRowBackground(PaceColor.white)
 
                 NavigationLink {
                     TodosView()
@@ -66,6 +143,7 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.todos")
+                .listRowBackground(PaceColor.white)
 
                 NavigationLink {
                     HabitsView()
@@ -75,6 +153,7 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.habits")
+                .listRowBackground(PaceColor.white)
 
                 NavigationLink {
                     ProgressView()
@@ -84,6 +163,7 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.progress")
+                .listRowBackground(PaceColor.white)
 
                 NavigationLink {
                     PlusView()
@@ -93,6 +173,7 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.plus")
+                .listRowBackground(PaceColor.white)
 
                 NavigationLink {
                     SettingsView()
@@ -102,13 +183,15 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.settings")
+                .listRowBackground(PaceColor.white)
 
                 Button("Sign out") {
                     session.signOut()
                 }
                 .font(.paceBody(16))
-                .foregroundStyle(PaceColor.stillWater)
+                .foregroundStyle(PaceColor.waterDeep)
                 .accessibilityIdentifier("more.signOut")
+                .listRowBackground(PaceColor.white)
             }
             .scrollContentBackground(.hidden)
             .background(ThemedBackground())

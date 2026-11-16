@@ -29,7 +29,7 @@ final class P5JoinUITests: XCTestCase {
     func testJoinSharedGoal() throws {
         // Sign out whoever is in, then in as the second tester.
         if app.staticTexts["proof.greeting"].waitForExistence(timeout: 8) {
-            app.tabBars.buttons["More"].tap()
+            app.buttons["tab.more"].tap()
             let signOut = app.buttons["more.signOut"]
             XCTAssertTrue(signOut.waitForExistence(timeout: 10))
             signOut.tap()
@@ -60,7 +60,7 @@ final class P5JoinUITests: XCTestCase {
         // through the app's own Join door.
         let goalId = try XCTUnwrap(Self.findSharedGoalId(),
                                    "no shared goal titled 'Read 12 chapters' found over REST")
-        app.tabBars.buttons["Goals"].tap()
+        app.buttons["tab.goals"].tap()
         app.buttons["goals.join"].tap()
         let field = app.textFields["join.field"]
         XCTAssertTrue(field.waitForExistence(timeout: 10))

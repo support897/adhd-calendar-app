@@ -8,6 +8,7 @@ import SwiftUI
 /// above the name (variant D, the same art as the app icon).
 struct DoorView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
 
     var body: some View {
         NavigationStack {
@@ -24,7 +25,7 @@ struct DoorView: View {
                 Text("Pace Calendar")
                     .font(.paceHeading(32))
                     .fontWeight(.semibold)
-                    .foregroundStyle(PaceColor.pine)
+                    .foregroundStyle(theme.inkOnBackground)
                     .padding(.bottom, 26)
 
                 PacePill(title: "Google") {
@@ -43,7 +44,7 @@ struct DoorView: View {
                     Text("Email instead")
                         .font(.paceBody(15))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.stillWater)
+                        .foregroundStyle(theme.accentOnBackground)
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())
                 }

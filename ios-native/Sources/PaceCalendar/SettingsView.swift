@@ -22,7 +22,7 @@ struct SettingsView: View {
                 }
                 .font(.paceBody(16))
                 .fontWeight(.semibold)
-                .foregroundStyle(PaceColor.stillWater)
+                .foregroundStyle(theme.accentOnSystemSurface)
                 .accessibilityIdentifier("settings.saveName")
             }
 
@@ -64,7 +64,7 @@ struct SettingsView: View {
                     session.signOut()
                 }
                 .font(.paceBody(16))
-                .foregroundStyle(PaceColor.stillWater)
+                .foregroundStyle(theme.accentOnSystemSurface)
                 .accessibilityIdentifier("settings.signOut")
             }
         }

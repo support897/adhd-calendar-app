@@ -9,6 +9,7 @@ import SwiftUI
 /// as documents, the divide by strengths).
 struct GoalDetailView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     let goal: PaceGoal
     @State private var showShare = false
 
@@ -45,14 +46,14 @@ struct GoalDetailView: View {
                     Text(goal.title)
                         .font(.paceHeading(21))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.pine)
+                        .foregroundStyle(theme.inkOnBackground)
                 }
                 .accessibilityIdentifier("goal.title")
 
                 if steps.isEmpty {
                     Text("Nothing here yet")
                         .font(.paceBody(16))
-                        .foregroundStyle(PaceColor.pine.opacity(0.6))
+                        .foregroundStyle(theme.secondaryOnBackground)
                 }
 
                 ForEach(weeks) { week in
@@ -60,7 +61,7 @@ struct GoalDetailView: View {
                         Text(weekTitle(week.start))
                             .font(.paceBody(13))
                             .fontWeight(.bold)
-                            .foregroundStyle(PaceColor.stillWater)
+                            .foregroundStyle(theme.accentOnBackground)
                             .textCase(.uppercase)
                         ForEach(week.steps) { step in
                             stepRow(step)
@@ -75,7 +76,7 @@ struct GoalDetailView: View {
                         Label("Calendar", systemImage: "calendar")
                             .font(.paceBody(15))
                             .fontWeight(.semibold)
-                            .foregroundStyle(PaceColor.stillWater)
+                            .foregroundStyle(theme.accentOnBackground)
                             .frame(minHeight: 44)
                     }
                     .accessibilityIdentifier("goal.openCalendar")
@@ -86,7 +87,7 @@ struct GoalDetailView: View {
                         Label("Share", systemImage: "link")
                             .font(.paceBody(15))
                             .fontWeight(.semibold)
-                            .foregroundStyle(PaceColor.stillWater)
+                            .foregroundStyle(theme.accentOnBackground)
                             .frame(minHeight: 44)
                     }
                     .accessibilityIdentifier("goal.share")
@@ -113,7 +114,7 @@ struct GoalDetailView: View {
             } label: {
                 Image(systemName: step.status == "done" ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22))
-                    .foregroundStyle(step.status == "done" ? PaceColor.stillWater : PaceColor.waterLight)
+                    .foregroundStyle(step.status == "done" ? theme.accentOnBackground : theme.iconOnBackground)
             }
             .buttonStyle(.plain)
             .frame(minHeight: 44)
@@ -124,7 +125,7 @@ struct GoalDetailView: View {
                 if let minVersion = step.minVersion {
                     Text(minVersion)
                         .font(.paceBody(13))
-                        .foregroundStyle(PaceColor.pine.opacity(0.55))
+                        .foregroundStyle(theme.secondaryOnBackground)
                 }
             }
         }

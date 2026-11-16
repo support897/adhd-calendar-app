@@ -11,6 +11,7 @@ import SwiftUI
 /// door. Text budget: 6 app words (Habits · Add).
 struct HabitsView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     @State private var draft: String = ""
     @State private var showAdd = false
 
@@ -23,7 +24,7 @@ struct HabitsView: View {
                     if state.habits.isEmpty {
                         Text("Nothing here yet")
                             .font(.paceBody(16))
-                            .foregroundStyle(PaceColor.pine.opacity(0.6))
+                            .foregroundStyle(theme.secondaryOnBackground)
                             .padding(.vertical, 8)
                     }
                     ForEach(state.habits) { habit in
@@ -35,12 +36,13 @@ struct HabitsView: View {
                     HStack(spacing: 10) {
                         TextField("Name", text: $draft)
                             .font(.paceBody(16))
+                            .foregroundStyle(PaceColor.pine)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 12)
                             .background(PaceColor.white)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(PaceColor.waterLight.opacity(0.6), lineWidth: 1))
+                                .stroke(PaceColor.waterMid, lineWidth: 1))
                             .accessibilityIdentifier("habits.nameField")
                         Button("Add") {
                             let name = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -51,7 +53,7 @@ struct HabitsView: View {
                         }
                         .font(.paceBody(16))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.stillWater)
+                        .foregroundStyle(theme.accentOnBackground)
                         .frame(minHeight: 44)
                         .accessibilityIdentifier("habits.addSave")
                     }
@@ -83,31 +85,41 @@ struct HabitsView: View {
         return HStack(spacing: 14) {
             Image(systemName: Self.symbol(for: habit.icon))
                 .font(.system(size: 19))
-                .foregroundStyle(PaceColor.stillWater)
+                .foregroundStyle(theme.accentOnCard)
                 .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(habit.name)
                     .font(.paceBody(16))
                     .fontWeight(.semibold)
-                    .foregroundStyle(PaceColor.pine)
+                    .foregroundStyle(theme.inkOnCard)
                 HStack(spacing: 5) {
                     ForEach(Array(streak.last7.enumerated()), id: \.offset) { _, day in
-                        Circle()
-                            .fill(day.done ? PaceColor.apricot : PaceColor.waterLight.opacity(0.45))
-                            .frame(width: 8, height: 8)
+                        // State by shape, not by a fade: a
+                        // filled deep-apricot dot for done, a
+                        // waterMid ring for not yet (the old
+                        // Water Light@0.45 measured 1.32).
+                        if day.done {
+                            Circle()
+                                .fill(PaceColor.apricotDeep)
+                                .frame(width: 8, height: 8)
+                        } else {
+                            Circle()
+                                .stroke(PaceColor.waterMid, lineWidth: 1.5)
+                                .frame(width: 8, height: 8)
+                        }
                     }
                     if streak.current > 0 {
                         Text("\(streak.current) in a row")
                             .font(.paceBody(13))
-                            .foregroundStyle(PaceColor.pine.opacity(0.55))
+                            .foregroundStyle(theme.secondaryOnCard)
                             .padding(.leading, 4)
                     }
                 }
                 if !habit.tiny.isEmpty {
                     Text(habit.tiny)
                         .font(.paceBody(13))
-                        .foregroundStyle(PaceColor.pine.opacity(0.55))
+                        .foregroundStyle(theme.secondaryOnCard)
                 }
             }
 
@@ -118,7 +130,7 @@ struct HabitsView: View {
             } label: {
                 Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 26))
-                    .foregroundStyle(ticked ? PaceColor.stillWater : PaceColor.waterLight)
+                    .foregroundStyle(ticked ? theme.accentOnCard : theme.iconOnCard)
             }
             .buttonStyle(.plain)
             .frame(minHeight: 44)
@@ -128,7 +140,7 @@ struct HabitsView: View {
         .background(PaceColor.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .stroke(PaceColor.waterLight.opacity(0.5), lineWidth: 1))
+            .stroke(PaceColor.waterMid, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("habits.row.\(habit.id)")
     }

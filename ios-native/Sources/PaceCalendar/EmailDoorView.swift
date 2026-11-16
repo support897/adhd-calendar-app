@@ -9,6 +9,7 @@ import SwiftUI
 /// a success walks straight inside.
 struct EmailDoorView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     @State private var email = ""
     @State private var password = ""
     @State private var name = ""
@@ -53,7 +54,7 @@ struct EmailDoorView: View {
             }
             .font(.paceBody(15))
             .fontWeight(.semibold)
-            .foregroundStyle(PaceColor.stillWater)
+            .foregroundStyle(theme.accentOnBackground)
             .frame(minHeight: 44)
             .contentShape(Rectangle())
             .accessibilityIdentifier("email.switchMode")
@@ -77,7 +78,7 @@ private extension View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(PaceColor.waterLight.opacity(0.7), lineWidth: 1)
+                    .stroke(PaceColor.waterMid, lineWidth: 1)
             )
     }
 }

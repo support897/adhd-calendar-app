@@ -8,6 +8,7 @@ import SwiftUI
 /// real. Text budget: 10 app words per screen.
 struct ShareGoalView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     let goal: PaceGoal
     let steps: [PaceTask]
     @State private var shared: SharedGoal?
@@ -20,7 +21,7 @@ struct ShareGoalView: View {
                     if let shared {
                         Text(SharedGoals.shareLink(shared.id))
                             .font(.paceBody(14))
-                            .foregroundStyle(PaceColor.stillWater)
+                            .foregroundStyle(theme.accentOnBackground)
                             .textSelection(.enabled)
                             .accessibilityIdentifier("share.link")
 
@@ -31,7 +32,7 @@ struct ShareGoalView: View {
                         }
                         .font(.paceBody(16))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.stillWater)
+                        .foregroundStyle(theme.accentOnBackground)
                         .frame(minHeight: 44)
                         .accessibilityIdentifier("share.divide")
 
@@ -40,7 +41,7 @@ struct ShareGoalView: View {
                         Text(goal.shortName)
                             .font(.paceHeading(20))
                             .fontWeight(.semibold)
-                            .foregroundStyle(PaceColor.pine)
+                            .foregroundStyle(theme.inkOnBackground)
                         Button {
                             create()
                         } label: {
@@ -52,7 +53,7 @@ struct ShareGoalView: View {
                         .disabled(working)
                         .accessibilityIdentifier("share.create")
                     }
-                    if working { ProgressView().tint(PaceColor.stillWater) }
+                    if working { ProgressView().tint(theme.accentOnBackground) }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(22)
@@ -67,14 +68,14 @@ struct ShareGoalView: View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(shared.members.keys.sorted()), id: \.self) { uid in
                 HStack(spacing: 8) {
-                    Circle().fill(PaceColor.apricot).frame(width: 8, height: 8)
+                    Circle().fill(PaceColor.apricotDeep).frame(width: 8, height: 8)
                     Text(shared.members[uid]?.name ?? "")
                         .font(.paceBody(15))
-                        .foregroundStyle(PaceColor.pine)
+                        .foregroundStyle(theme.inkOnBackground)
                     if !(shared.members[uid]?.focus.isEmpty ?? true) {
                         Text(shared.members[uid]?.focus ?? "")
                             .font(.paceBody(13))
-                            .foregroundStyle(PaceColor.pine.opacity(0.55))
+                            .foregroundStyle(theme.secondaryOnBackground)
                     }
                 }
             }
@@ -92,7 +93,7 @@ struct ShareGoalView: View {
                         } label: {
                             Image(systemName: step.status == "done" ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 22))
-                                .foregroundStyle(step.status == "done" ? PaceColor.stillWater : PaceColor.waterLight)
+                                .foregroundStyle(step.status == "done" ? theme.accentOnBackground : theme.iconOnBackground)
                         }
                         .buttonStyle(.plain)
                         .frame(minHeight: 44)
@@ -100,16 +101,16 @@ struct ShareGoalView: View {
                     } else {
                         Image(systemName: step.status == "done" ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 22))
-                            .foregroundStyle(PaceColor.waterLight.opacity(0.6))
+                            .foregroundStyle(theme.iconOnBackground)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(step.title)
                             .font(.paceBody(15))
-                            .foregroundStyle(PaceColor.pine.opacity(step.status == "done" ? 0.45 : 1))
+                            .foregroundStyle(step.status == "done" ? theme.secondaryOnBackground : theme.inkOnBackground)
                             .strikethrough(step.status == "done")
                         Text(assigneeLine(shared, step))
                             .font(.paceBody(13))
-                            .foregroundStyle(PaceColor.pine.opacity(0.55))
+                            .foregroundStyle(theme.secondaryOnBackground)
                     }
                     Spacer(minLength: 0)
                 }
@@ -194,6 +195,7 @@ struct ShareGoalView: View {
 /// then the goal's steps stand here.
 struct JoinGoalView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     @Environment(\.dismiss) private var dismiss
     @State private var link: String = ""
     @State private var joined: SharedGoal?
@@ -206,12 +208,13 @@ struct JoinGoalView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     TextField("Paste the link", text: $link)
                         .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 12)
                         .background(PaceColor.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(PaceColor.waterLight.opacity(0.6), lineWidth: 1))
+                            .stroke(PaceColor.waterMid, lineWidth: 1))
                         .accessibilityIdentifier("join.field")
 
                     Button("Join") {
@@ -219,7 +222,7 @@ struct JoinGoalView: View {
                     }
                     .font(.paceBody(16))
                     .fontWeight(.semibold)
-                    .foregroundStyle(PaceColor.stillWater)
+                    .foregroundStyle(theme.accentOnBackground)
                     .frame(minHeight: 44)
                     .disabled(working || link.isEmpty)
                     .accessibilityIdentifier("join.submit")
@@ -227,23 +230,23 @@ struct JoinGoalView: View {
                     if notFound {
                         Text("That goal could not be found.")
                             .font(.paceBody(15))
-                            .foregroundStyle(PaceColor.pine.opacity(0.7))
+                            .foregroundStyle(theme.secondaryOnBackground)
                     }
-                    if working { ProgressView().tint(PaceColor.stillWater) }
+                    if working { ProgressView().tint(theme.accentOnBackground) }
 
                     if let joined {
                         Text(joined.title)
                             .font(.paceHeading(19))
                             .fontWeight(.semibold)
-                            .foregroundStyle(PaceColor.pine)
+                            .foregroundStyle(theme.inkOnBackground)
                             .accessibilityIdentifier("join.title")
                         ForEach(joined.steps) { step in
                             HStack(spacing: 10) {
                                 Image(systemName: step.status == "done" ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(step.status == "done" ? PaceColor.stillWater : PaceColor.waterLight)
+                                    .foregroundStyle(step.status == "done" ? theme.accentOnBackground : theme.iconOnBackground)
                                 Text(step.title)
                                     .font(.paceBody(15))
-                                    .foregroundStyle(PaceColor.pine)
+                                    .foregroundStyle(theme.inkOnBackground)
                                 Spacer(minLength: 0)
                             }
                         }

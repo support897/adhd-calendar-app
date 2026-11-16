@@ -9,6 +9,7 @@ import SwiftUI
 /// Text budget: 7 app words — the question is 4.
 struct CheckInView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     let dayKey: String
     var onAnswered: (() -> Void)? = nil
 
@@ -16,11 +17,22 @@ struct CheckInView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("How do you feel?")
-                .font(.paceHeading(22))
-                .fontWeight(.semibold)
-                .foregroundStyle(PaceColor.pine)
-                .accessibilityIdentifier("checkin.question")
+            // Skip stands at the check-in (round 2): the
+            // mascot of record at the day's emotional moment
+            // — a character who cheers you on, per the
+            // motivation research (Finch's shape).
+            HStack(spacing: 12) {
+                Image("Mark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .accessibilityHidden(true)
+                Text("How do you feel?")
+                    .font(.paceHeading(22))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(theme.inkOnCard)
+                    .accessibilityIdentifier("checkin.question")
+            }
 
             HStack(spacing: 10) {
                 ForEach(order, id: \.self) { key in
@@ -38,7 +50,7 @@ struct CheckInView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(PaceColor.waterLight.opacity(isChosen(key) ? 0 : 0.7), lineWidth: 1)
+                                    .stroke(PaceColor.waterMid.opacity(isChosen(key) ? 0 : 1), lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -52,7 +64,7 @@ struct CheckInView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(PaceColor.waterLight.opacity(0.5), lineWidth: 1)
+                .stroke(PaceColor.waterMid, lineWidth: 1)
         )
     }
 

@@ -23,7 +23,7 @@ final class P7UITests: XCTestCase {
     }
 
     func testPlusScreenStands() throws {
-        app.tabBars.buttons["More"].tap()
+        app.buttons["tab.more"].tap()
         app.buttons["more.plus"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["plus.screen"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["A$4.99"].waitForExistence(timeout: 10))
@@ -38,7 +38,7 @@ final class P7UITests: XCTestCase {
     }
 
     func testNotificationsOnByDefault() throws {
-        app.tabBars.buttons["More"].tap()
+        app.buttons["tab.more"].tap()
         app.buttons["more.settings"].tap()
         let tasks = app.switches["settings.notifStart"]
         XCTAssertTrue(tasks.waitForExistence(timeout: 10))

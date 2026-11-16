@@ -16,6 +16,7 @@ import AVFoundation
 /// Text budget: 5 app words (Talk · Say it plainly · Add).
 struct TalkView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     @StateObject private var voice = VoiceBox()
     @State private var text: String = ""
     @State private var landed: Int = 0
@@ -25,6 +26,7 @@ struct TalkView: View {
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $text)
                     .font(.paceBody(17))
+                    .foregroundStyle(PaceColor.pine)
                     .padding(10)
                     .frame(minHeight: 110)
                     .scrollContentBackground(.hidden)
@@ -32,7 +34,7 @@ struct TalkView: View {
                 if text.isEmpty {
                     Text("Say it plainly")
                         .font(.paceBody(17))
-                        .foregroundStyle(PaceColor.pine.opacity(0.4))
+                        .foregroundStyle(PaceColor.softInk)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 16)
                 }
@@ -40,7 +42,7 @@ struct TalkView: View {
             .background(PaceColor.white)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(PaceColor.waterLight.opacity(0.6), lineWidth: 1))
+                .stroke(PaceColor.waterMid, lineWidth: 1))
 
             HStack(spacing: 12) {
                 Button {
@@ -50,11 +52,11 @@ struct TalkView: View {
                 } label: {
                     Image(systemName: voice.listening ? "mic.fill" : "mic")
                         .font(.system(size: 20))
-                        .foregroundStyle(voice.listening ? PaceColor.apricot : PaceColor.stillWater)
+                        .foregroundStyle(voice.listening ? PaceColor.apricotDeep : theme.accentOnCard)
                         .frame(width: 48, height: 48)
                         .background(PaceColor.white)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(PaceColor.waterLight.opacity(0.6), lineWidth: 1))
+                        .overlay(Circle().stroke(PaceColor.waterMid, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("talk.mic")
@@ -78,7 +80,7 @@ struct TalkView: View {
             if landed > 0 {
                 Text("Added")
                     .font(.paceBody(14))
-                    .foregroundStyle(PaceColor.stillWater)
+                    .foregroundStyle(theme.accentOnBackground)
                     .accessibilityIdentifier("talk.added")
             }
 

@@ -10,6 +10,7 @@ import SwiftUI
 /// Add · Clear) — titles and dates are her data.
 struct CalendarView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     var goalFilter: String? = nil
     var goalName: String? = nil
 
@@ -48,16 +49,16 @@ struct CalendarView: View {
 
             if let name = goalName, activeFilter != nil {
                 HStack(spacing: 10) {
-                    Circle().fill(PaceColor.apricot).frame(width: 9, height: 9)
+                    Circle().fill(PaceColor.apricotDeep).frame(width: 9, height: 9)
                     Text(name)
                         .font(.paceBody(15))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.pine)
+                        .foregroundStyle(theme.inkOnBackground)
                     Spacer()
                     Button("Clear") { filterCleared = true }
                         .font(.paceBody(14))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.stillWater)
+                        .foregroundStyle(theme.accentOnBackground)
                         .accessibilityIdentifier("calendar.clearFilter")
                 }
                 .padding(.horizontal, 24)
@@ -108,11 +109,11 @@ struct CalendarView: View {
             Text(dayTitle(key))
                 .font(.paceHeading(20))
                 .fontWeight(.semibold)
-                .foregroundStyle(PaceColor.pine)
+                .foregroundStyle(theme.inkOnBackground)
             if list.isEmpty {
                 Text("Nothing here yet")
                     .font(.paceBody(16))
-                    .foregroundStyle(PaceColor.pine.opacity(0.6))
+                    .foregroundStyle(theme.secondaryOnBackground)
                     .padding(.vertical, 6)
             } else {
                 ForEach(list) { inst in
@@ -140,7 +141,7 @@ struct CalendarView: View {
                         Text(dayTitle(key))
                             .font(.paceBody(15))
                             .fontWeight(.bold)
-                            .foregroundStyle(key == PaceState.todayString ? PaceColor.stillWater : PaceColor.pine)
+                            .foregroundStyle(key == PaceState.todayString ? theme.accentOnBackground : theme.inkOnBackground)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("calendar.weekDay.\(key)")
@@ -148,7 +149,7 @@ struct CalendarView: View {
                     if list.count > 4 {
                         Text("+\(list.count - 4)")
                             .font(.paceBody(13))
-                            .foregroundStyle(PaceColor.pine.opacity(0.55))
+                            .foregroundStyle(theme.secondaryOnBackground)
                     }
                 }
             }
@@ -174,7 +175,7 @@ struct CalendarView: View {
             Text(monthTitle(selectedKey))
                 .font(.paceHeading(20))
                 .fontWeight(.semibold)
-                .foregroundStyle(PaceColor.pine)
+                .foregroundStyle(theme.inkOnBackground)
 
             let cells = monthCells
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
@@ -188,7 +189,7 @@ struct CalendarView: View {
                                 Text(dayNumber(key))
                                     .font(.paceBody(15))
                                     .fontWeight(key == PaceState.todayString ? .bold : .regular)
-                                    .foregroundStyle(key == selectedKey ? PaceColor.white : PaceColor.pine)
+                                    .foregroundStyle(key == selectedKey ? PaceColor.white : theme.inkOnCard)
                                 HStack(spacing: 2) {
                                     ForEach(Array(list.prefix(3).enumerated()), id: \.offset) { _, inst in
                                         Circle()
@@ -260,7 +261,7 @@ struct CalendarView: View {
 
     private func dotColor(_ inst: PaceInstance) -> Color {
         guard let hex = inst.task.color, hex.hasPrefix("#"), hex.count == 7,
-              let value = UInt32(hex.dropFirst(), radix: 16) else { return PaceColor.waterLight }
+              let value = UInt32(hex.dropFirst(), radix: 16) else { return PaceColor.waterMid }
         return Color(hex: value)
     }
 }

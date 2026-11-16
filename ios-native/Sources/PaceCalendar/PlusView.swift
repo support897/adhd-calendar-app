@@ -72,6 +72,7 @@ final class PlusStore: ObservableObject {
 }
 
 struct PlusView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @StateObject private var store = PlusStore()
 
     private let plans: [(id: String, name: String, price: String, note: String?)] = [
@@ -86,12 +87,12 @@ struct PlusView: View {
                 if store.isPlus {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(PaceColor.stillWater)
+                            .foregroundStyle(theme.accentOnBackground)
                             .font(.system(size: 20))
                         Text("Plus is on")
                             .font(.paceHeading(20))
                             .fontWeight(.semibold)
-                            .foregroundStyle(PaceColor.pine)
+                            .foregroundStyle(theme.inkOnBackground)
                     }
                     .accessibilityIdentifier("plus.on")
                 }
@@ -105,14 +106,14 @@ struct PlusView: View {
                 }
                 .font(.paceBody(15))
                 .fontWeight(.semibold)
-                .foregroundStyle(PaceColor.stillWater)
+                .foregroundStyle(theme.accentOnBackground)
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("plus.restore")
 
                 if !store.offeringsLoaded && !store.isPlus {
                     Text("Not available yet")
                         .font(.paceBody(14))
-                        .foregroundStyle(PaceColor.pine.opacity(0.6))
+                        .foregroundStyle(theme.secondaryOnBackground)
                         .accessibilityIdentifier("plus.unavailable")
                 }
             }
@@ -133,15 +134,15 @@ struct PlusView: View {
                 Text(plan.name)
                     .font(.paceBody(17))
                     .fontWeight(.semibold)
-                    .foregroundStyle(PaceColor.pine)
+                    .foregroundStyle(theme.inkOnCard)
                 Text(plan.price)
                     .font(.paceBody(15))
-                    .foregroundStyle(PaceColor.pine.opacity(0.7))
+                    .foregroundStyle(theme.secondaryOnCard)
                 if let note = plan.note {
                     Text(note)
                         .font(.paceBody(13))
                         .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.stillWater)
+                        .foregroundStyle(theme.accentOnCard)
                 }
             }
             Spacer()
@@ -163,7 +164,7 @@ struct PlusView: View {
         .background(PaceColor.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .stroke(PaceColor.waterLight.opacity(0.5), lineWidth: 1))
+            .stroke(PaceColor.waterMid, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("plus.plan.\(plan.id)")
     }

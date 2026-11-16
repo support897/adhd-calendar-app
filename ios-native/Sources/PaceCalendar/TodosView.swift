@@ -10,6 +10,7 @@ import SwiftUI
 /// never stands beside the list itself).
 struct TodosView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
     @State private var draft: String = ""
 
     var body: some View {
@@ -17,12 +18,13 @@ struct TodosView: View {
             HStack(spacing: 10) {
                 TextField("Write one fast", text: $draft)
                     .font(.paceBody(16))
+                    .foregroundStyle(PaceColor.pine)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .background(PaceColor.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(PaceColor.waterLight.opacity(0.6), lineWidth: 1))
+                        .stroke(PaceColor.waterMid, lineWidth: 1))
                     .accessibilityIdentifier("todos.field")
                 Button("Add") {
                     let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -32,7 +34,7 @@ struct TodosView: View {
                 }
                 .font(.paceBody(16))
                 .fontWeight(.semibold)
-                .foregroundStyle(PaceColor.stillWater)
+                .foregroundStyle(theme.accentOnBackground)
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("todos.add")
             }
@@ -49,14 +51,14 @@ struct TodosView: View {
                                 } label: {
                                     Image(systemName: todo.done ? "checkmark.circle.fill" : "circle")
                                         .font(.system(size: 22))
-                                        .foregroundStyle(todo.done ? PaceColor.stillWater : PaceColor.waterLight)
+                                        .foregroundStyle(todo.done ? theme.accentOnBackground : theme.iconOnBackground)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(minHeight: 44)
                                 .accessibilityIdentifier("todos.tick.\(todo.id)")
                                 Text(todo.text)
                                     .font(.paceBody(16))
-                                    .foregroundStyle(PaceColor.pine.opacity(todo.done ? 0.45 : 1))
+                                    .foregroundStyle(todo.done ? theme.secondaryOnBackground : theme.inkOnBackground)
                                     .strikethrough(todo.done)
                                 Spacer(minLength: 0)
                             }

@@ -23,7 +23,7 @@ enum TwinSignIn {
             if greeting.label.contains("Team") {
                 return
             }
-            app.tabBars.buttons["More"].tap()
+            app.buttons["tab.more"].tap()
             let signOut = app.buttons["more.signOut"]
             XCTAssertTrue(signOut.waitForExistence(timeout: 10), file: file, line: line)
             signOut.tap()

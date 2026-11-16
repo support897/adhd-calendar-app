@@ -31,7 +31,7 @@ final class P4UITests: XCTestCase {
         XCTAssertTrue(app.buttons["task.tick.t2"].waitForExistence(timeout: 10))
 
         // To do: add one fast, tick the seeded one (kinds 4+5).
-        app.tabBars.buttons["More"].tap()
+        app.buttons["tab.more"].tap()
         app.buttons["more.todos"].tap()
         let field = app.textFields["todos.field"]
         XCTAssertTrue(field.waitForExistence(timeout: 10))

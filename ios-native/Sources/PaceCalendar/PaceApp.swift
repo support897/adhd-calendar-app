@@ -82,6 +82,7 @@ enum FirebaseBootstrap {
 
 struct RootView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
 
     var body: some View {
         Group {
@@ -92,5 +93,12 @@ struct RootView: View {
             }
         }
         .background(ThemedBackground())
+        // THE CONTRAST PIN: the system chrome (navigation
+        // titles, list/form surfaces, the tab bar, pickers,
+        // sheets) follows the app's chosen theme world, never
+        // the phone's appearance. Without this pin her phone
+        // rendered dark chrome over the light world — white
+        // titles on white, a near-black More card (build 55).
+        .preferredColorScheme(theme.scheme)
     }
 }

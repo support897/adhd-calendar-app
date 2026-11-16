@@ -10,6 +10,7 @@ import SwiftUI
 /// Text budget: 6 app words (Progress · done · today).
 struct ProgressView: View {
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var theme: ThemeStore
 
     var body: some View {
         ScrollView {
@@ -22,7 +23,7 @@ struct ProgressView: View {
                     HStack(spacing: 22) {
                         ZStack {
                             Circle()
-                                .stroke(PaceColor.waterLight.opacity(0.4), lineWidth: 10)
+                                .stroke(PaceColor.lineMist, lineWidth: 10)
                             Circle()
                                 .trim(from: 0, to: max(score, 0.001))
                                 .stroke(PaceColor.stillWater,
@@ -41,13 +42,19 @@ struct ProgressView: View {
                             Text("\(adapted.done.count) done today")
                                 .font(.paceHeading(21))
                                 .fontWeight(.semibold)
-                                .foregroundStyle(PaceColor.pine)
+                                .foregroundStyle(theme.inkOnCard)
                                 .accessibilityIdentifier("progress.line")
                             HStack(spacing: 6) {
                                 ForEach(weekDots(state), id: \.key) { dot in
-                                    Circle()
-                                        .fill(dot.done ? PaceColor.apricot : PaceColor.waterLight.opacity(0.45))
-                                        .frame(width: 10, height: 10)
+                                    if dot.done {
+                                        Circle()
+                                            .fill(PaceColor.apricotDeep)
+                                            .frame(width: 10, height: 10)
+                                    } else {
+                                        Circle()
+                                            .stroke(PaceColor.waterMid, lineWidth: 1.5)
+                                            .frame(width: 10, height: 10)
+                                    }
                                 }
                             }
                         }
@@ -57,11 +64,11 @@ struct ProgressView: View {
                     .background(PaceColor.white)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(PaceColor.waterLight.opacity(0.5), lineWidth: 1))
+                        .stroke(PaceColor.waterMid, lineWidth: 1))
                 } else {
                     Text("Nothing here yet")
                         .font(.paceBody(16))
-                        .foregroundStyle(PaceColor.pine.opacity(0.6))
+                        .foregroundStyle(theme.secondaryOnBackground)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
