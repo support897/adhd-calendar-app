@@ -57,7 +57,7 @@ struct TourView: View {
 
     var body: some View {
         ZStack {
-            ThemedBackground()
+            ThemedBackground().accessibilityIdentifier("tour.screen")
             VStack(spacing: 16) {
                 topBar
                 Spacer(minLength: 0)
@@ -74,7 +74,6 @@ struct TourView: View {
             .padding(.horizontal, 22).padding(.bottom, 14)
         }
         .onAppear { bounce = true; name = session.state?.profileName ?? "" }
-        .accessibilityIdentifier("tour.screen")
     }
 
     private var topBar: some View {

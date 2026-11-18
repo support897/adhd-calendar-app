@@ -272,6 +272,7 @@ struct TodayView: View {
                     .foregroundStyle(PaceColor.white)
                     .textCase(.uppercase)
                 Text(next.displayTitle)
+                    .accessibilityIdentifier("today.hero.title")
                     .font(.paceHeading(24)).fontWeight(.semibold)
                     .foregroundStyle(PaceColor.white)
                     .fixedSize(horizontal: false, vertical: true)

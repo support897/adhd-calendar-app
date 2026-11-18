@@ -51,6 +51,7 @@ struct TaskRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(instance.displayTitle)
+                    .accessibilityIdentifier(instance.displayTitle)
                     .font(.paceBody(16))
                     .foregroundStyle(instance.status == "done" ? theme.secondaryOnBackground : theme.inkOnBackground)
                     .strikethrough(instance.status == "done")

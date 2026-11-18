@@ -22,6 +22,7 @@ final class P4UITests: XCTestCase {
 
     func testTodosHabitsProgressAndTaskTick() throws {
         // A task ticked in place on Today (kind 3).
+        if app.buttons["checkin.full"].waitForExistence(timeout: 6) { app.buttons["checkin.full"].tap() }
         let gymTick = app.buttons["task.tick.t2"]
         XCTAssertTrue(gymTick.waitForExistence(timeout: 15))
         gymTick.tap()
