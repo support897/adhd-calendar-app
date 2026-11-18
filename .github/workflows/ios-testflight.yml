@@ -48,6 +48,8 @@ jobs:
           perl -pi -e 's/^(\s+)CURRENT_PROJECT_VERSION: "1"/$1CURRENT_PROJECT_VERSION: "'"$BUILD_NO"'"\n$1CODE_SIGN_STYLE: Manual\n$1DEVELOPMENT_TEAM: GZ9Z6BPTFR\n$1CODE_SIGN_IDENTITY: "Apple Distribution"\n$1PROVISIONING_PROFILE_SPECIFIER: "'"$PROFILE_NAME"'"/' project.yml
           grep -n "CODE_SIGN_STYLE\|PROVISIONING_PROFILE_SPECIFIER\|CURRENT_PROJECT_VERSION" project.yml
           xcodegen generate
+          plutil -replace CFBundleVersion -string "$BUILD_NO" Sources/PaceCalendar/Info.plist
+          plutil -p Sources/PaceCalendar/Info.plist | grep -E "CFBundleVersion|CFBundleShortVersionString"
 
       - name: Archive (Release, distribution signing)
         working-directory: ios-native
