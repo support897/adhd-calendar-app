@@ -22,10 +22,10 @@ struct CheckInView: View {
             // — a character who cheers you on, per the
             // motivation research (Finch's shape).
             HStack(spacing: 12) {
-                Image("Mark")
+                Image("SkipFront")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 36, height: 36)
+                    .frame(width: 54, height: 54)
                     .accessibilityHidden(true)
                 Text("How do you feel?")
                     .font(.paceHeading(22))

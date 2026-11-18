@@ -25,17 +25,17 @@ enum QuickParse {
     private static let months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
 
     static let categories: [(id: String, words: [String], color: String)] = [
-        ("money", ["pay", "bill", "invoice", "bank", "tax", "rent", "budget", "quote", "price", "refund", "insurance", "savings", "loan", "salary", "mortgage", "super"], "#C9920E"),
-        ("pets", ["dog", "cat ", "cats", "pet ", "pets", "puppy", "kitten", "litter", "groomer", "walk the dog", "feed the"], "#A0764B"),
-        ("health", ["doctor", "dentist", "medicine", "tablet", "pills", "gym", "walk", "run", "yoga", "therapist", "therapy", "physio", "vet", "appointment", "checkup", "check-up", "exercise", "swim", "stretch", "scan"], "#E85D75"),
-        ("family", ["family", "kids", "kid ", "son ", "daughter", "mum", "mom", "dad", "grandma", "grandpa", "nan ", "baby", "parent", "sister", "brother", "school run", "bedtime story"], "#D96AA7"),
+        ("money", ["pay", "bill", "invoice", "bank", "tax", "rent", "budget", "quote", "price", "refund", "insurance", "savings", "loan", "salary", "mortgage", "super"], "#6B5BB0"),
+        ("pets", ["dog", "cat ", "cats", "pet ", "pets", "puppy", "kitten", "litter", "groomer", "walk the dog", "feed the"], "#3F536E"),
+        ("health", ["doctor", "dentist", "medicine", "tablet", "pills", "gym", "walk", "run", "yoga", "therapist", "therapy", "physio", "vet", "appointment", "checkup", "check-up", "exercise", "swim", "stretch", "scan"], "#35704E"),
+        ("family", ["family", "kids", "kid ", "son ", "daughter", "mum", "mom", "dad", "grandma", "grandpa", "nan ", "baby", "parent", "sister", "brother", "school run", "bedtime story"], "#7F8DE4"),
         ("school", ["study", "exam", "homework", "assignment", "lecture", "essay", "revise", "revision", "uni ", "semester", "tutorial", "quiz", "course", "thesis", "school", "class "], "#2F80ED"),
         ("work", ["work", "meeting", "email", "report", "client", "boss", "presentation", "spreadsheet", "call the office", "deadline", "project", "interview", "shift"], "#5B6BD5"),
         ("home", ["clean", "tidy", "wash", "laundry", "kitchen", "bedroom", "bins", "garden", "cook", "dishes", "vacuum", "mop", "repair", "fix the"], "#35704E"),
         ("travel", ["flight", "hotel", "passport", "pack ", "packing", "trip", "holiday", "visa", "train", "airport", "booking"], "#00A3C4"),
-        ("people", ["call", "visit", "birthday", "friend", "pick up", "pickup", "message", "text", "party", "dinner with", "coffee with", "catch up"], "#F2994A"),
+        ("people", ["call", "visit", "birthday", "friend", "pick up", "pickup", "message", "text", "party", "dinner with", "coffee with", "catch up"], "#4858C4"),
         ("errands", ["shop", "groceries", "buy", "post office", "pharmacy", "petrol", "fuel", "drop off", "collect", "return the"], "#20A39E"),
-        ("creative", ["paint", "draw", "guitar", "piano", "practise", "practice", "craft", "photo", "design", "sketch", "journal", "compose"], "#C158DC"),
+        ("creative", ["paint", "draw", "guitar", "piano", "practise", "practice", "craft", "photo", "design", "sketch", "journal", "compose"], "#8E7CC3"),
         ("rest", ["rest", "nap", "read", "bath", "breathe", "meditate", "break", "sit outside", "relax"], "#8E7CC3"),
     ]
 

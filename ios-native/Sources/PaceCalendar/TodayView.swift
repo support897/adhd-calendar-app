@@ -40,11 +40,19 @@ struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    Text(session.greetingName.map { "Hi, \($0)" } ?? "Hi")
-                        .font(.paceHeading(30))
-                        .fontWeight(.semibold)
-                        .foregroundStyle(theme.inkOnBackground)
-                        .accessibilityIdentifier("proof.greeting")
+                    HStack(alignment: .center) {
+                        Text(session.greetingName.map { "Hi, \($0)" } ?? "Hi")
+                            .font(.paceHeading(30))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(theme.inkOnBackground)
+                            .accessibilityIdentifier("proof.greeting")
+                        Spacer(minLength: 0)
+                        Image("SkipFront")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 64, height: 64)
+                            .accessibilityHidden(true)
+                    }
 
                     if !session.stateLoaded {
                         ProgressView().tint(theme.accentOnBackground)

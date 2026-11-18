@@ -182,14 +182,14 @@ struct GoalsView: View {
            let value = UInt32(hex.dropFirst(), radix: 16) {
             return Color(hex: value)
         }
-        let palette: [UInt32] = [0x5B6BD5, 0xCA6914, 0x8E7CC3, 0x35704E, 0xE85D75, 0x3F536E, 0xB6840D, 0x7A8699]
+        let palette: [UInt32] = [0x5B6BD5, 0x4858C4, 0x8E7CC3, 0x35704E, 0x6B5BB0, 0x3F536E, 0x7A8699, 0x21392E]
         let hash = abs(goal.id.hashValue)
         return Color(hex: palette[hash % palette.count])
     }
 
     static let categoryColours: [String: String] = [
         "personal": "#8E7CC3", "school": "#5B6BD5", "work": "#3F536E",
-        "health": "#E85D75", "money": "#B6840D", "home": "#35704E",
+        "health": "#35704E", "money": "#6B5BB0", "home": "#35704E",
         "other": "#7A8699",
     ]
 

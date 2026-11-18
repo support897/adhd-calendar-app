@@ -20,6 +20,18 @@ struct ProgressView: View {
                     let adapted = DayAdapter.adaptDay(on: today, state: state)
                     let score = DayAdapter.dayScore(adapted)
 
+                    PaceCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("This week")
+                                .font(.paceBody(13)).fontWeight(.bold)
+                                .foregroundStyle(PaceColor.waterDeep)
+                                .textCase(.uppercase)
+                            let week = WeekData.days(state)
+                            WeekBars(values: week.map { $0.score }, labels: week.map { $0.label })
+                        }
+                    }
+                    .accessibilityIdentifier("progress.week")
+
                     HStack(spacing: 22) {
                         ZStack {
                             Circle()
