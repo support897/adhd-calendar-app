@@ -60,6 +60,7 @@ final class P4UITests: XCTestCase {
         habitField.tap()
         habitField.typeText("Meditate")
         app.buttons["habits.addSave"].tap()
+        if !app.staticTexts["Meditate"].waitForExistence(timeout: 8) { app.swipeUp() }
         XCTAssertTrue(app.staticTexts["Meditate"].waitForExistence(timeout: 15))
 
         // Progress: the ring and the line stand.

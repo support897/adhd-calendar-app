@@ -45,6 +45,7 @@ final class ImprovedUITests: XCTestCase {
         app.buttons["tab.today"].tap()
         let tick = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'task.tick.'")).firstMatch
         XCTAssertTrue(tick.waitForExistence(timeout: 15))
+        if !tick.isHittable { app.swipeUp() }
         tick.tap()
         XCTAssertTrue(any("celebrate.banner").waitForExistence(timeout: 6), "no celebration after a tick")
     }
