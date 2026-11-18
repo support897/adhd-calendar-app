@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 import FirebaseCore
 import GoogleSignIn
 
@@ -29,6 +30,7 @@ final class PaceAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseBootstrap.configureIfNeeded()
+        UNUserNotificationCenter.current().delegate = PaceNotifyDelegate.shared
         return true
     }
 

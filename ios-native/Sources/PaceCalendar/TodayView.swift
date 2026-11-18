@@ -22,12 +22,19 @@ struct TodayView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var extras: ExtrasStore
     @State private var focusTask: PaceInstance? = nil
-    @AppStorage("pace.import.on") private var importOn = false
+    @AppStorage("pace.import.on") private var importOn = true
+    @ObservedObject private var hub = CalendarHub.shared
     @State private var imported: [AppleFixedEvent] = []
     @State private var showAdd = false
     @State private var showCheckInAgain = false
 
     private var todayKey: String { PaceState.todayString }
+
+    private var taskSig: String {
+        session.state.map { s in
+            "\(s.tasks.count)-\(s.tasks.filter { $0.status == "done" }.count)-\(s.tasks.map { $0.time ?? "" }.joined().hashValue)"
+        } ?? ""
+    }
 
     private var adapted: AdaptedDay? {
         session.state.map { DayAdapter.adaptDay(on: todayKey, state: $0) }
@@ -55,6 +62,8 @@ struct TodayView: View {
                             .frame(width: 64, height: 64)
                             .accessibilityHidden(true)
                     }
+
+                    QuickTodoBar()
 
                     if !session.stateLoaded {
                         ProgressView().tint(theme.accentOnBackground)
@@ -227,8 +236,8 @@ struct TodayView: View {
                 .padding(20)
                 .background(ThemedBackground())
             }
-            .task(id: "\(importOn)\(GoogleCal.shared.connected)") {
-                var all: [AppleFixedEvent] = importOn ? EventKitBridge.shared.importedEvents(on: Date()) : []
+            .task(id: "\(importOn)\(GoogleCal.shared.connected)\(hub.tick)") {
+                var all: [AppleFixedEvent] = importOn ? hub.events(on: Date()) : []
                 all += await GoogleCal.shared.events(on: Date())
                 imported = all.sorted { $0.start < $1.start }
             }
@@ -239,6 +248,13 @@ struct TodayView: View {
                 if await EventKitBridge.shared.requestAccess() {
                     await EventKitBridge.shared.sync(tasks: state.tasks)
                 }
+                await hub.requestAccess()
+                _ = await NotificationScheduler.requestPermission()
+                await NotificationScheduler.reschedule(state: state)
+            }
+            .task(id: taskSig) {
+                guard session.stateLoaded, let state = session.state else { return }
+                await NotificationScheduler.reschedule(state: state)
             }
         }
     }

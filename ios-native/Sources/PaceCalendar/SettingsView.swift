@@ -39,6 +39,8 @@ struct SettingsView: View {
                 .accessibilityIdentifier("settings.theme")
             }
 
+            NotificationCheckCard()
+
             Section {
                 DatePicker("Check-in", selection: checkinBinding,
                            displayedComponents: .hourAndMinute)

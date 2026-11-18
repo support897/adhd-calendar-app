@@ -48,10 +48,16 @@ final class EventKitBridge {
     }
 
     private func paceCalendar() -> EKCalendar? {
+        let target = UserDefaults.standard.string(forKey: "pace.cal.target") ?? ""
         if let existing = store.calendars(for: .event).first(where: { $0.title == calendarTitle }) {
-            return existing
+            if target.isEmpty || existing.source.title == target { return existing }
+            // She moved Pace to another account: remove the old one, re-mirror there.
+            try? store.removeCalendar(existing, commit: true)
+            UserDefaults.standard.removeObject(forKey: mapKey)
         }
-        guard let source = store.defaultCalendarForNewEvents?.source ?? store.sources.first else {
+        let chosen = target.isEmpty ? nil : store.sources.first(where: {
+            $0.title == target && $0.calendars(for: .event).contains { $0.allowsContentModifications } })
+        guard let source = chosen ?? store.defaultCalendarForNewEvents?.source ?? store.sources.first else {
             return nil
         }
         let calendar = EKCalendar(for: .event, eventStore: store)

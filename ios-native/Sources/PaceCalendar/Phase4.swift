@@ -703,6 +703,7 @@ struct PlusChooser: View {
                     tile("target", "A goal", "Pace cuts it into small steps", "plus.goal") { GoalWizard() }
                     tile("leaf.fill", "A habit", "Something you do again and again", "plus.habit") { HabitWizard() }
                     tile("mic.fill", "Talk to Skip", "Say it, type it, or read notes", "plus.talk") { TalkView() }
+                    tile("checklist", "A to-do", "Just one line", "plus.todo") { QuickTodoView() }
                     tile("list.bullet.rectangle", "Quick form", "Everything on one page", "plus.form") {
                         AddEventView(dayKey: PaceState.todayString)
                     }

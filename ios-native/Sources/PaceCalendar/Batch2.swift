@@ -272,7 +272,7 @@ struct YearView: View {
 
 // MARK: calendars (Apple two-way) and leave-by settings
 
-struct CalendarsView: View {
+struct LegacyCalendarsView: View {
     @EnvironmentObject private var theme: ThemeStore
     @AppStorage("pace.import.on") private var importOn = false
     @ObservedObject private var google = GoogleCal.shared
