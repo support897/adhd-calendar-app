@@ -1,9 +1,9 @@
 name: Pace native to TestFlight
 
-# Manual run only. Archives the NATIVE SwiftUI app (ios-native, scheme Pace),
-# signs it with the repo's distribution secrets (same bundle id
-# shop.ilseplacencia.pace, team GZ9Z6BPTFR) and uploads it to App Store Connect.
-# Signing material comes from repo secrets and never touches the repo.
+# Manual / tag run. Archives the NATIVE SwiftUI app (iOS app + widget + Watch),
+# builds with the iOS 27 SDK (Xcode 27 runner), signs with the repo's
+# distribution secrets, creates the widget and Watch App IDs and profiles
+# through the App Store Connect API when missing, and uploads to TestFlight.
 on:
   workflow_dispatch:
   push:
@@ -14,6 +14,11 @@ jobs:
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i "ios"
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -35,23 +40,90 @@ jobs:
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
           PROFILE_UUID=$(plutil -extract UUID raw "$RUNNER_TEMP/profile.plist")
-          PROFILE_NAME=$(plutil -extract Name raw "$RUNNER_TEMP/profile.plist")
-          echo "profile: $PROFILE_NAME ($PROFILE_UUID)"
-          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$(plutil -extract Name raw "$RUNNER_TEMP/profile.plist")" >> "$GITHUB_ENV"
           cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          security find-certificate -c "Apple Distribution" -p "$RUNNER_TEMP/build.keychain-db" | openssl x509 -noout -fingerprint -sha1 | tr -d ':' | sed 's/.*=//' > "$RUNNER_TEMP/cert.sha1"
+          cat "$RUNNER_TEMP/cert.sha1"
+
+      - name: Widget and Watch App IDs and profiles (App Store Connect API)
+        env:
+          KID: ${{ secrets.ASC_API_KEY_ID }}
+          ISS: ${{ secrets.ASC_API_ISSUER_ID }}
+          P8: ${{ secrets.ASC_API_KEY_P8_B64 }}
+        run: |
+          pip3 install --quiet --break-system-packages pyjwt cryptography requests
+          python3 - <<'PY'
+          import os,base64,time,jwt,requests,subprocess,plistlib,json
+          key=base64.b64decode(os.environ["P8"]).decode()
+          tok=jwt.encode({"iss":os.environ["ISS"],"iat":int(time.time()),"exp":int(time.time())+1100,"aud":"appstoreconnect-v1"},key,algorithm="ES256",headers={"kid":os.environ["KID"]})
+          H={"Authorization":"Bearer "+tok,"Content-Type":"application/json"}
+          B="https://api.appstoreconnect.apple.com"
+          def get(p): r=requests.get(B+p,headers=H); r.raise_for_status(); return r.json()
+          def post(p,j): r=requests.post(B+p,headers=H,json=j); print(p,r.status_code,r.text[:300]); r.raise_for_status(); return r.json()
+          # certificate id of the distribution cert we imported
+          want=open(os.environ["RUNNER_TEMP"]+"/cert.sha1").read().strip().upper()
+          cert_id=None
+          for c in get("/v1/certificates?limit=200&filter[certificateType]=DISTRIBUTION")["data"]:
+              der=base64.b64decode(c["attributes"]["certificateContent"])
+              import hashlib
+              if hashlib.sha1(der).hexdigest().upper()==want: cert_id=c["id"]
+          print("distribution cert id",cert_id)
+          assert cert_id
+          apple_dir=os.path.expanduser("~/Library/MobileDevice/Provisioning Profiles")
+          env=open(os.environ["GITHUB_ENV"],"a")
+          for ident,name,envkey in [("shop.ilseplacencia.pace.widgets","Pace Widgets App Store","WIDGET_PROFILE"),("shop.ilseplacencia.pace.watchkitapp","Pace Watch App Store","WATCH_PROFILE")]:
+              ids=get("/v1/bundleIds?limit=200&filter[identifier]="+ident)["data"]
+              ids=[i for i in ids if i["attributes"]["identifier"]==ident]
+              if ids: bid=ids[0]["id"]
+              else:
+                  bid=post("/v1/bundleIds",{"data":{"type":"bundleIds","attributes":{"identifier":ident,"name":name.replace(" App Store",""),"platform":"IOS"}}})["data"]["id"]
+              prof=None
+              for p in get("/v1/bundleIds/%s/profiles?limit=50"%bid)["data"]:
+                  a=p["attributes"]
+                  if a["name"]==name and a["profileState"]=="ACTIVE": prof=a
+              if not prof:
+                  for p in get("/v1/bundleIds/%s/profiles?limit=50"%bid)["data"]:
+                      if p["attributes"]["name"]==name:
+                          requests.delete(B+"/v1/profiles/"+p["id"],headers=H)
+                  prof=post("/v1/profiles",{"data":{"type":"profiles","attributes":{"name":name,"profileType":"IOS_APP_STORE"},"relationships":{"bundleId":{"data":{"type":"bundleIds","id":bid}},"certificates":{"data":[{"type":"certificates","id":cert_id}]}}}})["data"]["attributes"]
+              raw=base64.b64decode(prof["profileContent"])
+              open(os.path.join(apple_dir,ident+".mobileprovision"),"wb").write(raw)
+              env.write("%s=%s\n"%(envkey,name))
+              print("installed",name)
+          PY
 
       - name: Generate the project with distribution signing (CI copy only)
         working-directory: ios-native
         run: |
           BUILD_NO=$(date -u +%y%m%d%H%M)
           echo "BUILD_NO=$BUILD_NO" >> "$GITHUB_ENV"
-          perl -pi -e 's/^(\s+)CURRENT_PROJECT_VERSION: "1"/$1CURRENT_PROJECT_VERSION: "'"$BUILD_NO"'"\n$1CODE_SIGN_STYLE: Manual\n$1DEVELOPMENT_TEAM: GZ9Z6BPTFR\n$1CODE_SIGN_IDENTITY: "Apple Distribution"\n$1PROVISIONING_PROFILE_SPECIFIER: "'"$PROFILE_NAME"'"/' project.yml
-          grep -n "CODE_SIGN_STYLE\|PROVISIONING_PROFILE_SPECIFIER\|CURRENT_PROJECT_VERSION" project.yml
+          python3 - <<PY
+          import re,os
+          t=open("project.yml").read()
+          names={"PaceCalendar":os.environ["PROFILE_NAME"],"PaceWidgets":os.environ["WIDGET_PROFILE"],"PaceWatch":os.environ["WATCH_PROFILE"]}
+          out=[];cur=None
+          for line in t.split("\n"):
+              m=re.match(r"^  (\w+):\s*$",line)
+              if m and m.group(1) in ("PaceCalendar","PaceWidgets","PaceWatch","PaceCalendarUITests"): cur=m.group(1)
+              if cur in names and re.match(r'^\s+CURRENT_PROJECT_VERSION: "1"',line):
+                  ind=re.match(r"^(\s+)",line).group(1)
+                  out.append(ind+'CURRENT_PROJECT_VERSION: "$BUILD_NO"')
+                  out.append(ind+"CODE_SIGN_STYLE: Manual")
+                  out.append(ind+"DEVELOPMENT_TEAM: GZ9Z6BPTFR")
+                  out.append(ind+'CODE_SIGN_IDENTITY: "Apple Distribution"')
+                  out.append(ind+'PROVISIONING_PROFILE_SPECIFIER: "'+names[cur]+'"')
+                  continue
+              out.append(line)
+          open("project.yml","w").write("\n".join(out))
+          PY
+          grep -n "PROVISIONING_PROFILE_SPECIFIER" project.yml
           xcodegen generate
-          plutil -replace CFBundleVersion -string "$BUILD_NO" Sources/PaceCalendar/Info.plist
-          plutil -p Sources/PaceCalendar/Info.plist | grep -E "CFBundleVersion|CFBundleShortVersionString"
+          for p in Sources/PaceCalendar/Info.plist Sources/PaceWidgets/Info.plist Sources/PaceWatch/Info.plist; do
+            plutil -replace CFBundleVersion -string "$BUILD_NO" "$p"
+            plutil -p "$p" | grep -E "CFBundleVersion|CFBundleShortVersionString"
+          done
 
-      - name: Archive (Release, distribution signing)
+      - name: Archive (Release, distribution signing, iOS 27 SDK)
         working-directory: ios-native
         run: |
           set -o pipefail
@@ -78,7 +150,11 @@ jobs:
             <key>stripSwiftSymbols</key><true/>
             <key>manageAppVersionAndBuildNumber</key><false/>
             <key>provisioningProfiles</key>
-            <dict><key>shop.ilseplacencia.pace</key><string>$PROFILE_NAME</string></dict>
+            <dict>
+              <key>shop.ilseplacencia.pace</key><string>$PROFILE_NAME</string>
+              <key>shop.ilseplacencia.pace.widgets</key><string>$WIDGET_PROFILE</string>
+              <key>shop.ilseplacencia.pace.watchkitapp</key><string>$WATCH_PROFILE</string>
+            </dict>
           </dict>
           </plist>
           PLIST
