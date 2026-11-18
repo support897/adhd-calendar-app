@@ -23,6 +23,13 @@ struct TalkView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                Image("SkipPoint").resizable().scaledToFit().frame(width: 64, height: 64)
+                Text("Tell me what is on. I will place it.")
+                    .font(.paceBody(15))
+                    .foregroundStyle(theme.inkOnBackground)
+                    .accessibilityIdentifier("talk.skipLine")
+            }
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $text)
                     .font(.paceBody(17))
@@ -44,6 +51,22 @@ struct TalkView: View {
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(PaceColor.waterMid, lineWidth: 1))
 
+            if let first = QuickParse.parseMany(text, baseKey: PaceState.todayString).first {
+                PaceCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Pace read")
+                            .font(.paceBody(13)).fontWeight(.bold)
+                            .foregroundStyle(PaceColor.waterDeep).textCase(.uppercase)
+                        HStack(spacing: 8) {
+                            CountPill(text: first.date)
+                            if let t = first.time { CountPill(text: t) }
+                            CountPill(text: "\(Int(first.durationMin)) min")
+                        }
+                    }
+                }
+                .accessibilityIdentifier("talk.read")
+            }
+
             HStack(spacing: 12) {
                 Button {
                     voice.toggle { heard in
@@ -52,7 +75,7 @@ struct TalkView: View {
                 } label: {
                     Image(systemName: voice.listening ? "mic.fill" : "mic")
                         .font(.system(size: 20))
-                        .foregroundStyle(voice.listening ? PaceColor.apricotDeep : theme.accentOnCard)
+                        .foregroundStyle(voice.listening ? PaceColor.stillWater : theme.accentOnCard)
                         .frame(width: 48, height: 48)
                         .background(PaceColor.white)
                         .clipShape(Circle())

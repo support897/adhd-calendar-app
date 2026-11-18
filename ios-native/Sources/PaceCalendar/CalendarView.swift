@@ -44,6 +44,7 @@ struct CalendarView: View {
                 Text("Year").tag(Mode.year)
             }
             .pickerStyle(.segmented)
+            .tint(PaceColor.stillWater)
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .accessibilityIdentifier("calendar.mode")
@@ -107,11 +108,21 @@ struct CalendarView: View {
     @ViewBuilder
     private func dayList(_ key: String) -> some View {
         let list = instances(on: key)
-        VStack(alignment: .leading, spacing: 4) {
-            Text(dayTitle(key))
-                .font(.paceHeading(20))
-                .fontWeight(.semibold)
-                .foregroundStyle(theme.inkOnBackground)
+        VStack(alignment: .leading, spacing: 8) {
+            HeroCard {
+                HStack(spacing: 14) {
+                    WhiteRing(progress: list.isEmpty ? 0 : Double(list.filter { $0.status == "done" }.count) / Double(list.count), size: 54)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(dayTitle(key))
+                            .font(.paceHeading(19)).fontWeight(.semibold)
+                            .foregroundStyle(PaceColor.white)
+                            .accessibilityIdentifier("calendar.dayTitle")
+                        Text("\(list.count) on the day")
+                            .font(.paceBody(13)).foregroundStyle(PaceColor.white)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
             if list.isEmpty {
                 Text("Nothing here yet")
                     .font(.paceBody(16))
@@ -133,6 +144,12 @@ struct CalendarView: View {
 
     private var weekList: some View {
         VStack(alignment: .leading, spacing: 20) {
+            PaceCard {
+                let counts = weekKeys.map { Double(instances(on: $0).count) }
+                let top = max(counts.max() ?? 1, 1)
+                WeekBars(values: counts.map { $0 / top }, labels: ["M", "T", "W", "T", "F", "S", "S"])
+            }
+            .accessibilityIdentifier("calendar.weekChart")
             ForEach(weekKeys, id: \.self) { key in
                 let list = instances(on: key)
                 VStack(alignment: .leading, spacing: 4) {
@@ -202,7 +219,7 @@ struct CalendarView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 7)
-                            .background(key == selectedKey ? PaceColor.stillWater : PaceColor.white)
+                            .background(key == selectedKey ? PaceColor.stillWater : heat(list.count))
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(.plain)
@@ -215,6 +232,16 @@ struct CalendarView: View {
             .accessibilityIdentifier("calendar.monthGrid")
 
             dayList(selectedKey)
+        }
+    }
+
+    /// Month heat: a busier day is a deeper wash of Water Light.
+    private func heat(_ n: Int) -> Color {
+        switch n {
+        case 0: return PaceColor.white
+        case 1: return PaceColor.waterLight.opacity(0.25)
+        case 2: return PaceColor.waterLight.opacity(0.45)
+        default: return PaceColor.waterLight.opacity(0.7)
         }
     }
 

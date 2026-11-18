@@ -21,6 +21,42 @@ struct HabitsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 if let state = session.state {
+                    if !state.habits.isEmpty {
+                        let doneToday = state.habits.filter { $0.days[todayKey] == true }.count
+                        HeroCard {
+                            HStack(spacing: 16) {
+                                WhiteRing(progress: Double(doneToday) / Double(max(state.habits.count, 1)))
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("\(doneToday) of \(state.habits.count) today")
+                                        .font(.paceHeading(24)).fontWeight(.semibold)
+                                        .foregroundStyle(PaceColor.white)
+                                    Text("Showing up counts")
+                                        .font(.paceBody(14))
+                                        .foregroundStyle(PaceColor.white)
+                                }
+                                Spacer(minLength: 0)
+                                Image("SkipFront").resizable().scaledToFit().frame(width: 62, height: 62)
+                            }
+                        }
+                        .accessibilityIdentifier("habits.hero")
+                        PaceCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("This week")
+                                    .font(.paceBody(13)).fontWeight(.bold)
+                                    .foregroundStyle(PaceColor.waterDeep).textCase(.uppercase)
+                                let vals: [Double] = (0..<7).map { i in
+                                    let key = HabitsView.addDays(todayKey, i - 6)
+                                    return Double(state.habits.filter { $0.days[key] == true }.count) / Double(max(state.habits.count, 1))
+                                }
+                                let letters: [String] = (0..<7).map { i in
+                                    let key = HabitsView.addDays(todayKey, i - 6)
+                                    let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "EEEEE"
+                                    return PaceState.date(fromKey: key).map { f.string(from: $0) } ?? ""
+                                }
+                                WeekBars(values: vals, labels: letters)
+                            }
+                        }
+                    }
                     if state.habits.isEmpty {
                         Text("Nothing here yet")
                             .font(.paceBody(16))

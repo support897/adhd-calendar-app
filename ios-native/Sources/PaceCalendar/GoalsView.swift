@@ -21,6 +21,26 @@ struct GoalsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     if let state = session.state {
+                        if !state.goals.isEmpty {
+                            let pcts = state.goals.map { GoalStats.percent($0, state: state) }
+                            let avg = pcts.isEmpty ? 0 : pcts.reduce(0, +) / pcts.count
+                            HeroCard {
+                                HStack(spacing: 16) {
+                                    WhiteRing(progress: Double(avg) / 100.0)
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text("\(avg)%")
+                                            .font(.paceHeading(30)).fontWeight(.semibold)
+                                            .foregroundStyle(PaceColor.white)
+                                        Text("\(state.goals.count) goals")
+                                            .font(.paceBody(14)).fontWeight(.semibold)
+                                            .foregroundStyle(PaceColor.white)
+                                    }
+                                    Spacer(minLength: 0)
+                                    Image("SkipPoint").resizable().scaledToFit().frame(width: 62, height: 62)
+                                }
+                            }
+                            .accessibilityIdentifier("goals.hero")
+                        }
                         if let shared = sharedGoals(state) {
                             ForEach(shared) { goal in
                                 goalCard(goal, state: state)
@@ -113,15 +133,19 @@ struct GoalsView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
                     Image(systemName: Self.symbol(for: goal.category))
-                        .font(.system(size: 16))
-                        .foregroundStyle(colour)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PaceColor.white)
+                        .frame(width: 38, height: 38)
+                        .background(LinearGradient(colors: [colour, colour.opacity(0.7)],
+                                                   startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     Text(goal.shortName)
                         .font(.paceBody(17))
                         .fontWeight(.semibold)
                         .foregroundStyle(theme.inkOnCard)
                         .multilineTextAlignment(.leading)
                     Spacer(minLength: 0)
-                    Circle().fill(colour).frame(width: 10, height: 10)
+                    CountPill(text: "\(progress.done)/\(progress.total)")
                 }
                 if progress.complete {
                     HStack(spacing: 8) {
@@ -152,7 +176,7 @@ struct GoalsView: View {
                                        ? geo.size.width * CGFloat(progress.done) / CGFloat(progress.total) : 0)
                         }
                     }
-                    .frame(height: 7)
+                    .frame(height: 9)
                     Text("\(progress.total > 0 ? Int((100.0 * Double(progress.done) / Double(progress.total)).rounded()) : 0)%")
                         .font(.paceBody(12))
                         .fontWeight(.semibold)

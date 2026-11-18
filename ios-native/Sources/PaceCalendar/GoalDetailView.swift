@@ -50,6 +50,26 @@ struct GoalDetailView: View {
                 }
                 .accessibilityIdentifier("goal.title")
 
+                if let state = session.state {
+                    let pct = GoalStats.percent(goal, state: state)
+                    HeroCard {
+                        HStack(spacing: 16) {
+                            WhiteRing(progress: Double(pct) / 100.0, size: 72)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("\(pct)%")
+                                    .font(.paceHeading(32)).fontWeight(.semibold)
+                                    .foregroundStyle(PaceColor.white)
+                                    .accessibilityIdentifier("goal.percent")
+                                Text("\(steps.filter { $0.status == "done" }.count) of \(steps.count) steps")
+                                    .font(.paceBody(14)).fontWeight(.semibold)
+                                    .foregroundStyle(PaceColor.white)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    HalfwayBadge(percent: pct)
+                }
+
                 if steps.isEmpty {
                     Text("Nothing here yet")
                         .font(.paceBody(16))
