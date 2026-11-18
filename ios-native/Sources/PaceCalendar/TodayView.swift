@@ -196,6 +196,9 @@ struct TodayView: View {
                 .padding(.bottom, 24)
             }
             .background(ThemedBackground())
+            .task(id: "\(session.state?.tasks.count ?? 0)-\(session.state?.tasks.filter { $0.status == "done" }.count ?? 0)-\(session.state?.feelings.count ?? 0)-\(session.state?.habits.count ?? 0)") {
+                if let s = session.state { WidgetBridge.publish(state: s) }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
