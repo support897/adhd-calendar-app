@@ -191,6 +191,36 @@ struct MoreView: View {
                 .listRowBackground(PaceColor.white)
 
                 NavigationLink {
+                    PlusView()
+                } label: {
+                    Label("Plus", systemImage: "sparkles")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.plus")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.settings")
+                .listRowBackground(PaceColor.white)
+
+                Button("Sign out") {
+                    session.signOut()
+                }
+                .font(.paceBody(16))
+                .foregroundStyle(PaceColor.waterDeep)
+                .accessibilityIdentifier("more.signOut")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    List {
+                NavigationLink {
                     BrainDumpView()
                 } label: {
                     Label("Dump", systemImage: "tray")
@@ -250,32 +280,16 @@ struct MoreView: View {
                 .accessibilityIdentifier("more.reward")
                 .listRowBackground(PaceColor.white)
 
-                NavigationLink {
-                    PlusView()
+                    }
+                    .scrollContentBackground(.hidden)
+                    .background(ThemedBackground())
+                    .navigationTitle("Tools")
                 } label: {
-                    Label("Plus", systemImage: "sparkles")
+                    Label("Tools", systemImage: "square.grid.2x2")
                         .font(.paceBody(16))
                         .foregroundStyle(PaceColor.pine)
                 }
-                .accessibilityIdentifier("more.plus")
-                .listRowBackground(PaceColor.white)
-
-                NavigationLink {
-                    SettingsView()
-                } label: {
-                    Label("Settings", systemImage: "gearshape")
-                        .font(.paceBody(16))
-                        .foregroundStyle(PaceColor.pine)
-                }
-                .accessibilityIdentifier("more.settings")
-                .listRowBackground(PaceColor.white)
-
-                Button("Sign out") {
-                    session.signOut()
-                }
-                .font(.paceBody(16))
-                .foregroundStyle(PaceColor.waterDeep)
-                .accessibilityIdentifier("more.signOut")
+                .accessibilityIdentifier("more.tools")
                 .listRowBackground(PaceColor.white)
             }
             .scrollContentBackground(.hidden)

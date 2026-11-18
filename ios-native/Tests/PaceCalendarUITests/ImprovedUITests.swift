@@ -21,6 +21,10 @@ final class ImprovedUITests: XCTestCase {
 
     private func openMore(_ id: String) {
         app.buttons["tab.more"].tap()
+        let tools = app.buttons["more.tools"]
+        if !tools.waitForExistence(timeout: 5) { app.swipeUp() }
+        XCTAssertTrue(tools.waitForExistence(timeout: 10), "Tools missing from More")
+        tools.tap()
         let row = app.buttons[id]
         XCTAssertTrue(row.waitForExistence(timeout: 10), "\(id) missing from More")
         row.tap()
@@ -108,6 +112,7 @@ final class ImprovedUITests: XCTestCase {
         title.tap()
         title.typeText("Dentist visit")
         let toggle = app.switches["addEvent.cantMove"]
+        if !toggle.waitForExistence(timeout: 3) { app.swipeUp() }
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         toggle.tap()
         app.buttons["addEvent.save"].tap()
