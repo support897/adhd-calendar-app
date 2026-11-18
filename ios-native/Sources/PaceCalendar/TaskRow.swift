@@ -13,6 +13,8 @@ struct TaskRow: View {
     /// in place (P4 write kind 3; a goal step ticks the same
     /// way at P5). Nil keeps the calm read-only line.
     var onToggle: (() -> Void)? = nil
+    /// When set, a small play button opens the focus room for it.
+    var onStart: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -40,6 +42,13 @@ struct TaskRow: View {
                     .frame(width: 52, alignment: .leading)
             }
 
+            if let name = instance.task.icon, !name.isEmpty {
+                Image(systemName: name)
+                    .font(.system(size: 15))
+                    .foregroundStyle(edgeColor)
+                    .accessibilityHidden(true)
+            }
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(instance.displayTitle)
                     .font(.paceBody(16))
@@ -53,6 +62,18 @@ struct TaskRow: View {
             }
 
             Spacer(minLength: 0)
+
+            if let onStart, instance.status != "done" {
+                Button(action: onStart) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(PaceColor.stillWater)
+                }
+                .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityLabel("Start")
+                .accessibilityIdentifier("task.start.\(instance.task.id)")
+            }
 
             if instance.task.essential {
                 Image(systemName: "lock.fill")

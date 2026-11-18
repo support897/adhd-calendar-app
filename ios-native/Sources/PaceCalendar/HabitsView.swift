@@ -12,6 +12,7 @@ import SwiftUI
 struct HabitsView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var extras: ExtrasStore
     @State private var draft: String = ""
     @State private var showAdd = false
 
@@ -39,6 +40,7 @@ struct HabitsView: View {
                             }
                         }
                         .accessibilityIdentifier("habits.hero")
+                        StreakHero(habits: state.habits, today: todayKey)
                         PaceCard {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("This week")
@@ -146,6 +148,9 @@ struct HabitsView: View {
                         }
                     }
                     if streak.current > 0 {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 11)).foregroundStyle(PaceColor.stillWater)
+                            .padding(.leading, 4).accessibilityHidden(true)
                         Text("\(streak.current) in a row")
                             .font(.paceBody(13))
                             .foregroundStyle(theme.secondaryOnCard)
@@ -170,6 +175,12 @@ struct HabitsView: View {
 
             Button {
                 session.setHabitDay(habitId: habit.id, dayKey: todayKey, on: !ticked)
+                if !ticked {
+                    var d = habit.days
+                    d[todayKey] = true
+                    let n = Streak.info(days: d, today: todayKey).current
+                    if Streak.milestones.contains(n) { extras.celebrate() }
+                }
             } label: {
                 Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 26))

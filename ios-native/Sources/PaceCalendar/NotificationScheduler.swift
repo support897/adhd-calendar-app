@@ -93,6 +93,27 @@ enum NotificationScheduler {
             }
         }
 
+        // Protect-the-streak nudge: one calm note at 8pm for a
+        // habit with a streak of three or more not yet ticked.
+        do {
+            let today = PaceState.todayString
+            var at = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+            at.hour = 20; at.minute = 0
+            if let fire = Calendar.current.date(from: at), fire > Date() {
+                for h in state.habits where h.days[today] != true {
+                    let s = Streak.info(days: h.days, today: today)
+                    guard s.current >= 3 else { continue }
+                    let content = UNMutableNotificationContent()
+                    content.title = "Keep your \(s.current)-day streak"
+                    content.body = "One tick on \(h.name) does it."
+                    content.sound = .default
+                    let trig = UNCalendarNotificationTrigger(dateMatching: at, repeats: false)
+                    requests.append(UNNotificationRequest(identifier: "pace.streak.\(h.id)",
+                                                          content: content, trigger: trig))
+                }
+            }
+        }
+
         // Leave-by alerts (improved round): for tasks marked
         // Can't move, warn at start minus travel minus buffer.
         let ud = UserDefaults.standard

@@ -18,6 +18,10 @@ struct AddGoalView: View {
     var body: some View {
         NavigationStack {
             Form {
+                NavigationLink("Step by step with Skip") { GoalWizard() }
+                    .font(.paceBody(15))
+                    .accessibilityIdentifier("goalNew.wizard")
+
                 TextField("Title", text: $title)
                     .font(.paceBody(17))
                     .accessibilityIdentifier("goalNew.title")

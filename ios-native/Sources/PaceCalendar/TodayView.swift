@@ -89,10 +89,10 @@ struct TodayView: View {
 
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(day.visible) { inst in
-                                TaskRow(instance: inst) {
+                                TaskRow(instance: inst, onToggle: {
                                     session.setTaskDone(taskId: inst.task.id, dayKey: todayKey, done: true)
                                     extras.celebrate()
-                                }
+                                }, onStart: { focusTask = inst })
                             }
                             ForEach(day.done) { inst in
                                 TaskRow(instance: inst) {

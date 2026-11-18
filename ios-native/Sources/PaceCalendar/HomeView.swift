@@ -37,7 +37,7 @@ struct HomeView: View {
             WatchLink.shared.start()
         }
         .sheet(isPresented: $showQuickAdd) {
-            AddEventView(dayKey: PaceState.todayString)
+            PlusChooser()
         }
         // Toolbar words inside the tabs take the tint: the
         // accent step that measures on the pinned scheme's

@@ -1,6 +1,7 @@
 import SwiftUI
 import Speech
 import AVFoundation
+import PhotosUI
 
 /// TALK TO IT — one box, one send (Phase 1 shape). She says
 /// or types what's on; the shipped parser (QuickParse, the
@@ -17,9 +18,18 @@ import AVFoundation
 struct TalkView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var extras: ExtrasStore
     @StateObject private var voice = VoiceBox()
     @State private var text: String = ""
     @State private var landed: Int = 0
+    @State private var photo: PhotosPickerItem? = nil
+    @State private var showCamera = false
+    @State private var reading = false
+    @State private var excluded: Set<Int> = []
+
+    private var items: [QuickParse.Parsed] {
+        QuickParse.parseMany(MessyNotes.clean(text), baseKey: PaceState.todayString)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -67,6 +77,36 @@ struct TalkView: View {
                 .accessibilityIdentifier("talk.read")
             }
 
+            if items.count > 1 {
+                PaceCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Pace found \(items.count - excluded.filter { $0 < items.count }.count) things")
+                            .font(.paceBody(13)).fontWeight(.bold)
+                            .foregroundStyle(PaceColor.waterDeep).textCase(.uppercase)
+                        ForEach(Array(items.enumerated()), id: \.offset) { i, it in
+                            HStack(spacing: 8) {
+                                Button {
+                                    if excluded.contains(i) { excluded.remove(i) } else { excluded.insert(i) }
+                                } label: {
+                                    Image(systemName: excluded.contains(i) ? "circle" : "checkmark.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(excluded.contains(i) ? PaceColor.waterMid : PaceColor.stillWater)
+                                }
+                                .buttonStyle(.plain).frame(minWidth: 44, minHeight: 44)
+                                .accessibilityLabel("Include")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(it.title).font(.paceBody(15)).foregroundStyle(PaceColor.pine)
+                                    Text([it.date, it.time ?? "", "\(it.durationMin) min"].filter { !$0.isEmpty }.joined(separator: "  "))
+                                        .font(.paceBody(12)).foregroundStyle(PaceColor.softInk)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                }
+                .accessibilityIdentifier("talk.found")
+            }
+
             HStack(spacing: 12) {
                 Button {
                     voice.toggle { heard in
@@ -83,6 +123,33 @@ struct TalkView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("talk.mic")
+
+                PhotosPicker(selection: $photo, matching: .images) {
+                    Image(systemName: reading ? "hourglass" : "photo")
+                        .font(.system(size: 20))
+                        .foregroundStyle(theme.accentOnCard)
+                        .frame(width: 48, height: 48)
+                        .background(PaceColor.white)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(PaceColor.waterMid, lineWidth: 1))
+                }
+                .accessibilityLabel("Read a photo of notes")
+                .accessibilityIdentifier("talk.photo")
+
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button { showCamera = true } label: {
+                        Image(systemName: "camera")
+                            .font(.system(size: 20))
+                            .foregroundStyle(theme.accentOnCard)
+                            .frame(width: 48, height: 48)
+                            .background(PaceColor.white)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(PaceColor.waterMid, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Scan notes")
+                    .accessibilityIdentifier("talk.camera")
+                }
 
                 Spacer()
 
@@ -113,12 +180,35 @@ struct TalkView: View {
         .padding(.top, 20)
         .background(ThemedBackground())
         .navigationTitle("Talk")
+        .sheet(isPresented: $showCamera) {
+            CameraPicker { img in
+                Task { await absorb(img) }
+            }
+        }
+        .onChange(of: photo) { _, item in
+            guard let item else { return }
+            Task {
+                if let d = try? await item.loadTransferable(type: Data.self), let img = UIImage(data: d) {
+                    await absorb(img)
+                }
+                photo = nil
+            }
+        }
+    }
+
+    @MainActor
+    private func absorb(_ img: UIImage) async {
+        reading = true
+        let read = MessyNotes.clean(await NoteScanner.read(img))
+        text += (text.isEmpty || read.isEmpty ? "" : "\n") + read
+        reading = false
     }
 
     private func send() {
-        let items = QuickParse.parseMany(text, baseKey: PaceState.todayString)
-        guard !items.isEmpty else { return }
-        for item in items {
+        let all = items
+        let chosen = all.enumerated().filter { !excluded.contains($0.offset) }.map { $0.element }
+        guard !chosen.isEmpty else { return }
+        for item in chosen {
             var dict = PaceTaskFactory.make(title: item.title, date: item.date,
                                             time: item.time, durationMin: item.durationMin,
                                             repeatRule: item.repeatRule,
@@ -130,7 +220,9 @@ struct TalkView: View {
             session.addTask(dict)
         }
         text = ""
-        landed += items.count
+        excluded = []
+        landed += chosen.count
+        extras.celebrate()
     }
 }
 

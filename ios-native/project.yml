@@ -37,6 +37,7 @@ targets:
           - UIInterfaceOrientationPortrait
         NSCalendarsFullAccessUsageDescription: Pace keeps your events in your Apple calendar too, so your day stands in both places.
         NSSpeechRecognitionUsageDescription: Pace turns your voice into events on this device, so you can just say what is on.
+        NSCameraUsageDescription: Pace uses the camera only when you choose to scan a page of notes, and reads it on this device.
         NSMicrophoneUsageDescription: Pace listens only while you hold the talk button, to write down what you say.
     settings:
       base:

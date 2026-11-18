@@ -45,6 +45,10 @@ struct AddEventView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("addEvent.kind")
 
+                NavigationLink("Step by step with Skip") { TaskWizard() }
+                    .font(.paceBody(15))
+                    .accessibilityIdentifier("addEvent.wizard")
+
                 NavigationLink("Talk to Skip instead") { TalkView() }
                     .font(.paceBody(15))
                     .accessibilityIdentifier("addEvent.talk")
