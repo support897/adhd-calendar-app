@@ -275,6 +275,7 @@ struct YearView: View {
 struct CalendarsView: View {
     @EnvironmentObject private var theme: ThemeStore
     @AppStorage("pace.import.on") private var importOn = false
+    @ObservedObject private var google = GoogleCal.shared
 
     var body: some View {
         ScrollView {
@@ -290,17 +291,32 @@ struct CalendarsView: View {
                     }
                 }
                 PaceCard {
-                    HStack {
-                        Text("Google Calendar").font(.paceBody(16)).foregroundStyle(PaceColor.pine)
-                        Spacer()
-                        Text("Not connected yet").font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Google Calendar").font(.paceBody(16)).foregroundStyle(PaceColor.pine)
+                            Spacer()
+                            if google.connected {
+                                Button("Disconnect") { google.disconnect() }
+                                    .font(.paceBody(14)).foregroundStyle(PaceColor.waterDeep)
+                                    .frame(minHeight: 44)
+                                    .accessibilityIdentifier("calendars.google.off")
+                            } else {
+                                Button("Connect") { Task { await google.connect() } }
+                                    .font(.paceBody(14)).fontWeight(.semibold)
+                                    .foregroundStyle(PaceColor.waterDeep)
+                                    .frame(minHeight: 44)
+                                    .accessibilityIdentifier("calendars.google.on")
+                            }
+                        }
+                        Text(google.connected ? "Read only. Events show on Today as fixed." : (google.note.isEmpty ? "Read only. Pace never changes your Google calendar." : google.note))
+                            .font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
                     }
                 }
                 PaceCard {
                     HStack {
                         Text("Outlook").font(.paceBody(16)).foregroundStyle(PaceColor.pine)
                         Spacer()
-                        Text("Not connected yet").font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
+                        Text("Needs a Microsoft app registration").font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
                     }
                 }
             }

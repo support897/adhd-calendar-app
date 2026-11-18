@@ -103,6 +103,9 @@ struct TodayView: View {
                                 TaskRow(instance: stretch)
                             }
                             if day.visible.isEmpty && day.done.isEmpty {
+                                Image("SkipRest").resizable().scaledToFit()
+                                    .frame(width: 96, height: 96)
+                                    .accessibilityHidden(true)
                                 Text("Nothing here yet")
                                     .font(.paceBody(16))
                                     .foregroundStyle(theme.secondaryOnBackground)
@@ -117,7 +120,7 @@ struct TodayView: View {
                             }
                         }
 
-                        if importOn, !imported.isEmpty {
+                        if !imported.isEmpty {
                             PaceCard {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("Fixed")
@@ -218,8 +221,10 @@ struct TodayView: View {
                 .padding(20)
                 .background(ThemedBackground())
             }
-            .task(id: importOn) {
-                imported = importOn ? EventKitBridge.shared.importedEvents(on: Date()) : []
+            .task(id: "\(importOn)\(GoogleCal.shared.connected)") {
+                var all: [AppleFixedEvent] = importOn ? EventKitBridge.shared.importedEvents(on: Date()) : []
+                all += await GoogleCal.shared.events(on: Date())
+                imported = all.sorted { $0.start < $1.start }
             }
             .task(id: session.stateLoaded) {
                 // The Apple Calendar mirror wakes with her state:
