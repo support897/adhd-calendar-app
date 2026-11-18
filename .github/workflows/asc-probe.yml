@@ -1,0 +1,28 @@
+name: ASC probe
+on:
+  push:
+    tags: ["ascprobe-*"]
+jobs:
+  probe:
+    runs-on: macos-latest
+    steps:
+      - name: List what the API key can see
+        env:
+          KID: ${{ secrets.ASC_API_KEY_ID }}
+          ISS: ${{ secrets.ASC_API_ISSUER_ID }}
+          P8: ${{ secrets.ASC_API_KEY_P8_B64 }}
+        run: |
+          pip3 install --quiet pyjwt cryptography requests
+          python3 - <<'PY'
+          import os,base64,time,jwt,requests
+          key=base64.b64decode(os.environ["P8"]).decode()
+          tok=jwt.encode({"iss":os.environ["ISS"],"iat":int(time.time()),"exp":int(time.time())+900,"aud":"appstoreconnect-v1"},key,algorithm="ES256",headers={"kid":os.environ["KID"]})
+          h={"Authorization":"Bearer "+tok}
+          def get(p):
+              r=requests.get("https://api.appstoreconnect.apple.com"+p,headers=h); return r.status_code,r.json()
+          for p in ["/v1/bundleIds?limit=50","/v1/certificates?limit=50","/v1/profiles?limit=50","/v1/apps?limit=20","/v1/users?limit=5"]:
+              c,j=get(p); print(p,c)
+              for d in j.get("data",[]):
+                  a=d["attributes"]; print("  ",d["id"],d["type"],{k:a[k] for k in a if k in("identifier","name","platform","certificateType","profileType","profileState","bundleId","roles","expirationDate")})
+              if c!=200: print(j)
+          PY
