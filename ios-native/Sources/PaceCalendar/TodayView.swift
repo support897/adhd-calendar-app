@@ -67,6 +67,23 @@ struct TodayView: View {
 
                         progressBlock(state: state, day: day)
 
+                        if Calendar.current.component(.hour, from: Date()) >= 19 {
+                            PaceCard {
+                                HStack(spacing: 12) {
+                                    Image("SkipRest").resizable().scaledToFit().frame(width: 58, height: 58)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Day closed: \(day.done.count) done")
+                                            .font(.paceHeading(18)).fontWeight(.semibold)
+                                            .foregroundStyle(PaceColor.pine)
+                                        NavigationLink("Your week") { SundayResetView() }
+                                            .font(.paceBody(14)).fontWeight(.semibold)
+                                            .foregroundStyle(PaceColor.waterDeep)
+                                    }
+                                }
+                            }
+                            .accessibilityIdentifier("today.evening")
+                        }
+
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(day.visible) { inst in
                                 TaskRow(instance: inst) {

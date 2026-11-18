@@ -50,11 +50,15 @@ enum HabitRule {
 }
 
 struct HabitRuleMenu: View {
-    let habitId: String
+    let habit: PaceHabit
+    let today: String
     @State private var tick = 0
+    private var habitId: String { habit.id }
 
     var body: some View {
         let rule = HabitRule.get(habitId)
+        let prog = HabitRule.progress(id: habitId, days: habit.days, today: today)
+        HStack(spacing: 8) {
         Menu {
             Button("Every day") { HabitRule.set(habitId, kind: "daily", count: 1); tick += 1 }
             ForEach([2, 3, 4, 5], id: \.self) { n in
@@ -71,8 +75,13 @@ struct HabitRuleMenu: View {
                 .background(PaceColor.waterLight.opacity(0.35))
                 .clipShape(Capsule())
         }
-        .id(tick)
         .accessibilityIdentifier("habits.rule.\(habitId)")
+        Text("\(prog.done) of \(prog.goal) \(prog.window)")
+            .font(.paceBody(12))
+            .foregroundStyle(PaceColor.softInk)
+            .accessibilityIdentifier("habits.progress.\(habitId)")
+        }
+        .id(tick)
     }
 
     private func label(_ r: (kind: String, count: Int)) -> String {
@@ -217,6 +226,7 @@ struct YearView: View {
                 Text("more").font(.paceBody(11)).foregroundStyle(theme.secondaryOnBackground)
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("year.grid")
     }
 

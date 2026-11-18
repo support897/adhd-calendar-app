@@ -208,6 +208,7 @@ struct FocusTimerView: View {
         .onReceive(tick) { _ in
             if running && remaining > 0 { remaining -= 1 }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("focus.screen")
     }
 }

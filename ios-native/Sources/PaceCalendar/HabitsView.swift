@@ -117,12 +117,7 @@ struct HabitsView: View {
                     }
                 }
                 HStack(spacing: 8) {
-                    HabitRuleMenu(habitId: habit.id)
-                    let prog = HabitRule.progress(id: habit.id, days: habit.days, today: todayKey)
-                    Text("\(prog.done) of \(prog.goal) \(prog.window)")
-                        .font(.paceBody(12))
-                        .foregroundStyle(theme.secondaryOnCard)
-                        .accessibilityIdentifier("habits.progress.\(habit.id)")
+                    HabitRuleMenu(habit: habit, today: todayKey)
                     Spacer(minLength: 0)
                     RingMeter(progress: HabitRule.strength(days: habit.days, today: todayKey),
                               size: 26, line: 4)

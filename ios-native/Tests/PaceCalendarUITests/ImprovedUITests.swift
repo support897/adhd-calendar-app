@@ -67,9 +67,9 @@ final class ImprovedUITests: XCTestCase {
 
     func testYearViewStands() throws {
         app.buttons["tab.calendar"].tap()
-        let mode = app.segmentedControls["calendar.mode"]
-        XCTAssertTrue(mode.waitForExistence(timeout: 10))
-        mode.buttons["Year"].tap()
+        let year = app.buttons["Year"]
+        XCTAssertTrue(year.waitForExistence(timeout: 10))
+        year.tap()
         XCTAssertTrue(any("year.grid").waitForExistence(timeout: 10), "Year view never stood")
         XCTAssertTrue(any("year.title").exists)
     }
