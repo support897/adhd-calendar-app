@@ -35,6 +35,10 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     nonisolated func session(_ s: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
         apply(s.receivedApplicationContext)
     }
+    #if os(iOS)
+    nonisolated func sessionDidBecomeInactive(_ s: WCSession) {}
+    nonisolated func sessionDidDeactivate(_ s: WCSession) {}
+    #endif
     nonisolated func session(_ s: WCSession, didReceiveApplicationContext ctx: [String: Any]) { apply(ctx) }
 }
 
