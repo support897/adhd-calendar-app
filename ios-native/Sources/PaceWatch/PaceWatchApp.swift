@@ -18,7 +18,7 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    func apply(_ ctx: [String: Any]) {
+    nonisolated func apply(_ ctx: [String: Any]) {
         DispatchQueue.main.async {
             self.title = ctx["title"] as? String ?? self.title
             self.done = ctx["done"] as? Int ?? self.done
@@ -32,10 +32,10 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         WCSession.default.sendMessage(["done": id], replyHandler: nil, errorHandler: nil)
     }
 
-    func session(_ s: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
+    nonisolated func session(_ s: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
         apply(s.receivedApplicationContext)
     }
-    func session(_ s: WCSession, didReceiveApplicationContext ctx: [String: Any]) { apply(ctx) }
+    nonisolated func session(_ s: WCSession, didReceiveApplicationContext ctx: [String: Any]) { apply(ctx) }
 }
 
 @main
