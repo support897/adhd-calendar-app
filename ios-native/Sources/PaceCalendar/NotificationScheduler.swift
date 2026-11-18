@@ -45,6 +45,12 @@ enum NotificationScheduler {
         let notif = state.settings
         var requests: [UNNotificationRequest] = []
 
+        // Pause all (Settings): nothing is scheduled until the
+        // chosen time passes. Calm: a pause is a rest, not a loss.
+        let pauseUntil = UserDefaults.standard.double(forKey: "pace.pauseUntil")
+        if pauseUntil > Date().timeIntervalSince1970 { return }
+        let lead = (UserDefaults.standard.object(forKey: "pace.lead") as? Int) ?? notif.notifSetup
+
         if notif.notifCheckin {
             let content = UNMutableNotificationContent()
             content.title = "How are you feeling today?"
@@ -71,11 +77,11 @@ enum NotificationScheduler {
                           let start = Calendar.current.date(bySettingHour: timeParts[0],
                                                             minute: timeParts[1],
                                                             second: 0, of: dayDate) else { continue }
-                    let fire = start.addingTimeInterval(-Double(notif.notifSetup) * 60)
+                    let fire = start.addingTimeInterval(-Double(lead) * 60)
                     guard fire > Date() else { continue }
                     let content = UNMutableNotificationContent()
                     content.title = inst.task.title
-                    content.body = "In \(notif.notifSetup) minutes"
+                    content.body = "In \(lead) minutes"
                     content.sound = .default
                     let comps = Calendar.current.dateComponents(
                         [.year, .month, .day, .hour, .minute], from: fire)

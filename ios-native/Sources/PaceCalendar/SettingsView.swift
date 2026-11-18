@@ -10,6 +10,8 @@ struct SettingsView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
     @State private var nameDraft: String = ""
+    @AppStorage("pace.lead") private var lead: Int = 5
+    @State private var pause: Int = 0
 
     var body: some View {
         Form {
@@ -57,6 +59,25 @@ struct SettingsView: View {
                 Toggle("Day done", isOn: notifBinding("done", fallback: false))
                     .font(.paceBody(16))
                     .accessibilityIdentifier("settings.notifDone")
+                Stepper("Nudge before: \(lead) min", value: $lead, in: 0...60, step: 5)
+                    .font(.paceBody(16))
+                    .accessibilityIdentifier("settings.lead")
+                .onChange(of: lead) { _, _ in
+                    if let s = session.state { Task { await NotificationScheduler.reschedule(state: s) } }
+                }
+                Picker("Pause all", selection: $pause) {
+                    Text("Off").tag(0)
+                    Text("1 hour").tag(1)
+                    Text("Today").tag(2)
+                    Text("3 days").tag(3)
+                }
+                .font(.paceBody(16))
+                .accessibilityIdentifier("settings.pause")
+                .onChange(of: pause) { _, v in
+                    let secs: Double = v == 1 ? 3600 : v == 2 ? 86400 : v == 3 ? 259200 : 0
+                    UserDefaults.standard.set(secs == 0 ? 0 : Date().timeIntervalSince1970 + secs, forKey: "pace.pauseUntil")
+                    if let s = session.state { Task { await NotificationScheduler.reschedule(state: s) } }
+                }
             }
 
             Section {

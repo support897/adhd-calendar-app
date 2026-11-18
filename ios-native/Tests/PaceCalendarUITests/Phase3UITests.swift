@@ -39,4 +39,24 @@ final class Phase3UITests: XCTestCase {
         if !card.waitForExistence(timeout: 5) { app.swipeUp() }
         XCTAssertTrue(card.waitForExistence(timeout: 10), "Skip growth card missing")
     }
+
+    func testCalendarListViewStands() throws {
+        app.buttons["tab.calendar"].tap()
+        let list = app.buttons["List"]
+        XCTAssertTrue(list.waitForExistence(timeout: 10), "List segment missing")
+        list.tap()
+        XCTAssertTrue(any("calendar.todoList").waitForExistence(timeout: 10), "to-do list view never stood")
+    }
+
+    func testSettingsHasNudgeAndPause() throws {
+        app.buttons["tab.more"].tap()
+        let row = app.buttons["more.settings"]
+        if !row.waitForExistence(timeout: 5) { app.swipeUp() }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        let lead = any("settings.lead")
+        if !lead.waitForExistence(timeout: 5) { app.swipeUp() }
+        XCTAssertTrue(lead.waitForExistence(timeout: 10), "nudge row missing")
+        XCTAssertTrue(any("settings.pause").exists || { app.swipeUp(); return any("settings.pause").exists }(), "pause row missing")
+    }
 }

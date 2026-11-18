@@ -19,7 +19,7 @@ struct CalendarView: View {
     @State private var showAdd = false
     @State private var filterCleared = false
 
-    enum Mode: String, CaseIterable { case day, week, month, year }
+    enum Mode: String, CaseIterable { case day, week, month, year, list }
 
     private var activeFilter: String? { filterCleared ? nil : goalFilter }
 
@@ -42,6 +42,7 @@ struct CalendarView: View {
                 Text("Week").tag(Mode.week)
                 Text("Month").tag(Mode.month)
                 Text("Year").tag(Mode.year)
+                Text("List").tag(Mode.list)
             }
             .pickerStyle(.segmented)
             .tint(PaceColor.stillWater)
@@ -74,6 +75,7 @@ struct CalendarView: View {
                     case .week: weekList
                     case .month: monthGrid
                     case .year: YearView()
+                    case .list: todoList
                     }
                 }
                 .padding(.horizontal, 24)
@@ -106,6 +108,51 @@ struct CalendarView: View {
     // MARK: Day
 
     @ViewBuilder
+    /// The to-do way to look: Now, Later today, Soon. The same
+    /// items as the calendar, as a plain list.
+    private var todoList: some View {
+        let today = PaceState.todayString
+        let todays = instances(on: today).filter { $0.status != "done" }
+        let now = Array(todays.prefix(1))
+        let later = Array(todays.dropFirst())
+        let soon: [(String, [PaceInstance])] = (1...7).compactMap { i in
+            let key = HabitsView.addDays(today, i)
+            let l = instances(on: key).filter { $0.status != "done" }
+            return l.isEmpty ? nil : (key, l)
+        }
+        return VStack(alignment: .leading, spacing: 16) {
+            todoGroup("Now", now, today)
+            todoGroup("Later today", later, today)
+            ForEach(soon, id: \.0) { key, l in
+                todoGroup(PaceState.date(fromKey: key).map { $0.formatted(.dateTime.weekday(.wide).day()) } ?? key, l, key)
+            }
+            if now.isEmpty && later.isEmpty && soon.isEmpty {
+                Image("SkipRest").resizable().scaledToFit().frame(width: 96, height: 96)
+                Text("Nothing here yet")
+                    .font(.paceBody(16)).foregroundStyle(theme.secondaryOnBackground)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("calendar.todoList")
+    }
+
+    @ViewBuilder
+    private func todoGroup(_ title: String, _ list: [PaceInstance], _ key: String) -> some View {
+        if !list.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.paceBody(13)).fontWeight(.bold)
+                    .textCase(.uppercase)
+                    .foregroundStyle(theme.accentOnBackground)
+                ForEach(list) { inst in
+                    TaskRow(instance: inst) {
+                        session.setTaskDone(taskId: inst.task.id, dayKey: key, done: true)
+                    }
+                }
+            }
+        }
+    }
+
     private func dayList(_ key: String) -> some View {
         let list = instances(on: key)
         VStack(alignment: .leading, spacing: 8) {
