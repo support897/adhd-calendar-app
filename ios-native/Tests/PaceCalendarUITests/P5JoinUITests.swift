@@ -10,7 +10,7 @@ import XCTest
 /// door does the join, and the steps stand in the app. Run
 /// AFTER P5UITests in the same drive; seeded by
 /// tools/seed-team2.py.
-final class P5JoinUITests: XCTestCase {
+final class P5zJoinUITests: XCTestCase {
     private var app: XCUIApplication!
 
     private static let team2Email = "pace-p5-team2@example.com"

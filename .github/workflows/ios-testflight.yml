@@ -6,6 +6,8 @@ name: Pace native to TestFlight
 # Signing material comes from repo secrets and never touches the repo.
 on:
   workflow_dispatch:
+  push:
+    tags: ["testflight-*"]
 
 jobs:
   testflight:
