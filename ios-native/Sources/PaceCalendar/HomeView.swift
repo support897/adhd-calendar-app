@@ -298,6 +298,11 @@ struct MoreView: View {
                 }
                 .accessibilityIdentifier("more.tools")
                 .listRowBackground(PaceColor.white)
+
+                if let st = session.state {
+                    SkipGrowthCard(state: st)
+                        .listRowBackground(PaceColor.white)
+                }
             }
             .scrollContentBackground(.hidden)
             .background(ThemedBackground())

@@ -20,6 +20,8 @@ struct AddEventView: View {
     @State private var durationMin: Int = 25
     @State private var cantMove: Bool = false
     @State private var smallest: String = ""
+    @State private var biggest: String = ""
+    @State private var kind: String = "task"
 
     init(dayKey: String) {
         self.dayKey = dayKey
@@ -34,6 +36,19 @@ struct AddEventView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Picker("Kind", selection: $kind) {
+                    Text("Task").tag("task")
+                    Text("Habit").tag("habit")
+                    Text("Goal").tag("goal")
+                    Text("Event").tag("event")
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("addEvent.kind")
+
+                NavigationLink("Talk to Skip instead") { TalkView() }
+                    .font(.paceBody(15))
+                    .accessibilityIdentifier("addEvent.talk")
+
                 TextField("Title", text: $title)
                     .font(.paceBody(17))
                     .accessibilityIdentifier("addEvent.title")
@@ -63,6 +78,10 @@ struct AddEventView: View {
                 TextField("Smallest version (optional)", text: $smallest)
                     .font(.paceBody(16))
                     .accessibilityIdentifier("addEvent.smallest")
+
+                TextField("Biggest version (optional)", text: $biggest)
+                    .font(.paceBody(16))
+                    .accessibilityIdentifier("addEvent.biggest")
             }
             .scrollContentBackground(.hidden)
             .background(ThemedBackground())
@@ -82,6 +101,17 @@ struct AddEventView: View {
     private func save() {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        if kind == "habit" {
+            session.addHabit(name: trimmed)
+            dismiss()
+            return
+        }
+        if kind == "goal" {
+            let end = Calendar.current.date(byAdding: .day, value: 56, to: date) ?? date
+            session.addGoal(title: trimmed, end: PaceState.dayKey(for: end), pace: "daily", mins: 20)
+            dismiss()
+            return
+        }
         var timeString: String? = nil
         if hasTime {
             let c = Calendar.current.dateComponents([.hour, .minute], from: time)
@@ -96,6 +126,8 @@ struct AddEventView: View {
         if cantMove { task["essential"] = true }
         let small = smallest.trimmingCharacters(in: .whitespacesAndNewlines)
         if !small.isEmpty { task["minVersion"] = small }
+        let big = biggest.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !big.isEmpty { task["fullVersion"] = big }
         session.addTask(task)
         dismiss()
     }

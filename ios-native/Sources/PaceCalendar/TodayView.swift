@@ -67,11 +67,14 @@ struct TodayView: View {
 
                         progressBlock(state: state, day: day)
 
+                        TripleRingsCard(state: state, day: day)
+
                         if Calendar.current.component(.hour, from: Date()) >= 19 {
                             PaceCard {
                                 HStack(spacing: 12) {
                                     Image("SkipRest").resizable().scaledToFit().frame(width: 58, height: 58)
-                                    VStack(alignment: .leading, spacing: 4) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        EveningMosaic(done: day.done.count, parked: day.parked.count)
                                         Text("Day closed: \(day.done.count) done")
                                             .font(.paceHeading(18)).fontWeight(.semibold)
                                             .foregroundStyle(PaceColor.pine)

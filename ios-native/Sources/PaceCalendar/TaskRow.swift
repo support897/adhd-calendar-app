@@ -54,6 +54,13 @@ struct TaskRow: View {
 
             Spacer(minLength: 0)
 
+            if instance.task.essential {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(theme.iconOnBackground)
+                    .accessibilityHidden(true)
+            }
+
             if instance.status == "done" {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(theme.accentOnBackground)
