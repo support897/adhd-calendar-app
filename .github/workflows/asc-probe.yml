@@ -4,7 +4,7 @@ on:
     tags: ["ascprobe-*"]
 jobs:
   probe:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: List what the API key can see
         env:
@@ -12,7 +12,7 @@ jobs:
           ISS: ${{ secrets.ASC_API_ISSUER_ID }}
           P8: ${{ secrets.ASC_API_KEY_P8_B64 }}
         run: |
-          pip3 install --quiet pyjwt cryptography requests
+          pip3 install --quiet --break-system-packages pyjwt cryptography requests
           python3 - <<'PY'
           import os,base64,time,jwt,requests
           key=base64.b64decode(os.environ["P8"]).decode()
