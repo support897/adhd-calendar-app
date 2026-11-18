@@ -87,6 +87,37 @@ enum NotificationScheduler {
             }
         }
 
+        // Leave-by alerts (improved round): for tasks marked
+        // Can't move, warn at start minus travel minus buffer.
+        let ud = UserDefaults.standard
+        if ud.object(forKey: "pace.leaveby.on") == nil || ud.bool(forKey: "pace.leaveby.on") {
+            let travel = ud.object(forKey: "pace.leaveby.travel") as? Int ?? 15
+            let buffer = ud.object(forKey: "pace.leaveby.buffer") as? Int ?? 5
+            let today = PaceState.todayString
+            for day in [today, GoalPlanner.addDays(today, 1)] {
+                for inst in DayAdapter.instances(on: day, state: state)
+                where inst.status != "done" && inst.task.essential {
+                    guard let time = inst.task.time,
+                          let dayDate = PaceState.date(fromKey: day) else { continue }
+                    let tp = time.split(separator: ":").compactMap { Int($0) }
+                    guard tp.count == 2,
+                          let start = Calendar.current.date(bySettingHour: tp[0], minute: tp[1],
+                                                            second: 0, of: dayDate) else { continue }
+                    let fire = start.addingTimeInterval(-Double(travel + buffer) * 60)
+                    guard fire > Date() else { continue }
+                    let content = UNMutableNotificationContent()
+                    content.title = "Leave by \(String(format: "%02d:%02d", Calendar.current.component(.hour, from: start.addingTimeInterval(-Double(travel) * 60)), Calendar.current.component(.minute, from: start.addingTimeInterval(-Double(travel) * 60))))"
+                    content.body = inst.task.title
+                    content.sound = .default
+                    let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
+                    requests.append(UNNotificationRequest(
+                        identifier: "pace.leaveby.\(inst.task.id).\(day)",
+                        content: content,
+                        trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)))
+                }
+            }
+        }
+
         if notif.notifDigest {
             for (i, time) in notif.notifDigestTimes.enumerated() {
                 let content = UNMutableNotificationContent()

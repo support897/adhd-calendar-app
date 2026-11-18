@@ -116,6 +116,18 @@ struct HabitsView: View {
                             .padding(.leading, 4)
                     }
                 }
+                HStack(spacing: 8) {
+                    HabitRuleMenu(habitId: habit.id)
+                    let prog = HabitRule.progress(id: habit.id, days: habit.days, today: todayKey)
+                    Text("\(prog.done) of \(prog.goal) \(prog.window)")
+                        .font(.paceBody(12))
+                        .foregroundStyle(theme.secondaryOnCard)
+                        .accessibilityIdentifier("habits.progress.\(habit.id)")
+                    Spacer(minLength: 0)
+                    RingMeter(progress: HabitRule.strength(days: habit.days, today: todayKey),
+                              size: 26, line: 4)
+                        .accessibilityLabel("Habit strength")
+                }
                 if !habit.tiny.isEmpty {
                     Text(habit.tiny)
                         .font(.paceBody(13))

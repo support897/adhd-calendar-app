@@ -19,7 +19,7 @@ struct CalendarView: View {
     @State private var showAdd = false
     @State private var filterCleared = false
 
-    enum Mode: String, CaseIterable { case day, week, month }
+    enum Mode: String, CaseIterable { case day, week, month, year }
 
     private var activeFilter: String? { filterCleared ? nil : goalFilter }
 
@@ -41,6 +41,7 @@ struct CalendarView: View {
                 Text("Day").tag(Mode.day)
                 Text("Week").tag(Mode.week)
                 Text("Month").tag(Mode.month)
+                Text("Year").tag(Mode.year)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 20)
@@ -71,6 +72,7 @@ struct CalendarView: View {
                     case .day: dayList(selectedKey)
                     case .week: weekList
                     case .month: monthGrid
+                    case .year: YearView()
                     }
                 }
                 .padding(.horizontal, 24)

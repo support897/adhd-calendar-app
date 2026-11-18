@@ -193,6 +193,8 @@ struct FocusTimerView: View {
                     .buttonStyle(FocusPill(filled: false))
                     .accessibilityIdentifier("focus.pause")
                 Button("Done") {
+                    RealTime.record(title: title, planned: Double(minutes),
+                                    real: Double(minutes * 60 - remaining) / 60.0)
                     extras.celebrate()
                     dismiss()
                 }

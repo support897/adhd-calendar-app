@@ -211,6 +211,36 @@ struct MoreView: View {
                 .listRowBackground(PaceColor.white)
 
                 NavigationLink {
+                    LearnedTimeView()
+                } label: {
+                    Label("Real time", systemImage: "clock")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.realtime")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    CalendarsView()
+                } label: {
+                    Label("Calendars", systemImage: "calendar.badge.plus")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.calendars")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    LeaveBySettingsView()
+                } label: {
+                    Label("Leave by", systemImage: "figure.walk")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.leaveby")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
                     RewardLevelView()
                 } label: {
                     Label("Reward level", systemImage: "sparkle")

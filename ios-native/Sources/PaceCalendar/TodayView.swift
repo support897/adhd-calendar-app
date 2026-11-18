@@ -22,6 +22,8 @@ struct TodayView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var extras: ExtrasStore
     @State private var focusTask: PaceInstance? = nil
+    @AppStorage("pace.import.on") private var importOn = false
+    @State private var imported: [AppleFixedEvent] = []
     @State private var showAdd = false
     @State private var showCheckInAgain = false
 
@@ -96,6 +98,30 @@ struct TodayView: View {
                                     .padding(.top, 4)
                                     .accessibilityIdentifier("today.parked")
                             }
+                        }
+
+                        if importOn, !imported.isEmpty {
+                            PaceCard {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Fixed")
+                                        .font(.paceBody(13)).fontWeight(.bold)
+                                        .foregroundStyle(PaceColor.waterDeep)
+                                        .textCase(.uppercase)
+                                    ForEach(imported) { e in
+                                        HStack {
+                                            Text(Self.hhmm(e.start))
+                                                .font(.paceBody(14)).fontWeight(.semibold)
+                                                .foregroundStyle(PaceColor.waterDeep)
+                                            Text(e.title)
+                                                .font(.paceBody(15)).foregroundStyle(PaceColor.pine)
+                                            Spacer(minLength: 0)
+                                            Image(systemName: "pin.fill")
+                                                .font(.system(size: 11)).foregroundStyle(PaceColor.waterMid)
+                                        }
+                                    }
+                                }
+                            }
+                            .accessibilityIdentifier("today.fixed")
                         }
 
                         PaceCard {
@@ -175,6 +201,9 @@ struct TodayView: View {
                 .padding(20)
                 .background(ThemedBackground())
             }
+            .task(id: importOn) {
+                imported = importOn ? EventKitBridge.shared.importedEvents(on: Date()) : []
+            }
             .task(id: session.stateLoaded) {
                 // The Apple Calendar mirror wakes with her state:
                 // ask once, then keep the mirror standing.
@@ -245,6 +274,11 @@ struct TodayView: View {
 
     /// Minutes between now and 22:00 (clamped at zero), the day
     /// drawn as a bar so time is a picture, not a number.
+    static func hhmm(_ d: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: d)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+    }
+
     static func minutesLeftToday() -> Int {
         let cal = Calendar.current
         let now = Date()

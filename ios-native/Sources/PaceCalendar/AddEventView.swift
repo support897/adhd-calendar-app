@@ -18,6 +18,8 @@ struct AddEventView: View {
     @State private var hasTime: Bool = false
     @State private var time: Date
     @State private var durationMin: Int = 25
+    @State private var cantMove: Bool = false
+    @State private var smallest: String = ""
 
     init(dayKey: String) {
         self.dayKey = dayKey
@@ -53,6 +55,14 @@ struct AddEventView: View {
                 Stepper("Length: \(durationMin) min", value: $durationMin, in: 5...480, step: 5)
                     .font(.paceBody(16))
                     .accessibilityIdentifier("addEvent.length")
+
+                Toggle("Can't move", isOn: $cantMove)
+                    .font(.paceBody(16))
+                    .accessibilityIdentifier("addEvent.cantMove")
+
+                TextField("Smallest version (optional)", text: $smallest)
+                    .font(.paceBody(16))
+                    .accessibilityIdentifier("addEvent.smallest")
             }
             .scrollContentBackground(.hidden)
             .background(ThemedBackground())
@@ -77,12 +87,15 @@ struct AddEventView: View {
             let c = Calendar.current.dateComponents([.hour, .minute], from: time)
             timeString = String(format: "%02d:%02d", c.hour ?? 9, c.minute ?? 0)
         }
-        let task = PaceTaskFactory.make(
+        var task = PaceTaskFactory.make(
             title: trimmed,
             date: PaceState.dayKey(for: date),
             time: timeString,
-            durationMin: durationMin
+            durationMin: RealTime.padded(durationMin)
         )
+        if cantMove { task["essential"] = true }
+        let small = smallest.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !small.isEmpty { task["minVersion"] = small }
         session.addTask(task)
         dismiss()
     }
