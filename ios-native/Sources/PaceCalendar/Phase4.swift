@@ -382,7 +382,6 @@ struct TaskWizard: View {
                 photo = nil
             }
         }
-        .accessibilityIdentifier("wizard.task.\(step)")
     }
 
     private var sayIt: some View {
@@ -665,7 +664,6 @@ struct GoalWizard: View {
         }
         .navigationTitle("New goal")
         .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("wizard.goal.\(step)")
     }
 
     private func advance() {
@@ -711,13 +709,13 @@ struct PlusChooser: View {
                 }
                 .padding(20)
             }
+            .accessibilityIdentifier("plus.chooser")
             .background(ThemedBackground())
             .navigationTitle("Add")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() }.accessibilityIdentifier("plus.close") }
             }
-            .accessibilityIdentifier("plus.chooser")
         }
     }
 

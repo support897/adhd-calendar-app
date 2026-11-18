@@ -89,7 +89,7 @@ struct TaskRow: View {
             }
         }
         .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("task.\(instance.task.id)")
     }
 
