@@ -17,5 +17,6 @@ enum WidgetBridge {
             updated: Date())
         snap.save()
         WidgetCenter.shared.reloadAllTimelines()
+        WatchLink.shared.push(state: state)
     }
 }

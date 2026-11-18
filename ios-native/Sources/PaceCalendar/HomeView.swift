@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var extras: ExtrasStore
+    @EnvironmentObject private var session: SessionStore
     @State private var selection = "today"
     @State private var showQuickAdd = false
 
@@ -29,6 +30,12 @@ struct HomeView: View {
             }
         }
         .animation(.easeOut(duration: 0.25), value: extras.celebrating)
+        .onAppear {
+            WatchLink.shared.onDone = { id in
+                session.setTaskDone(taskId: id, dayKey: PaceState.todayString, done: true)
+            }
+            WatchLink.shared.start()
+        }
         .sheet(isPresented: $showQuickAdd) {
             AddEventView(dayKey: PaceState.todayString)
         }
