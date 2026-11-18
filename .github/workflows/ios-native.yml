@@ -27,6 +27,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SDK PIN (2026-11-18, ITMS-90725): Apple requires the iOS 27 SDK
+      # (Xcode 27+) from April 2027. macos-latest ships whatever Xcode
+      # the runner image carries, so pin Xcode 27 here — the next build
+      # rides it.
+      - name: Pin Xcode 27+
+        uses: maximam/setup-xcode@v1
+        with:
+          xcode-version: "27"
+
+      - name: Fail unless Xcode is 27+
+        run: |
+          XCODE_MAJOR=$(xcodebuild -version | head -1 | awk '{print $2}' | cut -d. -f1)
+          echo "Xcode major version: $XCODE_MAJOR"
+          [ "$XCODE_MAJOR" -ge 27 ] || { echo "Xcode $XCODE_MAJOR is below 27 — refusing to build"; exit 1; }
+
       # Adaptation (a): NO media-bundling step — that step is
       # Fit Hard-only (it copies the web app's media into their app).
 
