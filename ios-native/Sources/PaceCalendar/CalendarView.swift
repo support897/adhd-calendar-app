@@ -107,7 +107,6 @@ struct CalendarView: View {
 
     // MARK: Day
 
-    @ViewBuilder
     /// The to-do way to look: Now, Later today, Soon. The same
     /// items as the calendar, as a plain list.
     private var todoList: some View {
@@ -153,6 +152,7 @@ struct CalendarView: View {
         }
     }
 
+    @ViewBuilder
     private func dayList(_ key: String) -> some View {
         let list = instances(on: key)
         VStack(alignment: .leading, spacing: 8) {
