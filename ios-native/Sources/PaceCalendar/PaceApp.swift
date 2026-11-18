@@ -7,12 +7,14 @@ struct PaceApp: App {
     @UIApplicationDelegateAdaptor(PaceAppDelegate.self) private var delegate
     @StateObject private var session = SessionStore()
     @StateObject private var theme = ThemeStore()
+    @StateObject private var extras = ExtrasStore()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(session)
                 .environmentObject(theme)
+                .environmentObject(extras)
                 .onChange(of: session.state?.theme) { _, newKey in
                     // Her saved pick paints the world the moment
                     // her state lands (theme law: the pick

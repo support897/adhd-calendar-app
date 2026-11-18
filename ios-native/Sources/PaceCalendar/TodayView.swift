@@ -20,6 +20,8 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var extras: ExtrasStore
+    @State private var focusTask: PaceInstance? = nil
     @State private var showAdd = false
     @State private var showCheckInAgain = false
 
@@ -51,12 +53,15 @@ struct TodayView: View {
                             CheckInView(dayKey: todayKey)
                         }
 
+                        heroBlock(day: day)
+
                         progressBlock(state: state, day: day)
 
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(day.visible) { inst in
                                 TaskRow(instance: inst) {
                                     session.setTaskDone(taskId: inst.task.id, dayKey: todayKey, done: true)
+                                    extras.celebrate()
                                 }
                             }
                             ForEach(day.done) { inst in
@@ -84,6 +89,18 @@ struct TodayView: View {
                                     .accessibilityIdentifier("today.parked")
                             }
                         }
+
+                        PaceCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("This week")
+                                    .font(.paceBody(13)).fontWeight(.bold)
+                                    .foregroundStyle(PaceColor.waterDeep)
+                                    .textCase(.uppercase)
+                                let week = WeekData.days(state)
+                                WeekBars(values: week.map { $0.score }, labels: week.map { $0.label })
+                            }
+                        }
+                        .accessibilityIdentifier("today.week")
 
                         if !needsCheckIn {
                             Button("How do you feel?") { showCheckInAgain = true }
@@ -138,6 +155,10 @@ struct TodayView: View {
             .sheet(isPresented: $showAdd) {
                 AddEventView(dayKey: todayKey)
             }
+            .fullScreenCover(item: $focusTask) { inst in
+                FocusTimerView(title: inst.displayTitle,
+                               minutes: Int(max(inst.displayDurationMin, 5)))
+            }
             .sheet(isPresented: $showCheckInAgain) {
                 VStack {
                     CheckInView(dayKey: todayKey) { showCheckInAgain = false }
@@ -155,6 +176,72 @@ struct TodayView: View {
                 }
             }
         }
+    }
+
+    /// THE HERO (improved round): the one next step on a purple
+    /// gradient card, with the time left today as a bar and a
+    /// Start button that opens the focus timer.
+    @ViewBuilder
+    private func heroBlock(day: AdaptedDay) -> some View {
+        if let next = day.visible.first {
+            let left = Self.minutesLeftToday()
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Next")
+                    .font(.paceBody(13)).fontWeight(.bold)
+                    .foregroundStyle(PaceColor.white)
+                    .textCase(.uppercase)
+                Text(next.displayTitle)
+                    .font(.paceHeading(24)).fontWeight(.semibold)
+                    .foregroundStyle(PaceColor.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Button { focusTask = next } label: {
+                        Text("Start")
+                            .font(.paceBody(16)).fontWeight(.bold)
+                            .foregroundStyle(PaceColor.waterDeep)
+                            .padding(.horizontal, 26)
+                            .frame(minHeight: 44)
+                            .background(PaceColor.white)
+                            .clipShape(Capsule())
+                    }
+                    .accessibilityIdentifier("today.start")
+                    if next.displayDurationMin >= 1 {
+                        Text("\(Int(next.displayDurationMin)) min")
+                            .font(.paceBody(14)).fontWeight(.semibold)
+                            .foregroundStyle(PaceColor.white)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 5) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(PaceColor.white.opacity(0.3))
+                            Capsule().fill(PaceColor.white)
+                                .frame(width: geo.size.width * CGFloat(left) / (16 * 60))
+                        }
+                    }
+                    .frame(height: 8)
+                    Text("\(left / 60) h \(left % 60) m left today")
+                        .font(.paceBody(13))
+                        .foregroundStyle(PaceColor.white)
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(LinearGradient.paceHero)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .shadow(color: PaceColor.stillWater.opacity(0.3), radius: 14, y: 8)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("today.hero")
+        }
+    }
+
+    /// Minutes between now and 22:00 (clamped at zero), the day
+    /// drawn as a bar so time is a picture, not a number.
+    static func minutesLeftToday() -> Int {
+        let cal = Calendar.current
+        let now = Date()
+        guard let end = cal.date(bySettingHour: 22, minute: 0, second: 0, of: now) else { return 0 }
+        return max(0, Int(end.timeIntervalSince(now) / 60))
     }
 
     /// THE PROGRESS BLOCK (round 2, her motivation order):

@@ -28,7 +28,7 @@ enum PaceColor {
     /// apricot role wherever apricot carries meaning on a
     /// light surface (state dots, card borders, goal colour)
     /// — 3.78 on white (Apricot itself measured 2.00).
-    static let apricotDeep = Color(hex: 0xCA6914)
+    static let apricotDeep = Color(hex: 0x4858C4) // purple-led round: the old apricot role now carries Water Deep (5.5:1 on white)
     /// Secondary ink for the dark world (on #14181F: 9.89).
     static let mistSoft = Color(hex: 0xB9C4BB)
     /// The guide's line colour (--line in SPEC-VISUAL):
@@ -172,7 +172,7 @@ final class ThemeStore: ObservableObject {
     }
 
     var accent: Color {
-        key == "brand" ? PaceColor.apricot : PaceColor.stillWater
+        key == "brand" ? PaceColor.white : PaceColor.stillWater
     }
 }
 

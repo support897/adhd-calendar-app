@@ -9,7 +9,9 @@ import SwiftUI
 /// its greeting anchor lives on in TodayView.
 struct HomeView: View {
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var extras: ExtrasStore
     @State private var selection = "today"
+    @State private var showQuickAdd = false
 
     var body: some View {
         ZStack {
@@ -21,6 +23,15 @@ struct HomeView: View {
             tabLayer("more") { MoreView() }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { bar }
+        .overlay {
+            if let line = extras.celebrating {
+                CelebrationView(line: line)
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: extras.celebrating)
+        .sheet(isPresented: $showQuickAdd) {
+            AddEventView(dayKey: PaceState.todayString)
+        }
         // Toolbar words inside the tabs take the tint: the
         // accent step that measures on the pinned scheme's
         // surfaces (Water Deep in the light worlds, Water
@@ -72,6 +83,20 @@ struct HomeView: View {
                 barItem("today", "Today", "sun.max")
                 barItem("goals", "Goals", "target")
                 barItem("calendar", "Calendar", "calendar")
+                Button { showQuickAdd = true } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(PaceColor.white)
+                        .frame(width: 54, height: 54)
+                        .background(LinearGradient.paceHero)
+                        .clipShape(Circle())
+                        .shadow(color: PaceColor.stillWater.opacity(0.4), radius: 8, y: 4)
+                        .offset(y: -12)
+                }
+                .frame(maxWidth: .infinity)
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add")
+                .accessibilityIdentifier("tab.add")
                 barItem("habits", "Habits", "leaf")
                 barItem("talk", "Talk", "mic")
                 barItem("more", "More", "ellipsis")
@@ -163,6 +188,36 @@ struct MoreView: View {
                         .foregroundStyle(PaceColor.pine)
                 }
                 .accessibilityIdentifier("more.progress")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    BrainDumpView()
+                } label: {
+                    Label("Dump", systemImage: "tray")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.dump")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    SundayResetView()
+                } label: {
+                    Label("Sunday reset", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.reset")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    RewardLevelView()
+                } label: {
+                    Label("Reward level", systemImage: "sparkle")
+                        .font(.paceBody(16))
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.reward")
                 .listRowBackground(PaceColor.white)
 
                 NavigationLink {
