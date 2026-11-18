@@ -41,6 +41,8 @@ struct SettingsView: View {
 
             NotificationCheckCard()
 
+            TourReplayRow()
+
             Section {
                 DatePicker("Check-in", selection: checkinBinding,
                            displayedComponents: .hourAndMinute)

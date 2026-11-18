@@ -13,6 +13,9 @@ struct HomeView: View {
     @EnvironmentObject private var session: SessionStore
     @State private var selection = "today"
     @State private var showQuickAdd = false
+    @AppStorage("pace.tour.done") private var tourDone = false
+    @State private var showTour = false
+    @AppStorage("pace.tour.replay") private var replayCount = 0
 
     var body: some View {
         ZStack {
@@ -38,6 +41,20 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showQuickAdd) {
             PlusChooser()
+        }
+        .fullScreenCover(isPresented: $showTour) {
+            TourView {
+                tourDone = true
+                showTour = false
+            }
+        }
+        .onChange(of: replayCount) { _, _ in showTour = true }
+        .task(id: session.stateLoaded) {
+            // First time in: Skip offers the tour (not in test drives).
+            if session.stateLoaded, !tourDone,
+               !ProcessInfo.processInfo.arguments.contains("-PaceTwinConfig") {
+                showTour = true
+            }
         }
         // Toolbar words inside the tabs take the tint: the
         // accent step that measures on the pinned scheme's
