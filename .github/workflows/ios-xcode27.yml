@@ -1,0 +1,35 @@
+name: iOS 27 SDK compile (Xcode 27)
+
+# Apple: apps must be built with the iOS 27 SDK (Xcode 27) from April 2027.
+# Compiles the native app for the simulator on the xcode-27 runner image.
+on:
+  push:
+    paths: ["ios-native/Sources/**", ".github/workflows/ios-xcode27.yml"]
+  workflow_dispatch:
+
+jobs:
+  build27:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i ios
+      - name: Generate project
+        working-directory: ios-native
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Compile with iOS 27 SDK (ad-hoc signed)
+        working-directory: ios-native
+        run: |
+          set -o pipefail
+          xcodebuild build -project Pace.xcodeproj -scheme Pace \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+      - name: Errors
+        if: failure()
+        working-directory: ios-native
+        run: grep -n "error:" build.log | head -40 || true
