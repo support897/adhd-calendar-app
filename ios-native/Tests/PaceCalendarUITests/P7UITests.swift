@@ -23,18 +23,10 @@ final class P7UITests: XCTestCase {
     }
 
     func testPlusScreenStands() throws {
+        // Free for now: the pay screen is not offered.
         app.buttons["tab.more"].tap()
-        app.buttons["more.plus"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["plus.screen"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["A$4.99"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["A$39.99"].exists)
-        XCTAssertTrue(app.staticTexts["A$99.99"].exists)
-        XCTAssertTrue(app.staticTexts["First month free"].exists)
-        XCTAssertTrue(app.buttons["plus.restore"].exists)
-        let chooseStands = app.buttons["plus.choose.pace_plus_monthly"].exists
-        let honestLine = app.staticTexts["plus.unavailable"].exists
-        XCTAssertTrue(chooseStands || honestLine,
-                      "Plus must either offer the purchase or say so plainly")
+        XCTAssertTrue(app.descendants(matching: .any)["more.settings"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["more.plus"].exists, "Plus pay row must be gone while Pace is free")
     }
 
     func testNotificationsOnByDefault() throws {

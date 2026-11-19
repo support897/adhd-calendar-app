@@ -32,6 +32,8 @@ final class CalendarUITests: XCTestCase {
         let cell = app.buttons["calendar.cell.\(today)"]
         XCTAssertTrue(cell.waitForExistence(timeout: 10))
         cell.tap()
+        let morning = app.staticTexts["Morning shift at the café"]
+        for _ in 0..<8 where !morning.exists { app.swipeUp() }
         XCTAssertTrue(app.staticTexts["Morning shift at the café"].waitForExistence(timeout: 10))
 
         // Week: seven calm day lists.

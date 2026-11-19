@@ -35,6 +35,11 @@ targets:
               - com.googleusercontent.apps.1098367119523-jbv8v9u86v1dp91hjdi8oi8t0d3laem8
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSCalendarsFullAccessUsageDescription: Pace keeps your events in your Apple calendar too, so your day stands in both places.
         NSSpeechRecognitionUsageDescription: Pace turns your voice into events on this device, so you can just say what is on.
         NSCameraUsageDescription: Pace uses the camera only when you choose to scan a page of notes, and reads it on this device.
@@ -44,7 +49,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: shop.ilseplacencia.pace
         PRODUCT_NAME: PaceCalendar
         CODE_SIGN_ENTITLEMENTS: Sources/PaceCalendar/Pace.entitlements
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
