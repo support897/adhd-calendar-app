@@ -1,0 +1,62 @@
+name: iOS quick test and screenshots
+
+# On-demand lane: run chosen UI tests on a chosen iPhone model and
+# publish every screenshot attachment as PNGs. Inputs:
+#   tests  = comma list of PaceCalendarUITests/Class[/method], blank = Look capture only
+#   device = simulator name fragment, e.g. "iPhone SE", "iPhone 17 Pro Max"
+on:
+  push:
+    branches: [design-v2-clean]
+    paths: ["ios-native/quick.txt"]
+  workflow_dispatch:
+
+concurrency:
+  group: pace-twin
+  cancel-in-progress: false
+
+jobs:
+  quick:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate project
+        working-directory: ios-native
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Seed twin accounts
+        working-directory: ios-native
+        run: |
+          TZ=Australia/Sydney python3 tools/seed-team-leg.py
+          TZ=Australia/Sydney python3 tools/seed-team2.py
+      - name: Run tests
+        working-directory: ios-native
+        run: |
+          set -o pipefail
+          # quick.txt: line 1 = tests (comma list), line 2 = device fragment
+          TESTS=$(sed -n 1p quick.txt); DEVICE=$(sed -n 2p quick.txt)
+          echo "TESTS=$TESTS DEVICE=$DEVICE"
+          xcrun simctl list devices available | grep iPhone
+          xcrun simctl list devices available | grep -i iphone > sims.txt
+          UDID=$(grep -E "$DEVICE" sims.txt | head -1 | grep -oE "[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}")
+          if [ -z "$UDID" ]; then echo "No simulator matches $DEVICE, using first iPhone"; UDID=$(head -1 sims.txt | grep -oE "[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}"); fi
+          echo "UDID=$UDID"
+          xcrun simctl boot "$UDID" || true
+          ONLY=""
+          for t in $(echo "$TESTS" | tr ',' ' '); do ONLY="$ONLY -only-testing:PaceCalendarUITests/$t"; done
+          xcodebuild test -project Pace.xcodeproj -scheme Pace -destination "id=$UDID" $ONLY \
+            -resultBundlePath "$RUNNER_TEMP/ui.xcresult" CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO 2>&1 | tee ui.log | grep -E "Test Case|error:|Executed|TEST (SUCCEEDED|FAILED)" || true
+      - name: Export screenshots
+        if: always()
+        run: |
+          mkdir -p shots
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/ui.xcresult" --output-path shots || true
+          ls shots | head -100
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quick-results
+          path: |
+            shots
+            ios-native/sims.txt
+            ios-native/ui.log
