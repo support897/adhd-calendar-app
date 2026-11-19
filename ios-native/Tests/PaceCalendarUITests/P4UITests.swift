@@ -59,11 +59,18 @@ final class P4UITests: XCTestCase {
         let habitAdd = app.buttons["habits.add"]
         XCTAssertTrue(habitAdd.waitForExistence(timeout: 10))
         habitAdd.tap()
-        let habitField = app.textFields["habits.nameField"]
+        let habitField = app.textFields["wizard.habitName"]
         XCTAssertTrue(habitField.waitForExistence(timeout: 10))
         habitField.tap()
         habitField.typeText("Meditate")
-        app.buttons["habits.addSave"].tap()
+        for _ in 0..<6 {
+            let n = app.buttons["wizard.next"]
+            if !n.exists { break }
+            if n.isHittable { n.tap() }
+            Thread.sleep(forTimeInterval: 1.2)
+        }
+        let wizardGone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.buttons["wizard.next"])
+        XCTAssertEqual(XCTWaiter().wait(for: [wizardGone], timeout: 20), .completed, "habit wizard never closed")
         if !app.staticTexts["Meditate"].waitForExistence(timeout: 8) { app.swipeUp() }
         XCTAssertTrue(app.staticTexts["Meditate"].waitForExistence(timeout: 15))
 

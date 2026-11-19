@@ -42,7 +42,7 @@ final class Phase3UITests: XCTestCase {
 
     func testCalendarListViewStands() throws {
         app.buttons["tab.calendar"].tap()
-        let list = app.buttons["List"]
+        let list = app.buttons["Agenda"]
         XCTAssertTrue(list.waitForExistence(timeout: 10), "List segment missing")
         list.tap()
         XCTAssertTrue(any("calendar.todoList").waitForExistence(timeout: 10), "to-do list view never stood")

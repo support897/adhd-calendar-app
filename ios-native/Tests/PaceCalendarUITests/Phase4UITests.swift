@@ -26,14 +26,11 @@ final class Phase4UITests: XCTestCase {
         let box = any("wizard.text")
         XCTAssertTrue(box.waitForExistence(timeout: 10), "wizard text missing")
         box.tap()
-        box.typeText("Water the garden")
-        for _ in 0..<5 {
-            let next = app.buttons["wizard.next"]
-            XCTAssertTrue(next.waitForExistence(timeout: 5))
-            next.tap()
-        }
-        XCTAssertTrue(any("wizard.review").waitForExistence(timeout: 10), "review missing")
-        app.buttons["wizard.next"].tap()
+        box.typeText("Water the garden tomorrow at 9am for 20 minutes")
+        XCTAssertTrue(any("wizard.read").waitForExistence(timeout: 10), "Pace never showed what it read")
+        let add = app.buttons["task.add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 5))
+        add.tap()
         let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: any("plus.chooser"))
         XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 20), .completed, "the add sheet never closed after Add it")
     }
@@ -45,8 +42,8 @@ final class Phase4UITests: XCTestCase {
         XCTAssertTrue(t.waitForExistence(timeout: 10))
         t.tap()
         t.typeText("Read twelve books")
-        for _ in 0..<5 { app.buttons["wizard.next"].tap() }
-        XCTAssertTrue(any("wizard.goalReview").waitForExistence(timeout: 10), "goal review missing")
+        XCTAssertTrue(any("wizard.goalReview").waitForExistence(timeout: 10), "goal steps preview missing")
+        XCTAssertTrue(app.buttons["goal.make"].waitForExistence(timeout: 5))
     }
 
     func testHabitsShowStreakCard() throws {
