@@ -45,7 +45,7 @@ struct AddEventView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("addEvent.kind")
 
-                NavigationLink("Step by step with Skip") { TaskWizard() }
+                NavigationLink("Say it in one sentence") { TaskSentenceView(startDay: dayKey) }
                     .font(.paceBody(15))
                     .accessibilityIdentifier("addEvent.wizard")
 

@@ -15,6 +15,7 @@ struct HabitsView: View {
     @EnvironmentObject private var extras: ExtrasStore
     @State private var draft: String = ""
     @State private var showAdd = false
+    @State private var showWizard = false
 
     private var todayKey: String { PaceState.todayString }
 
@@ -107,12 +108,15 @@ struct HabitsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showAdd = true
+                    showWizard = true
                 } label: {
                     Label("Add", systemImage: "plus")
                 }
                 .accessibilityIdentifier("habits.add")
             }
+        }
+        .sheet(isPresented: $showWizard) {
+            NavigationStack { HabitWizard() }
         }
         .accessibilityIdentifier("habits.list")
     }

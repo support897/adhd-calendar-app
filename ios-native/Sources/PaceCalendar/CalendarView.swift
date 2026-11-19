@@ -18,6 +18,7 @@ struct CalendarView: View {
     @State private var selectedKey: String = PaceState.todayString
     @State private var showAdd = false
     @State private var filterCleared = false
+    @State private var focusTask: PaceInstance? = nil
 
     enum Mode: String, CaseIterable { case day, week, month, year, list }
 
@@ -42,7 +43,7 @@ struct CalendarView: View {
                 Text("Week").tag(Mode.week)
                 Text("Month").tag(Mode.month)
                 Text("Year").tag(Mode.year)
-                Text("List").tag(Mode.list)
+                Text("Agenda").tag(Mode.list)
             }
             .pickerStyle(.segmented)
             .tint(PaceColor.stillWater)
@@ -66,6 +67,15 @@ struct CalendarView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 10)
+            }
+
+            if mode != .year && mode != .list {
+                weekStrip
+                    .padding(.horizontal, 20).padding(.top, 10)
+                feelingRow
+                    .padding(.horizontal, 20).padding(.top, 8)
+                upNextCard
+                    .padding(.horizontal, 20).padding(.top, 8)
             }
 
             ScrollView {
@@ -102,6 +112,94 @@ struct CalendarView: View {
         .sheet(isPresented: $showAdd) {
             AddEventView(dayKey: selectedKey)
         }
+        .fullScreenCover(item: $focusTask) { inst in
+            FocusTimerView(title: inst.displayTitle, minutes: Int(max(inst.displayDurationMin, 5)))
+        }
+        }
+    }
+
+    // MARK: Week strip, feeling, up next (the old calendar look, in colour)
+
+    private var weekStrip: some View {
+        let monday = HabitsView.addDays(selectedKey, -((GoalPlanner.weekdayOf(selectedKey) + 6) % 7))
+        return HStack(spacing: 6) {
+            ForEach(0..<7, id: \.self) { i in
+                let key = HabitsView.addDays(monday, i)
+                let n = instances(on: key).count
+                let sel = key == selectedKey
+                Button { selectedKey = key } label: {
+                    VStack(spacing: 4) {
+                        Text(PaceState.date(fromKey: key).map { $0.formatted(.dateTime.weekday(.narrow)) } ?? "")
+                            .font(.paceBody(12)).fontWeight(.semibold)
+                            .foregroundStyle(sel ? PaceColor.white : PaceColor.softInk)
+                        Text(dayNumber(key))
+                            .font(.paceHeading(18)).fontWeight(.bold)
+                            .foregroundStyle(sel ? PaceColor.white : PaceColor.pine)
+                        Circle().fill(n == 0 ? Color.clear : (sel ? PaceColor.white : PaceColor.stillWater))
+                            .frame(width: 6, height: 6)
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+                    .background(sel ? AnyShapeStyle(LinearGradient.paceHero) : AnyShapeStyle(PaceColor.white))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(key == PaceState.todayString && !sel ? PaceColor.stillWater : Color.clear, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("calendar.strip.\(key)")
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("calendar.weekstrip")
+    }
+
+    private var feelingRow: some View {
+        let order = ["low", "steady", "full"]
+        let icons = ["cloud.fill", "sun.haze.fill", "sun.max.fill"]
+        return HStack(spacing: 8) {
+            ForEach(Array(order.enumerated()), id: \.offset) { i, key in
+                let chosen = session.state?.feelings[selectedKey] == key
+                Button { session.saveFeeling(dayKey: selectedKey, key: key) } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: icons[i]).font(.system(size: 14))
+                        Text(session.state?.feelingNames[key] ?? ["Bad", "Ok", "Great"][i])
+                            .font(.paceBody(14)).fontWeight(.semibold)
+                    }
+                    .foregroundStyle(chosen ? PaceColor.white : PaceColor.pine)
+                    .frame(maxWidth: .infinity).frame(minHeight: 40)
+                    .background(chosen ? PaceColor.stillWater : PaceColor.white)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(PaceColor.waterMid, lineWidth: chosen ? 0 : 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("calendar.feel.\(key)")
+            }
+        }
+    }
+
+    @ViewBuilder private var upNextCard: some View {
+        if let next = instances(on: selectedKey).first(where: { $0.status != "done" }) {
+            HStack(spacing: 12) {
+                Image(systemName: "arrow.forward.circle.fill").font(.system(size: 26))
+                    .foregroundStyle(PaceColor.stillWater)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Up next").font(.paceBody(12)).fontWeight(.bold).textCase(.uppercase)
+                        .foregroundStyle(PaceColor.waterDeep)
+                    Text(next.displayTitle).font(.paceBody(16)).fontWeight(.semibold)
+                        .foregroundStyle(PaceColor.pine).lineLimit(1)
+                        .accessibilityIdentifier("calendar.upnext.title")
+                }
+                Spacer(minLength: 0)
+                Button { focusTask = next } label: {
+                    Text("Start").font(.paceBody(15)).fontWeight(.bold).foregroundStyle(PaceColor.white)
+                        .padding(.horizontal, 20).frame(minHeight: 40)
+                        .background(LinearGradient.paceHero).clipShape(Capsule())
+                }
+                .buttonStyle(.plain).accessibilityIdentifier("calendar.upnext.start")
+            }
+            .padding(12).background(PaceColor.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
+            .accessibilityIdentifier("calendar.upnext")
         }
     }
 

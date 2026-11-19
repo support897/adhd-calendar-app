@@ -67,6 +67,22 @@ extension Font {
 final class ThemeStore: ObservableObject {
     @Published private(set) var key: String
 
+    /// Her own background colour for the Dark and Beige worlds
+    /// (cards stay white). Swatches are all the same lightness
+    /// family as the world, so the world's ink stays readable.
+    @Published private(set) var customBg: UInt32? = {
+        let v = UserDefaults.standard.integer(forKey: "pace.bg.hex")
+        return v == 0 ? nil : UInt32(v)
+    }()
+
+    static let darkSwatches: [UInt32] = [0x14181F, 0x1B2233, 0x0F2A22, 0x2A1F3D, 0x2B1F24, 0x10283A]
+    static let beigeSwatches: [UInt32] = [0xF3EAD8, 0xF7E6E0, 0xE8EFDD, 0xE3EAF7, 0xFBF3C9, 0xEDE3F5]
+
+    func setBackground(_ hex: UInt32?) {
+        customBg = hex
+        UserDefaults.standard.set(hex.map { Int($0) } ?? 0, forKey: "pace.bg.hex")
+    }
+
     init() {
         key = UserDefaults.standard.string(forKey: "pace.theme") ?? "white"
     }
@@ -78,8 +94,8 @@ final class ThemeStore: ObservableObject {
 
     var background: Color {
         switch key {
-        case "dark": return Color(hex: 0x14181F)
-        case "beige": return Color(hex: 0xF3EAD8)
+        case "dark": return Color(hex: customBg.flatMap { Self.darkSwatches.contains($0) ? $0 : nil } ?? 0x14181F)
+        case "beige": return Color(hex: customBg.flatMap { Self.beigeSwatches.contains($0) ? $0 : nil } ?? 0xF3EAD8)
         case "brand": return PaceColor.stillWater
         default: return PaceColor.porcelain
         }

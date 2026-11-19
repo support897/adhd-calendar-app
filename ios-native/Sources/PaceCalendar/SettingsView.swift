@@ -37,6 +37,25 @@ struct SettingsView: View {
                 }
                 .font(.paceBody(16))
                 .accessibilityIdentifier("settings.theme")
+                if theme.key == "dark" || theme.key == "beige" {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Background colour", systemImage: "paintpalette.fill")
+                            .font(.paceBody(15)).fontWeight(.semibold)
+                        HStack(spacing: 12) {
+                            ForEach(Array((theme.key == "dark" ? ThemeStore.darkSwatches : ThemeStore.beigeSwatches).enumerated()), id: \.offset) { i, hex in
+                                Button { theme.setBackground(hex) } label: {
+                                    Circle().fill(Color(hex: hex)).frame(width: 34, height: 34)
+                                        .overlay(Circle().stroke(Color.gray.opacity(0.6), lineWidth: 1))
+                                        .overlay(Circle().stroke(PaceColor.stillWater, lineWidth: theme.background == Color(hex: hex) ? 3 : 0).padding(-4))
+                                }
+                                .buttonStyle(.plain).frame(minWidth: 44, minHeight: 44)
+                                .accessibilityLabel("Background colour \(i + 1)")
+                                .accessibilityIdentifier("settings.bg.\(i)")
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
 
             NotificationCheckCard()

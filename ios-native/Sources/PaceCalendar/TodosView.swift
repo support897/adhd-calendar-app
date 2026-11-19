@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// TO DO — the quick list (Phase 1 shape): write one fast at
 /// the top, tick it when it is done. The todos array of
@@ -12,11 +13,14 @@ struct TodosView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
     @State private var draft: String = ""
+    @StateObject private var voice = VoiceBox()
+    @State private var photo: PhotosPickerItem? = nil
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                TextField("Write one fast", text: $draft)
+                TextField("Write it, fast", text: $draft)
+                    .environment(\.colorScheme, .light)
                     .font(.paceBody(16))
                     .foregroundStyle(PaceColor.pine)
                     .padding(.horizontal, 14)
@@ -40,6 +44,39 @@ struct TodosView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
+
+            HStack(spacing: 12) {
+                Button { voice.toggle { heard in draft = heard } } label: {
+                    Label("Speak", systemImage: voice.listening ? "mic.fill" : "mic")
+                        .font(.paceBody(15)).fontWeight(.semibold)
+                        .foregroundStyle(PaceColor.waterDeep)
+                        .padding(.horizontal, 16).frame(minHeight: 44)
+                        .background(PaceColor.white).clipShape(Capsule())
+                        .overlay(Capsule().stroke(PaceColor.waterMid, lineWidth: 1))
+                }
+                .buttonStyle(.plain).accessibilityIdentifier("todos.mic")
+                PhotosPicker(selection: $photo, matching: .images) {
+                    Label("Photo", systemImage: "photo")
+                        .font(.paceBody(15)).fontWeight(.semibold)
+                        .foregroundStyle(PaceColor.waterDeep)
+                        .padding(.horizontal, 16).frame(minHeight: 44)
+                        .background(PaceColor.white).clipShape(Capsule())
+                        .overlay(Capsule().stroke(PaceColor.waterMid, lineWidth: 1))
+                }
+                .accessibilityIdentifier("todos.photo")
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20).padding(.top, 10)
+            .onChange(of: photo) { _, item in
+                guard let item else { return }
+                Task {
+                    if let d = try? await item.loadTransferable(type: Data.self), let img = UIImage(data: d) {
+                        let read = MessyNotes.clean(await NoteScanner.read(img))
+                        draft += (draft.isEmpty ? "" : " ") + read
+                    }
+                    photo = nil
+                }
+            }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {

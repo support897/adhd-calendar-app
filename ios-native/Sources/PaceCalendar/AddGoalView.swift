@@ -18,7 +18,7 @@ struct AddGoalView: View {
     var body: some View {
         NavigationStack {
             Form {
-                NavigationLink("Step by step with Skip") { GoalWizard() }
+                NavigationLink("Say it in one sentence") { GoalSentenceView() }
                     .font(.paceBody(15))
                     .accessibilityIdentifier("goalNew.wizard")
 

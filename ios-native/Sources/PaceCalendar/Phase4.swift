@@ -703,8 +703,8 @@ struct PlusChooser: View {
                             .font(.paceHeading(22)).fontWeight(.semibold)
                             .foregroundStyle(theme.inkOnBackground)
                     }
-                    tile("checkmark.circle.fill", "A task", "One small step at a time", "plus.task") { TaskWizard() }
-                    tile("target", "A goal", "Pace cuts it into small steps", "plus.goal") { GoalWizard() }
+                    tile("checkmark.circle.fill", "A task", "Say it in one sentence", "plus.task") { TaskSentenceView() }
+                    tile("target", "A goal", "Pace cuts it into small steps", "plus.goal") { GoalSentenceView() }
                     tile("leaf.fill", "A habit", "Something you do again and again", "plus.habit") { HabitWizard() }
                     tile("mic.fill", "Talk to Skip", "Say it, type it, or read notes", "plus.talk") { TalkView() }
                     tile("checklist", "A to-do", "Just one line", "plus.todo") { QuickTodoView() }
