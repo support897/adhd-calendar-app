@@ -94,6 +94,8 @@ struct PaceState {
     var settings: PaceSettings = PaceSettings()
     var tasks: [PaceTask] = []
     var goals: [PaceGoal] = []
+    var archivedTasks: [ArchivedItem] = []
+    var archivedGoals: [ArchivedItem] = []
     var habits: [PaceHabit] = []
     var todos: [PaceTodo] = []
     var feelings: [String: String] = [:]   // day key -> low/steady/full
@@ -189,6 +191,7 @@ struct PaceState {
                 guard let id = t["id"] as? String,
                       let title = t["title"] as? String,
                       let date = t["date"] as? String else { return nil }
+                if (t["archived"] as? Bool) == true { return nil }
                 var chunkWeek: String? = nil
                 if let chunk = t["chunk"] as? [String: Any] {
                     chunkWeek = chunk["weekStart"] as? String
@@ -221,10 +224,22 @@ struct PaceState {
             }
         }
 
+        state.archivedTasks = ((root["tasks"] as? [[String: Any]]) ?? []).compactMap { t in
+            guard (t["archived"] as? Bool) == true, (t["goalId"] as? String) == nil,
+                  let id = t["id"] as? String, let title = t["title"] as? String else { return nil }
+            return ArchivedItem(id: id, title: title, sub: (t["date"] as? String) ?? "")
+        }
+        state.archivedGoals = ((root["goals"] as? [[String: Any]]) ?? []).compactMap { g in
+            guard (g["archived"] as? Bool) == true,
+                  let id = g["id"] as? String, let title = g["title"] as? String else { return nil }
+            return ArchivedItem(id: id, title: title, sub: "")
+        }
+
         if let rawGoals = root["goals"] as? [[String: Any]] {
             state.goals = rawGoals.compactMap { g in
                 guard let id = g["id"] as? String,
                       let title = g["title"] as? String else { return nil }
+                if (g["archived"] as? Bool) == true { return nil }
                 return PaceGoal(id: id, title: title,
                                 start: g["start"] as? String,
                                 end: g["end"] as? String,

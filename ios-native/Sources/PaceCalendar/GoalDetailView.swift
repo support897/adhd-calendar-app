@@ -10,6 +10,8 @@ import SwiftUI
 struct GoalDetailView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
+    @Environment(\.dismiss) private var dismissGoal
+    @State private var confirmDeleteGoal = false
     let goal: PaceGoal
     @State private var showShare = false
 
@@ -122,6 +124,24 @@ struct GoalDetailView: View {
         .sheet(isPresented: $showShare) {
             ShareGoalView(goal: goal, steps: steps)
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { session.archiveGoal(goal.id); dismissGoal() } label: {
+                        Label("Archive goal", systemImage: "archivebox")
+                    }
+                    Button(role: .destructive) { confirmDeleteGoal = true } label: {
+                        Label("Delete goal", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityIdentifier("goal.menu")
+            }
+        }
+        .confirmationDialog("Delete this goal and its steps?", isPresented: $confirmDeleteGoal) {
+            Button("Delete", role: .destructive) { session.deleteGoal(goal.id); dismissGoal() }
+        }
         .accessibilityIdentifier("goal.detail")
     }
 
@@ -141,7 +161,7 @@ struct GoalDetailView: View {
             .accessibilityIdentifier("goal.tick.\(step.id)")
 
             VStack(alignment: .leading, spacing: 3) {
-                TaskRow(instance: instance)
+                TaskRow(showCircle: false, instance: instance)
                 if let minVersion = step.minVersion {
                     Text(minVersion)
                         .font(.paceBody(13))

@@ -7,6 +7,11 @@ import SwiftUI
 /// a quieter title, never a shout.
 struct TaskRow: View {
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var extras: ExtrasStore
+    @State private var confirmDelete = false
+    /// A clear circle on every task. Off only where a parent draws its own.
+    var showCircle: Bool = true
     let instance: PaceInstance
     var showDay: Bool = false
     /// When set, the row opens with its tick — a task ticks
@@ -18,8 +23,13 @@ struct TaskRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let onToggle {
-                Button(action: onToggle) {
+            if showCircle || onToggle != nil {
+                Button(action: {
+                    if let onToggle { onToggle(); return }
+                    let nowDone = instance.status != "done"
+                    session.setTaskDone(taskId: instance.task.id, dayKey: instance.dayKey, done: nowDone)
+                    if nowDone { extras.celebrate() }
+                }) {
                     Image(systemName: instance.status == "done" ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 21))
                         .foregroundStyle(instance.status == "done" ? theme.accentOnBackground : theme.iconOnBackground)
@@ -76,6 +86,22 @@ struct TaskRow: View {
                 .accessibilityIdentifier("task.start.\(instance.task.id)")
             }
 
+            Menu {
+                Button { session.archiveTask(instance.task.id) } label: {
+                    Label("Archive", systemImage: "archivebox")
+                }
+                Button(role: .destructive) { confirmDelete = true } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15))
+                    .foregroundStyle(theme.iconOnBackground)
+                    .frame(width: 34, height: 44)
+            }
+            .accessibilityLabel("More")
+            .accessibilityIdentifier("task.menu.\(instance.task.id)")
+
             if instance.task.essential {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 12))
@@ -92,6 +118,10 @@ struct TaskRow: View {
         .padding(.vertical, 6)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("task.\(instance.task.id)")
+        .draggable(instance.task.id)
+        .confirmationDialog("Delete this task?", isPresented: $confirmDelete) {
+            Button("Delete", role: .destructive) { session.deleteTask(instance.task.id) }
+        }
     }
 
     private var edgeColor: Color {

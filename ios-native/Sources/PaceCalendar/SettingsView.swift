@@ -41,6 +41,8 @@ struct SettingsView: View {
 
             NotificationCheckCard()
 
+            ArchiveRow()
+
             TourReplayRow()
 
             Section {

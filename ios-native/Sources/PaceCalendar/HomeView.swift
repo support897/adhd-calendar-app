@@ -15,6 +15,8 @@ struct HomeView: View {
     @State private var showQuickAdd = false
     @AppStorage("pace.tour.done") private var tourDone = false
     @State private var showTour = false
+    @State private var showOffer = false
+    @AppStorage("pace.cal.offered") private var calOffered = false
     @AppStorage("pace.tour.replay") private var replayCount = 0
 
     var body: some View {
@@ -46,7 +48,14 @@ struct HomeView: View {
             TourView {
                 tourDone = true
                 showTour = false
+                Task {
+                    try? await Task.sleep(nanoseconds: 900_000_000)
+                    offerCalendarIfNeeded()
+                }
             }
+        }
+        .sheet(isPresented: $showOffer) {
+            CalendarOfferView { showOffer = false }
         }
         .onChange(of: replayCount) { _, _ in showTour = true }
         .task(id: session.stateLoaded) {
@@ -54,6 +63,9 @@ struct HomeView: View {
             if session.stateLoaded, !tourDone,
                !ProcessInfo.processInfo.arguments.contains("-PaceTwinConfig") {
                 showTour = true
+            } else if session.stateLoaded {
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                offerCalendarIfNeeded()
             }
         }
         // Toolbar words inside the tabs take the tint: the
@@ -72,6 +84,14 @@ struct HomeView: View {
     /// drive found Today's and the Calendar's same task
     /// tick twice — "multiple matching elements" — because
     /// a faded layer still speaks to the tree.)
+    /// Offered once, as soon as she opens the app: bring your calendar in.
+    private func offerCalendarIfNeeded() {
+        guard !calOffered, !showTour,
+              !ProcessInfo.processInfo.arguments.contains("-PaceTwinConfig") else { return }
+        calOffered = true
+        if !CalendarHub.shared.authorized { showOffer = true }
+    }
+
     private func tabLayer<Content: View>(_ id: String,
                                          @ViewBuilder content: () -> Content) -> some View {
         Group {
@@ -214,15 +234,6 @@ struct MoreView: View {
                 .accessibilityIdentifier("more.progress")
                 .listRowBackground(PaceColor.white)
 
-                NavigationLink {
-                    PlusView()
-                } label: {
-                    Label("Plus", systemImage: "sparkles")
-                        .font(.paceBody(16))
-                        .foregroundStyle(PaceColor.pine)
-                }
-                .accessibilityIdentifier("more.plus")
-                .listRowBackground(PaceColor.white)
 
                 NavigationLink {
                     SettingsView()

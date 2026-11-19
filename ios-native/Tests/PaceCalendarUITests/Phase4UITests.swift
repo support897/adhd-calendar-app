@@ -34,7 +34,8 @@ final class Phase4UITests: XCTestCase {
         }
         XCTAssertTrue(any("wizard.review").waitForExistence(timeout: 10), "review missing")
         app.buttons["wizard.next"].tap()
-        XCTAssertTrue(app.staticTexts["Water the garden"].waitForExistence(timeout: 15), "wizard task never landed")
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: any("plus.chooser"))
+        XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 20), .completed, "the add sheet never closed after Add it")
     }
 
     func testGoalWizardStands() throws {

@@ -44,6 +44,10 @@ final class CheckInUITests: XCTestCase {
 
         // Great: the full day stands — every seeded thing.
         app.buttons["checkin.full"].tap()
+        for t in ["Morning shift at the café", "Gym clean", "Read two chapters", "Long paperwork"] {
+            let e = app.staticTexts[t]
+            for _ in 0..<8 where !e.exists { app.swipeUp() }
+        }
         XCTAssertTrue(app.staticTexts["Morning shift at the café"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Gym clean"].exists)
         XCTAssertTrue(app.staticTexts["Read two chapters"].exists)

@@ -107,12 +107,14 @@ struct AddEventView: View {
         guard !trimmed.isEmpty else { return }
         if kind == "habit" {
             session.addHabit(name: trimmed)
+            PlusClose.fire()
             dismiss()
             return
         }
         if kind == "goal" {
             let end = Calendar.current.date(byAdding: .day, value: 56, to: date) ?? date
             session.addGoal(title: trimmed, end: PaceState.dayKey(for: end), pace: "daily", mins: 20)
+            PlusClose.fire()
             dismiss()
             return
         }
@@ -133,6 +135,7 @@ struct AddEventView: View {
         let big = biggest.trimmingCharacters(in: .whitespacesAndNewlines)
         if !big.isEmpty { task["fullVersion"] = big }
         session.addTask(task)
+        PlusClose.fire()
         dismiss()
     }
 }

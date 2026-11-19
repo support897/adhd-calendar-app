@@ -252,7 +252,9 @@ enum WizardLook {
     static let colours = ["#5B6BD5", "#4858C4", "#8E7CC3", "#6B5BB0", "#35704E", "#3F536E", "#21392E", "#7A8699"]
     static let icons = ["star.fill", "heart.fill", "book.fill", "figure.walk", "cart.fill", "phone.fill",
                         "envelope.fill", "house.fill", "briefcase.fill", "pills.fill", "fork.knife", "dumbbell.fill",
-                        "music.note", "pawprint.fill", "graduationcap.fill", "creditcard.fill"]
+                        "music.note", "pawprint.fill", "graduationcap.fill", "creditcard.fill",
+                        "bed.double.fill", "drop.fill", "leaf.fill", "bolt.fill", "sun.max.fill", "moon.fill",
+                        "paintbrush.fill", "camera.fill", "gift.fill", "car.fill", "bicycle", "cup.and.saucer.fill"]
     static func color(_ hex: String) -> Color {
         if hex.hasPrefix("#"), hex.count == 7, let v = UInt32(hex.dropFirst(), radix: 16) { return Color(hex: v) }
         return PaceColor.stillWater
@@ -277,11 +279,11 @@ struct LookPicker: View {
                     .accessibilityAddTraits(colorHex == hex ? .isSelected : [])
                 }
             }
-            Text("Icon").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
+            Text("Icon: you choose, tap again to remove").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
                 .foregroundStyle(PaceColor.waterDeep)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 10)], spacing: 10) {
                 ForEach(WizardLook.icons, id: \.self) { name in
-                    Button { icon = name } label: {
+                    Button { icon = (icon == name) ? "" : name } label: {
                         Image(systemName: name)
                             .font(.system(size: 20))
                             .foregroundStyle(icon == name ? PaceColor.white : WizardLook.color(colorHex))
@@ -322,7 +324,7 @@ struct TaskWizard: View {
     @State private var cantMove = false
     @State private var remind = -1
     @State private var colorHex = "#5B6BD5"
-    @State private var icon = "star.fill"
+    @State private var icon = ""
     @State private var photo: PhotosPickerItem? = nil
     @State private var showCamera = false
 
@@ -495,7 +497,7 @@ struct TaskWizard: View {
         PaceCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
-                    Image(systemName: icon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
+                    Image(systemName: icon.isEmpty ? "circle.dashed" : icon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
                         .frame(width: 46, height: 46).background(WizardLook.color(colorHex))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     Text(finalTitle).font(.paceHeading(19)).fontWeight(.semibold).foregroundStyle(PaceColor.pine)
@@ -556,6 +558,7 @@ struct TaskWizard: View {
         if remind >= 0, timeString != nil { task["remind"] = [Double(remind)] }
         session.addTask(task)
         extras.celebrate()
+        PlusClose.fire()
         dismiss()
     }
 }
@@ -674,6 +677,7 @@ struct GoalWizard: View {
             let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
             session.addGoal(title: t, end: endKey, pace: pace, mins: mins, category: category)
             extras.celebrate()
+            PlusClose.fire()
             dismiss()
         }
     }
@@ -711,6 +715,7 @@ struct PlusChooser: View {
                 .padding(20)
             }
             .accessibilityIdentifier("plus.chooser")
+            .onReceive(NotificationCenter.default.publisher(for: PlusClose.name)) { _ in dismiss() }
             .background(ThemedBackground())
             .navigationTitle("Add")
             .navigationBarTitleDisplayMode(.inline)
@@ -724,7 +729,7 @@ struct PlusChooser: View {
                                @ViewBuilder dest: @escaping () -> D) -> some View {
         NavigationLink { dest() } label: {
             HStack(spacing: 14) {
-                Image(systemName: icon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
+                Image(systemName: icon.isEmpty ? "circle.dashed" : icon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
                     .frame(width: 50, height: 50).background(LinearGradient.paceHero)
                     .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
@@ -750,7 +755,7 @@ struct HabitWizard: View {
     @Environment(\.dismiss) private var dismiss
     @State private var step = 0
     @State private var name = ""
-    @State private var icon = "star.fill"
+    @State private var icon = ""
     @State private var colorHex = "#5B6BD5"
 
     var body: some View {
@@ -763,6 +768,7 @@ struct HabitWizard: View {
                         if step < 2 { withAnimation { step += 1 } } else {
                             session.addHabit(name: name.trimmingCharacters(in: .whitespacesAndNewlines))
                             extras.celebrate()
+                            PlusClose.fire()
                             dismiss()
                         }
                     }) {
@@ -779,7 +785,7 @@ struct HabitWizard: View {
             default:
                 PaceCard {
                     HStack(spacing: 12) {
-                        Image(systemName: icon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
+                        Image(systemName: icon.isEmpty ? "circle.dashed" : icon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
                             .frame(width: 46, height: 46).background(WizardLook.color(colorHex))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         VStack(alignment: .leading, spacing: 3) {
@@ -793,4 +799,11 @@ struct HabitWizard: View {
         .navigationTitle("New habit")
         .navigationBarTitleDisplayMode(.inline)
     }
+}
+
+
+/// A wizard that finishes closes the whole plus sheet, not just its own page.
+enum PlusClose {
+    static let name = Notification.Name("pace.plus.close")
+    static func fire() { NotificationCenter.default.post(name: name, object: nil) }
 }

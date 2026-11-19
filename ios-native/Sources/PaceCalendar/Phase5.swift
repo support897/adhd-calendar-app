@@ -392,6 +392,7 @@ struct QuickTodoView: View {
                 let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !t.isEmpty else { return }
                 session.addTodo(text: t)
+                PlusClose.fire()
                 dismiss()
             } label: {
                 Text("Add it").font(.paceBody(17)).fontWeight(.semibold)

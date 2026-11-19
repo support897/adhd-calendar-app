@@ -27,7 +27,11 @@ final class Phase5UITests: XCTestCase {
     func testCalendarHubAndNotificationCheck() throws {
         app.buttons["tab.more"].tap()
         let cal = any("more.calendars")
-        for _ in 0..<6 where !cal.exists || !cal.isHittable { app.swipeUp() }
+        for _ in 0..<8 {
+            if cal.exists && cal.isHittable { break }
+            let list = app.collectionViews.firstMatch
+            (list.exists ? list : app).swipeUp()
+        }
         XCTAssertTrue(cal.waitForExistence(timeout: 10), "calendars row missing")
         cal.tap()
         XCTAssertTrue(any("calendars.apple").waitForExistence(timeout: 10), "calendar hub missing")

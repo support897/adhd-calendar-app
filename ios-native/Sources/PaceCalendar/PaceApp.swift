@@ -13,6 +13,7 @@ struct PaceApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .dynamicTypeSize(.xSmall ... .xxxLarge)
                 .environmentObject(session)
                 .environmentObject(theme)
                 .environmentObject(extras)

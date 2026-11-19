@@ -24,6 +24,7 @@ final class P4UITests: XCTestCase {
         // A task ticked in place on Today (kind 3).
         if app.buttons["checkin.full"].waitForExistence(timeout: 6) { app.buttons["checkin.full"].tap() }
         let gymTick = app.buttons["task.tick.t2"]
+        for _ in 0..<8 where !gymTick.exists { app.swipeUp() }
         XCTAssertTrue(gymTick.waitForExistence(timeout: 15))
         gymTick.tap()
         // The tick lands and the row settles done; give the

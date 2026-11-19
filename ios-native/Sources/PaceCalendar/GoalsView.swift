@@ -195,6 +195,10 @@ struct GoalsView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("goals.entry.\(goal.id)")
+        .contextMenu {
+            Button { session.archiveGoal(goal.id) } label: { Label("Archive goal", systemImage: "archivebox") }
+            Button(role: .destructive) { session.deleteGoal(goal.id) } label: { Label("Delete goal", systemImage: "trash") }
+        }
     }
 
     /// One goal, one colour: the category colour of record

@@ -150,6 +150,21 @@ final class SessionStore: ObservableObject {
         }
     }
 
+    private func write(_ op: @escaping (String) async -> PaceState?) {
+        guard let uid = userID else { return }
+        Task {
+            if let fresh = await op(uid) {
+                self.state = fresh
+                await EventKitBridge.shared.sync(tasks: fresh.tasks)
+            }
+        }
+    }
+    func archiveTask(_ id: String, on: Bool = true) { write { await StateStore.archiveTask(uid: $0, id: id, on: on) } }
+    func deleteTask(_ id: String) { write { await StateStore.deleteTask(uid: $0, id: id) } }
+    func archiveGoal(_ id: String, on: Bool = true) { write { await StateStore.archiveGoal(uid: $0, id: id, on: on) } }
+    func deleteGoal(_ id: String) { write { await StateStore.deleteGoal(uid: $0, id: id) } }
+    func moveTask(_ id: String, to date: String) { write { await StateStore.moveTask(uid: $0, id: id, date: date) } }
+
     /// A new event on her calendar. On success the Apple
     /// Calendar mirror re-syncs from the fresh state.
     func addTask(_ task: [String: Any]) {
