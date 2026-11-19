@@ -1,0 +1,3 @@
+ScreenTourUITests,CalendarUITests,Phase6UITests
+iPhone SE
+# r1
