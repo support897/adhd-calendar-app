@@ -33,6 +33,7 @@ final class P7UITests: XCTestCase {
         app.buttons["tab.more"].tap()
         app.buttons["more.settings"].tap()
         let tasks = app.switches["settings.notifStart"]
+        for _ in 0..<8 where !tasks.exists { let l = app.collectionViews.firstMatch; (l.exists ? l : app).swipeUp() }
         XCTAssertTrue(tasks.waitForExistence(timeout: 10))
         XCTAssertEqual(tasks.value as? String, "1",
                        "task notifications must stand ON by default")

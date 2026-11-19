@@ -25,7 +25,9 @@ final class P4UITests: XCTestCase {
         if app.buttons["checkin.full"].waitForExistence(timeout: 6) { app.buttons["checkin.full"].tap() }
         let gymTick = app.buttons["task.tick.t2"]
         for _ in 0..<8 where !gymTick.exists { app.swipeUp() }
-        XCTAssertTrue(gymTick.waitForExistence(timeout: 15))
+        if !gymTick.waitForExistence(timeout: 15) { print("DEBUG-TREE " + app.debugDescription) }
+        XCTAssertTrue(gymTick.exists, "task.tick.t2 never stood on Today")
+        for _ in 0..<4 where !gymTick.isHittable { app.swipeUp() }
         gymTick.tap()
         // The tick lands and the row settles done; give the
         // write a breath, then move on (the REST read-back is

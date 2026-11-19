@@ -26,14 +26,14 @@ final class Phase5UITests: XCTestCase {
 
     func testCalendarHubAndNotificationCheck() throws {
         app.buttons["tab.more"].tap()
-        let cal = any("more.calendars")
-        for _ in 0..<8 {
-            if cal.exists && cal.isHittable { break }
-            let list = app.collectionViews.firstMatch
-            (list.exists ? list : app).swipeUp()
-        }
+        let tools = app.buttons["more.tools"]
+        if !tools.waitForExistence(timeout: 5) { app.swipeUp() }
+        XCTAssertTrue(tools.waitForExistence(timeout: 10), "Tools missing from More")
+        tools.tap()
+        let cal = app.buttons["more.calendars"]
         XCTAssertTrue(cal.waitForExistence(timeout: 10), "calendars row missing")
         cal.tap()
         XCTAssertTrue(any("calendars.apple").waitForExistence(timeout: 10), "calendar hub missing")
+        XCTAssertTrue(any("calendars.sync").exists || any("calendars.allow").exists, "hub has no sync or allow button")
     }
 }

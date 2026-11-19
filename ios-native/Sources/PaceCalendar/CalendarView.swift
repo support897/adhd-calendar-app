@@ -289,6 +289,7 @@ struct CalendarView: View {
                     }
                 }
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("calendar.monthGrid")
 
             dayList(selectedKey)
