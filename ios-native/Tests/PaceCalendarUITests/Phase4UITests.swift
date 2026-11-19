@@ -42,7 +42,7 @@ final class Phase4UITests: XCTestCase {
         XCTAssertTrue(t.waitForExistence(timeout: 10))
         t.tap()
         t.typeText("Read twelve books")
-        XCTAssertTrue(any("wizard.goalReview").waitForExistence(timeout: 10), "goal steps preview missing")
+        XCTAssertTrue(any("goal.preview").waitForExistence(timeout: 10), "goal steps preview missing")
         XCTAssertTrue(app.buttons["goal.make"].waitForExistence(timeout: 5))
     }
 
