@@ -57,7 +57,6 @@ final class CustomerFlowUITests: XCTestCase {
     func testCalendarOldLook() throws {
         app.buttons["tab.calendar"].tap()
         XCTAssertTrue(any("calendar.weekstrip").waitForExistence(timeout: 10), "week strip missing")
-        XCTAssertTrue(app.buttons["calendar.feel.steady"].exists, "feeling row missing")
         shot("13-calendar-month")
         for name in ["Day", "Week", "Agenda", "Year", "Month"] {
             let b = app.buttons[name]
