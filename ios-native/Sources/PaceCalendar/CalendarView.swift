@@ -72,8 +72,6 @@ struct CalendarView: View {
             if mode != .year && mode != .list {
                 weekStrip
                     .padding(.horizontal, 20).padding(.top, 10)
-                feelingRow
-                    .padding(.horizontal, 20).padding(.top, 8)
                 upNextCard
                     .padding(.horizontal, 20).padding(.top, 8)
             }

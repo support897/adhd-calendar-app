@@ -26,7 +26,8 @@ struct TaskSentenceView: View {
     @State private var smallest = ""
     @State private var biggest = ""
     @State private var cantMove = false
-    @State private var remind = -1
+    @State private var remind = 0
+    @State private var catPick: String? = nil
     @State private var colorHex = "#5B6BD5"
     @State private var icon = ""
     @State private var photo: PhotosPickerItem? = nil
@@ -41,8 +42,6 @@ struct TaskSentenceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
-                    Image("SkipPoint").resizable().scaledToFit().frame(width: 62, height: 62)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     Text("Say it in one go.")
                         .font(.paceHeading(22)).fontWeight(.semibold)
                         .foregroundStyle(theme.inkOnBackground)
@@ -51,6 +50,7 @@ struct TaskSentenceView: View {
                 sentenceBox
                 voiceRow
                 readCard
+                kindRow
                 detailsCard
                 lookRow
                 Button(action: save) {
@@ -232,12 +232,11 @@ struct TaskSentenceView: View {
                     Text("Nudge").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
                         .foregroundStyle(PaceColor.waterDeep)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], alignment: .leading, spacing: 8) {
-                        WizardChip(label: "No nudge", on: remind == -1) { remind = -1 }
                         WizardChip(label: "At the time", on: remind == 0) { remind = 0 }
                         WizardChip(label: "10 min before", on: remind == 10) { remind = 10 }
                         WizardChip(label: "1 hour before", on: remind == 60) { remind = 60 }
                     }
-                    Text("A nudge needs a time.").font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
+                    Text("Pace always nudges you when a task starts.").font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
                 }
                 .padding(.horizontal, 14).padding(.bottom, 14)
             }
@@ -245,6 +244,31 @@ struct TaskSentenceView: View {
         .background(PaceColor.white)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
+    }
+
+    private let kinds: [(String, String, String)] = [("health", "Health", "heart.fill"), ("work", "Work", "briefcase.fill"),
+        ("school", "School", "book.fill"), ("money", "Money", "banknote.fill"), ("home", "Home", "house.fill"), ("personal", "Personal", "person.fill")]
+
+    private var kindRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("What kind of thing is it?").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
+                .foregroundStyle(theme.secondaryOnBackground)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .leading, spacing: 8) {
+                ForEach(kinds, id: \.0) { id, label, sym in
+                    let on = catPick == id
+                    let tint = WizardLook.color(GoalsView.categoryColours[id] ?? "#5B6BD5")
+                    Button { catPick = on ? nil : id } label: {
+                        Label(label, systemImage: sym).font(.paceBody(14)).fontWeight(.semibold)
+                            .foregroundStyle(on ? PaceColor.white : tint)
+                            .frame(maxWidth: .infinity).frame(minHeight: 40)
+                            .background(on ? tint : PaceColor.white)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(tint, lineWidth: on ? 0 : 1.5))
+                    }
+                    .buttonStyle(.plain).accessibilityIdentifier("task.kind.\(id)")
+                }
+            }
+        }
     }
 
     private func save() {
@@ -266,6 +290,10 @@ struct TaskSentenceView: View {
             if colorHex == "#5B6BD5" { color = p.color }
         } else {
             finalTitle = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let c = catPick {
+            category = c
+            if color == "#5B6BD5", let h = GoalsView.categoryColours[c] { color = h }
         }
         guard !finalTitle.isEmpty else { return }
         var task = PaceTaskFactory.make(title: finalTitle, date: day, time: timeString,
@@ -304,6 +332,8 @@ struct GoalSentenceView: View {
     @State private var category = "personal"
     @State private var catTouched = false
 
+    private let kinds: [(String, String, String)] = [("health", "Health", "heart.fill"), ("work", "Work", "briefcase.fill"),
+        ("school", "School", "book.fill"), ("money", "Money", "banknote.fill"), ("home", "Home", "house.fill"), ("personal", "Personal", "person.fill")]
     private let cats: [(String, String)] = [("personal", "Personal"), ("school", "School"), ("work", "Work"),
                                             ("health", "Health"), ("money", "Money"), ("home", "Home"), ("other", "Other")]
 
@@ -325,8 +355,6 @@ struct GoalSentenceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
-                    Image("SkipPoint").resizable().scaledToFit().frame(width: 62, height: 62)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     Text("What do you want to reach?")
                         .font(.paceHeading(22)).fontWeight(.semibold)
                         .foregroundStyle(theme.inkOnBackground)
@@ -350,6 +378,7 @@ struct GoalSentenceView: View {
                     Spacer(minLength: 0)
                 }
                 if !clean.isEmpty { previewCard }
+                goalKindRow
                 detailsCard
                 Button(action: save) {
                     Text("Make my plan")
@@ -372,6 +401,28 @@ struct GoalSentenceView: View {
             }
         }
         .animation(.easeOut(duration: 0.25), value: clean.isEmpty)
+    }
+
+    private var goalKindRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("What kind of goal is it?").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
+                .foregroundStyle(theme.secondaryOnBackground)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .leading, spacing: 8) {
+                ForEach(kinds, id: \.0) { id, label, sym in
+                    let on = cat == id
+                    let t = WizardLook.color(GoalsView.categoryColours[id] ?? "#5B6BD5")
+                    Button { category = id; catTouched = true } label: {
+                        Label(label, systemImage: sym).font(.paceBody(14)).fontWeight(.semibold)
+                            .foregroundStyle(on ? PaceColor.white : t)
+                            .frame(maxWidth: .infinity).frame(minHeight: 40)
+                            .background(on ? t : PaceColor.white)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(t, lineWidth: on ? 0 : 1.5))
+                    }
+                    .buttonStyle(.plain).accessibilityIdentifier("goal.kind.\(id)")
+                }
+            }
+        }
     }
 
     private var previewCard: some View {
@@ -458,12 +509,6 @@ struct GoalSentenceView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: 8)], alignment: .leading, spacing: 8) {
                         ForEach([10, 15, 20, 25, 30, 45], id: \.self) { m in
                             WizardChip(label: "\(m) min", on: mins == m) { mins = m }
-                        }
-                    }
-                    chipTitle("Kind of goal")
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], alignment: .leading, spacing: 8) {
-                        ForEach(cats, id: \.0) { id, label in
-                            WizardChip(label: label, on: cat == id) { category = id; catTouched = true }
                         }
                     }
                 }

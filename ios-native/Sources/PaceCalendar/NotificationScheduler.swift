@@ -65,7 +65,8 @@ enum NotificationScheduler {
                                                   content: content, trigger: trigger))
         }
 
-        if notif.notifStart {
+        // Always: a note at the start of every timed task.
+        do {
             let today = PaceState.todayString
             let tomorrow = GoalPlanner.addDays(today, 1)
             for day in [today, tomorrow] {
@@ -77,18 +78,20 @@ enum NotificationScheduler {
                           let start = Calendar.current.date(bySettingHour: timeParts[0],
                                                             minute: timeParts[1],
                                                             second: 0, of: dayDate) else { continue }
-                    let fire = start.addingTimeInterval(-Double(lead) * 60)
-                    guard fire > Date() else { continue }
-                    let content = UNMutableNotificationContent()
-                    content.title = inst.task.title
-                    content.body = "In \(lead) minutes"
-                    content.sound = .default
-                    let comps = Calendar.current.dateComponents(
-                        [.year, .month, .day, .hour, .minute], from: fire)
-                    let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-                    requests.append(UNNotificationRequest(
-                        identifier: "pace.task.\(inst.task.id).\(day)",
-                        content: content, trigger: trigger))
+                    for l in (lead > 0 ? [lead, 0] : [0]) {
+                        let fire = start.addingTimeInterval(-Double(l) * 60)
+                        guard fire > Date() else { continue }
+                        let content = UNMutableNotificationContent()
+                        content.title = inst.task.title
+                        content.body = l == 0 ? "Time to start" : "In \(l) minutes"
+                        content.sound = .default
+                        let comps = Calendar.current.dateComponents(
+                            [.year, .month, .day, .hour, .minute], from: fire)
+                        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+                        requests.append(UNNotificationRequest(
+                            identifier: "pace.task.\(inst.task.id).\(day).\(l)",
+                            content: content, trigger: trigger))
+                    }
                 }
             }
         }
