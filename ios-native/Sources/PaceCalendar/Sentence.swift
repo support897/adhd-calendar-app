@@ -65,6 +65,7 @@ struct TaskSentenceView: View {
             }
             .padding(20)
         }
+        .scrollDismissesKeyboard(.immediately)
         .background(ThemedBackground())
         .navigationTitle("New task")
         .navigationBarTitleDisplayMode(.inline)
@@ -392,6 +393,7 @@ struct GoalSentenceView: View {
             }
             .padding(20)
         }
+        .scrollDismissesKeyboard(.immediately)
         .background(ThemedBackground())
         .navigationTitle("New goal")
         .navigationBarTitleDisplayMode(.inline)
