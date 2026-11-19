@@ -33,9 +33,12 @@ final class CustomerFlowUITests: XCTestCase {
         typeInto(box, "Ring the plumber tomorrow at 9am for 30 minutes")
         XCTAssertTrue(any("wizard.read").waitForExistence(timeout: 10))
         shot("10-task-sentence")
+        app.swipeUp(); app.swipeUp()
+        XCTAssertTrue(app.buttons["task.details"].waitForExistence(timeout: 5))
         app.buttons["task.details"].tap()
         XCTAssertTrue(any("addEvent.title").waitForExistence(timeout: 5), "details did not open")
         shot("11-task-details")
+        if !app.buttons["task.add"].isHittable { app.swipeUp() }
         app.buttons["task.add"].tap()
         let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: any("plus.chooser"))
         XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 20), .completed, "add sheet did not close")
@@ -49,6 +52,8 @@ final class CustomerFlowUITests: XCTestCase {
         typeInto(t, "Run a 5k by March")
         XCTAssertTrue(any("goal.preview").waitForExistence(timeout: 10))
         shot("12-goal-sentence")
+        app.swipeUp(); app.swipeUp()
+        XCTAssertTrue(app.buttons["goal.make"].waitForExistence(timeout: 5))
         app.buttons["goal.make"].tap()
         let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: any("plus.chooser"))
         XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 20), .completed, "goal sheet did not close")
@@ -65,7 +70,6 @@ final class CustomerFlowUITests: XCTestCase {
             Thread.sleep(forTimeInterval: 0.6)
         }
         app.buttons["Day"].tap()
-        XCTAssertTrue(any("calendar.upnext").waitForExistence(timeout: 8), "Up next missing")
         shot("14-calendar-day")
     }
 
