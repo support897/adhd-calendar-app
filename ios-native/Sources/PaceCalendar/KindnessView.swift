@@ -110,11 +110,11 @@ struct RainbowView: View {
                 }
                 VStack(spacing: 0) {
                     Spacer()
-                    Text(total.formatted())
-                        .font(.paceHeading(34)).fontWeight(.heavy)
+                    Text(total > 0 ? total.formatted() : "Be first")
+                        .font(.paceHeading(total > 0 ? 34 : 26)).fontWeight(.heavy)
                         .foregroundStyle(PaceColor.pine)
                         .contentTransition(.numericText())
-                    Text("have joined AI Kindness")
+                    Text(total > 0 ? "have joined AI Kindness" : "on the rainbow")
                         .font(.paceBody(13)).fontWeight(.semibold)
                         .foregroundStyle(PaceColor.softInk)
                 }

@@ -23,19 +23,41 @@ final class Phase8UITests: XCTestCase {
         }
     }
 
+    private func dismissAlerts() {
+        let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for _ in 0..<3 {
+            var hit = false
+            for label in ["Not Now", "Allow Full Access", "Allow While Using App", "Allow", "OK"] {
+                let b = sb.alerts.buttons[label]
+                if b.exists { b.tap(); hit = true; Thread.sleep(forTimeInterval: 0.8) }
+            }
+            if !hit { break }
+        }
+    }
+
+    /// Taps, and taps again if a system alert swallowed the first tap.
+    private func tapUntil(_ el: XCUIElement, appears target: XCUIElement) {
+        for _ in 0..<4 {
+            dismissAlerts()
+            if el.exists { el.tap() }
+            if target.waitForExistence(timeout: 4) { return }
+        }
+    }
+
     private func any(_ id: String) -> XCUIElement { app.descendants(matching: .any)[id] }
     private func shot(_ name: String) {
         let a = XCTAttachment(screenshot: app.screenshot()); a.name = name; a.lifetime = .keepAlways; add(a)
     }
 
     func testDeleteAccountSheetAndPrivacyRow() throws {
-        app.buttons["tab.more"].tap()
-        app.buttons["more.settings"].tap()
+        tapUntil(app.buttons["tab.more"], appears: app.buttons["more.settings"])
+        tapUntil(app.buttons["more.settings"], appears: any("settings.deleteAccount"))
+        dismissAlerts()
         let del = any("settings.deleteAccount")
         for _ in 0..<12 where !del.exists || !del.isHittable { app.swipeUp() }
         XCTAssertTrue(any("settings.privacy").exists, "privacy row missing")
         XCTAssertTrue(del.waitForExistence(timeout: 5))
-        del.tap()
+        tapUntil(del, appears: any("delete.title"))
         XCTAssertTrue(any("delete.title").waitForExistence(timeout: 8), "delete sheet did not open")
         XCTAssertTrue(any("delete.confirm").exists)
         shot("80-delete-sheet")
@@ -44,10 +66,10 @@ final class Phase8UITests: XCTestCase {
     }
 
     func testBugAndFeedbackIcons() throws {
-        app.buttons["tab.more"].tap()
+        tapUntil(app.buttons["tab.more"], appears: app.buttons["more.kindness"])
         for _ in 0..<10 where !any("more.bug").exists { app.swipeUp() }
         XCTAssertTrue(any("more.bug").waitForExistence(timeout: 10), "bug row missing")
-        any("more.bug").tap()
+        tapUntil(any("more.bug"), appears: any("bug.text"))
         XCTAssertTrue(any("bug.text").waitForExistence(timeout: 8))
         XCTAssertFalse(app.buttons["bug.send"].isEnabled, "empty report must not send")
         shot("81-bug")
