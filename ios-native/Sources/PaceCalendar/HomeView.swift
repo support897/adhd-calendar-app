@@ -245,6 +245,28 @@ struct MoreView: View {
                 .accessibilityIdentifier("more.settings")
                 .listRowBackground(PaceColor.white)
 
+                NavigationLink {
+                    BugReportView()
+                } label: {
+                    Label("Report a bug", systemImage: "ladybug")
+                        .font(.paceBody(16))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.bug")
+                .listRowBackground(PaceColor.white)
+
+                NavigationLink {
+                    FeedbackView()
+                } label: {
+                    Label("Send feedback", systemImage: "bubble.left.and.text.bubble.right")
+                        .font(.paceBody(16))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(PaceColor.pine)
+                }
+                .accessibilityIdentifier("more.feedback")
+                .listRowBackground(PaceColor.white)
+
                 Button("Sign out") {
                     session.signOut()
                 }

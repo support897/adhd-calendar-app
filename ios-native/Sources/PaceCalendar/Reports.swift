@@ -162,6 +162,7 @@ private struct ReportForm: View {
         .background(ThemedBackground())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("\(kind).screen")
     }
 }

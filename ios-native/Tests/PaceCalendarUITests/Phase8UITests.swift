@@ -45,13 +45,13 @@ final class Phase8UITests: XCTestCase {
 
     func testBugAndFeedbackIcons() throws {
         app.buttons["tab.more"].tap()
-        XCTAssertTrue(any("icon.bug").waitForExistence(timeout: 10))
-        any("icon.bug").tap()
+        XCTAssertTrue(any("more.bug").waitForExistence(timeout: 10), "bug row missing")
+        any("more.bug").tap()
         XCTAssertTrue(any("bug.screen").waitForExistence(timeout: 8))
         XCTAssertFalse(app.buttons["bug.send"].isEnabled, "empty report must not send")
         shot("81-bug")
         app.navigationBars.buttons.firstMatch.tap()
-        any("icon.feedback").tap()
+        any("more.feedback").tap()
         XCTAssertTrue(any("feedback.screen").waitForExistence(timeout: 8))
         XCTAssertTrue(any("feedback.anonymous").exists, "anonymous choice missing")
         shot("82-feedback")

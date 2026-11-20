@@ -133,6 +133,7 @@ struct DeleteAccountSheet: View {
             .padding(22)
             .background(ThemedBackground())
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("delete.sheet")
     }
 }
