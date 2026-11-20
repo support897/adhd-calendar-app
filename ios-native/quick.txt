@@ -1,3 +1,3 @@
-ScreenTourUITests,CustomerFlowUITests
-iPhone 17 Pro
-# r5
+CustomerFlowUITests
+iPhone 16e
+# r6
