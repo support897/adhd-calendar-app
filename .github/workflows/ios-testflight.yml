@@ -95,7 +95,7 @@ jobs:
       - name: Generate the project with distribution signing (CI copy only)
         working-directory: ios-native
         run: |
-          BUILD_NO=$(date -u +%y%m%d%H%M)
+          BUILD_NO=${GITHUB_REF_NAME##*-}
           echo "BUILD_NO=$BUILD_NO" >> "$GITHUB_ENV"
           python3 - <<PY
           import re,os
