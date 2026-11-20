@@ -58,6 +58,7 @@ final class CustomerFlowUITests: XCTestCase {
 
     func testAddGoalBySentence() throws {
         app.buttons["tab.add"].tap()
+        XCTAssertTrue(app.buttons["plus.goal"].waitForExistence(timeout: 10), "plus chooser missing")
         app.buttons["plus.goal"].tap()
         let t = any("wizard.goalTitle")
         XCTAssertTrue(t.waitForExistence(timeout: 10))
@@ -120,8 +121,12 @@ final class CustomerFlowUITests: XCTestCase {
         let ex = XCTNSPredicateExpectation(predicate: up, object: app.keyboards)
         XCTAssertEqual(XCTWaiter().wait(for: [ex], timeout: 6), .completed, "keyboard did not open at once")
         shot("30-keyboard-at-once")
-        app.buttons["task.cancel"].tap()
+    }
+
+    func testYearsSwipeAndOpenMonth() throws {
+        XCTAssertTrue(app.buttons["tab.calendar"].waitForExistence(timeout: 10))
         app.buttons["tab.calendar"].tap()
+        XCTAssertTrue(app.buttons["Year"].waitForExistence(timeout: 10), "Year segment missing")
         app.buttons["Year"].tap()
         XCTAssertTrue(any("year.grid").waitForExistence(timeout: 10))
         let t0 = any("year.title").label
