@@ -11,6 +11,17 @@ final class CustomerFlowUITests: XCTestCase {
         app.launchArguments = ["-PaceTwinConfig"]
         app.launch()
         TwinSignIn.signIn(app)
+        _ = app.staticTexts["proof.greeting"].waitForExistence(timeout: 20)
+        Thread.sleep(forTimeInterval: 3)
+        let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for _ in 0..<4 {
+            var hit = false
+            for label in ["Not Now", "Allow Full Access", "Allow While Using App", "Allow", "OK"] {
+                let b = sb.alerts.buttons[label]
+                if b.exists { b.tap(); hit = true; Thread.sleep(forTimeInterval: 0.8) }
+            }
+            if !hit { break }
+        }
     }
 
     private func any(_ id: String) -> XCUIElement { app.descendants(matching: .any)[id] }
