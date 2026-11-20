@@ -82,7 +82,7 @@ struct CalendarView: View {
                     case .day: dayList(selectedKey)
                     case .week: weekList
                     case .month: monthGrid
-                    case .year: YearView()
+                    case .year: YearView(onPick: { key in selectedKey = key; mode = .month })
                     case .list: todoList
                     }
                 }
@@ -282,7 +282,7 @@ struct CalendarView: View {
         }
         .accessibilityIdentifier("calendar.dayList")
         .dropDestination(for: String.self) { ids, _ in
-            ids.forEach { session.moveTask($0, to: key) }
+            session.drop(ids, onDay: key)
             return !ids.isEmpty
         }
     }
@@ -320,7 +320,7 @@ struct CalendarView: View {
                 }
                 .padding(.vertical, 4)
                 .dropDestination(for: String.self) { ids, _ in
-                    ids.forEach { session.moveTask($0, to: key) }
+                    session.drop(ids, onDay: key)
                     return !ids.isEmpty
                 }
             }
@@ -404,7 +404,7 @@ struct CalendarView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("calendar.cell.\(key)")
             .dropDestination(for: String.self) { ids, _ in
-                ids.forEach { session.moveTask($0, to: key) }
+                session.drop(ids, onDay: key)
                 return !ids.isEmpty
             }
         } else {

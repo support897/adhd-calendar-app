@@ -13,6 +13,7 @@ struct TodosView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
     @State private var draft: String = ""
+    @FocusState private var fieldFocus: Bool
     @StateObject private var voice = VoiceBox()
     @State private var photo: PhotosPickerItem? = nil
 
@@ -23,12 +24,14 @@ struct TodosView: View {
                     .environment(\.colorScheme, .light)
                     .font(.paceBody(16))
                     .foregroundStyle(PaceColor.pine)
+                    .focused($fieldFocus)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .background(PaceColor.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(PaceColor.waterMid, lineWidth: 1))
+                    .contentShape(Rectangle()).onTapGesture { fieldFocus = true }
                     .accessibilityIdentifier("todos.field")
                 Button("Add") {
                     let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -100,6 +103,8 @@ struct TodosView: View {
                                 Spacer(minLength: 0)
                             }
                             .padding(.horizontal, 6)
+                            .contentShape(Rectangle())
+                            .draggable("todo:" + todo.id)
                             .accessibilityElement(children: .contain)
                             .accessibilityIdentifier("todos.row.\(todo.id)")
                         }
@@ -111,6 +116,9 @@ struct TodosView: View {
             }
         }
         .background(ThemedBackground())
+        .dropDestination(for: String.self) { ids, _ in
+            session.drop(ids, onTodos: true); return !ids.isEmpty
+        }
         .navigationTitle("To do")
     }
 

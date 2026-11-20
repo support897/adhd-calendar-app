@@ -163,6 +163,26 @@ final class SessionStore: ObservableObject {
     func deleteTask(_ id: String) { write { await StateStore.deleteTask(uid: $0, id: id) } }
     func archiveGoal(_ id: String, on: Bool = true) { write { await StateStore.archiveGoal(uid: $0, id: id, on: on) } }
     func deleteGoal(_ id: String) { write { await StateStore.deleteGoal(uid: $0, id: id) } }
+    /// Drop on a day: a task moves there; a to-do becomes a task there.
+    func drop(_ ids: [String], onDay key: String) {
+        for raw in ids {
+            if raw.hasPrefix("todo:") {
+                let id = String(raw.dropFirst(5))
+                guard let t = state?.todos.first(where: { $0.id == id }) else { continue }
+                var task = PaceTaskFactory.make(title: t.text, date: key, time: nil, durationMin: 20, source: "todo")
+                task["allDay"] = true
+                addTask(task)
+                setTodoDone(todoId: id, done: true)
+            } else { moveTask(raw, to: key) }
+        }
+    }
+    /// Drop on the to-do list: a task becomes a to-do.
+    func drop(_ ids: [String], onTodos: Bool) {
+        for raw in ids where !raw.hasPrefix("todo:") {
+            guard let t = state?.tasks.first(where: { $0.id == raw }) else { continue }
+            addTodo(text: t.title)
+        }
+    }
     func moveTask(_ id: String, to date: String) { write { await StateStore.moveTask(uid: $0, id: id, date: date) } }
 
     /// A new event on her calendar. On success the Apple

@@ -28,6 +28,7 @@ struct TaskSentenceView: View {
     @State private var cantMove = false
     @State private var remind = 0
     @State private var catPick: String? = nil
+    @FocusState private var fieldFocus: Bool
     @State private var colorHex = "#5B6BD5"
     @State private var icon = ""
     @State private var photo: PhotosPickerItem? = nil
@@ -96,9 +97,12 @@ struct TaskSentenceView: View {
                 .environment(\.colorScheme, .light)
                 .font(.paceBody(18)).foregroundStyle(PaceColor.pine)
                 .lineLimit(2...5)
+                .focused($fieldFocus)
                 .padding(14).background(PaceColor.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
+                .contentShape(Rectangle()).onTapGesture { fieldFocus = true }
+                .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { fieldFocus = true } }
                 .accessibilityIdentifier("wizard.text")
             Text("Day, time and length are read from your words.")
                 .font(.paceBody(13)).foregroundStyle(theme.secondaryOnBackground)
@@ -314,6 +318,7 @@ struct GoalSentenceView: View {
     @State private var mins = 20
     @State private var category = "personal"
     @State private var catTouched = false
+    @FocusState private var fieldFocus: Bool
     @State private var goalIcon = ""
     @State private var showIcons = false
 
@@ -348,9 +353,12 @@ struct GoalSentenceView: View {
                 TextField("Run a 5k by March", text: $title, axis: .vertical)
                     .environment(\.colorScheme, .light)
                     .font(.paceBody(18)).foregroundStyle(PaceColor.pine).lineLimit(2...4)
+                    .focused($fieldFocus)
                     .padding(14).background(PaceColor.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
+                    .contentShape(Rectangle()).onTapGesture { fieldFocus = true }
+                    .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { fieldFocus = true } }
                     .accessibilityIdentifier("wizard.goalTitle")
                 HStack(spacing: 12) {
                     Button { voice.toggle { heard in title = heard } } label: {

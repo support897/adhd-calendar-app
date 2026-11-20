@@ -725,6 +725,7 @@ struct HabitWizard: View {
     @EnvironmentObject private var extras: ExtrasStore
     @Environment(\.dismiss) private var dismiss
     @State private var step = 0
+    @FocusState private var fieldFocus: Bool
     @State private var name = ""
     @State private var icon = ""
     @State private var colorHex = "#5B6BD5"
@@ -760,9 +761,12 @@ struct HabitWizard: View {
                 VStack(alignment: .leading, spacing: 12) {
                     TextField("Like: drink water", text: $name)
                         .font(.paceBody(18)).foregroundStyle(PaceColor.pine)
+                        .focused($fieldFocus)
                         .padding(14).background(PaceColor.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
+                        .contentShape(Rectangle()).onTapGesture { fieldFocus = true }
+                        .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { fieldFocus = true } }
                         .accessibilityIdentifier("wizard.habitName")
                     HStack(spacing: 10) {
                         Image(systemName: shownIcon).font(.system(size: 20)).foregroundStyle(PaceColor.white)

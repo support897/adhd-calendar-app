@@ -203,40 +203,54 @@ struct LearnedTimeView: View {
 struct YearView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
+    var onPick: (String) -> Void = { _ in }
+    @State private var year = Calendar.current.component(.year, from: Date())
 
-    private let cols = Array(repeating: GridItem(.flexible(), spacing: 3), count: 7)
+    private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
 
     var body: some View {
-        let year = Calendar.current.component(.year, from: Date())
-        VStack(alignment: .leading, spacing: 16) {
-            Text(String(year))
-                .font(.paceHeading(26)).fontWeight(.semibold)
-                .foregroundStyle(theme.inkOnBackground)
-                .accessibilityIdentifier("year.title")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Button { year -= 1 } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
+                    .accessibilityIdentifier("year.prev")
+                Text(String(year))
+                    .font(.paceHeading(30)).fontWeight(.bold)
+                    .foregroundStyle(theme.inkOnBackground)
+                    .accessibilityIdentifier("year.title")
+                Button { year += 1 } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
+                    .accessibilityIdentifier("year.next")
+                Spacer()
+                Menu {
+                    ForEach((Calendar.current.component(.year, from: Date()) - 10)...(Calendar.current.component(.year, from: Date()) + 30), id: \.self) { y in
+                        Button(String(y)) { year = y }
+                    }
+                } label: {
+                    Label("Any year", systemImage: "calendar").font(.paceBody(14)).fontWeight(.semibold)
+                        .foregroundStyle(PaceColor.stillWater)
+                }
+                .accessibilityIdentifier("year.jump")
+            }
+            .foregroundStyle(PaceColor.stillWater)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 12) {
                 ForEach(1...12, id: \.self) { m in
                     monthCell(year: year, month: m)
                 }
             }
-            HStack(spacing: 6) {
-                Text("less").font(.paceBody(11)).foregroundStyle(theme.secondaryOnBackground)
-                ForEach(0..<4, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 2).fill(shade(i)).frame(width: 12, height: 12)
-                }
-                Text("more").font(.paceBody(11)).foregroundStyle(theme.secondaryOnBackground)
-            }
+            Text("Tap a month to open it. A dot is a task, in its own colour.")
+                .font(.paceBody(12)).foregroundStyle(theme.secondaryOnBackground)
         }
+        .gesture(DragGesture(minimumDistance: 40).onEnded { v in
+            if abs(v.translation.width) > abs(v.translation.height) * 1.5 {
+                withAnimation { year += v.translation.width < 0 ? 1 : -1 }
+            }
+        })
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("year.grid")
     }
 
-    private func shade(_ level: Int) -> Color {
-        switch level {
-        case 0: return PaceColor.lineMist
-        case 1: return PaceColor.waterLight
-        case 2: return PaceColor.waterMid
-        default: return PaceColor.stillWater
-        }
+    private func dotColor(_ hex: String?) -> Color {
+        guard let hex, hex.hasPrefix("#"), hex.count == 7, let v = UInt32(hex.dropFirst(), radix: 16) else { return PaceColor.stillWater }
+        return Color(hex: v)
     }
 
     private func monthCell(year: Int, month: Int) -> some View {
@@ -244,29 +258,38 @@ struct YearView: View {
         let first = cal.date(from: DateComponents(year: year, month: month, day: 1)) ?? Date()
         let count = cal.range(of: .day, in: .month, for: first)?.count ?? 30
         let lead = (cal.component(.weekday, from: first) + 5) % 7
-        let name = DateFormatter().shortMonthSymbols[month - 1]
-        return VStack(alignment: .leading, spacing: 4) {
-            Text(name).font(.paceBody(12)).fontWeight(.bold).foregroundStyle(PaceColor.waterDeep)
-            LazyVGrid(columns: cols, spacing: 3) {
-                ForEach(0..<lead, id: \.self) { _ in Color.clear.frame(height: 8) }
-                ForEach(1...count, id: \.self) { d in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(shade(level(year: year, month: month, day: d)))
-                        .frame(height: 8)
+        let name = DateFormatter().monthSymbols[month - 1]
+        let todayKey = PaceState.todayString
+        return Button {
+            onPick(String(format: "%04d-%02d-01", year, month))
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name).font(.paceBody(14)).fontWeight(.bold).foregroundStyle(PaceColor.waterDeep)
+                LazyVGrid(columns: cols, spacing: 2) {
+                    ForEach(0..<lead, id: \.self) { _ in Color.clear.frame(height: 14) }
+                    ForEach(1...count, id: \.self) { d in
+                        let key = String(format: "%04d-%02d-%02d", year, month, d)
+                        let list = session.state.map { DayAdapter.instances(on: key, state: $0) } ?? []
+                        ZStack {
+                            if key == todayKey { Circle().fill(PaceColor.pine) }
+                            Text("\(d)").font(.system(size: 7, weight: .semibold))
+                                .foregroundStyle(key == todayKey ? PaceColor.white : PaceColor.softInk)
+                            if let t = list.first {
+                                Circle().fill(dotColor(t.task.color)).frame(width: 5, height: 5)
+                                    .offset(x: 5, y: 5)
+                            }
+                        }
+                        .frame(height: 14)
+                    }
                 }
             }
+            .padding(8)
+            .background(PaceColor.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
         }
-        .padding(8)
-        .background(PaceColor.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
-    }
-
-    private func level(year: Int, month: Int, day: Int) -> Int {
-        guard let state = session.state else { return 0 }
-        let key = String(format: "%04d-%02d-%02d", year, month, day)
-        let n = DayAdapter.instances(on: key, state: state).count
-        return n == 0 ? 0 : (n == 1 ? 1 : (n <= 3 ? 2 : 3))
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("year.month.\(month)")
     }
 }
 

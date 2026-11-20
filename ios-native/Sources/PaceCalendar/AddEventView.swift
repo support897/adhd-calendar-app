@@ -14,6 +14,7 @@ struct AddEventView: View {
     let dayKey: String
 
     @State private var title: String = ""
+    @FocusState private var titleFocus: Bool
     @State private var date: Date
     @State private var hasTime: Bool = false
     @State private var time: Date
@@ -54,6 +55,7 @@ struct AddEventView: View {
                     .accessibilityIdentifier("addEvent.talk")
 
                 TextField("Title", text: $title)
+                    .focused($titleFocus)
                     .font(.paceBody(17))
                     .accessibilityIdentifier("addEvent.title")
 

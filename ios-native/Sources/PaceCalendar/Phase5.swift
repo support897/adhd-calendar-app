@@ -251,6 +251,7 @@ struct QuickTodoBar: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var theme: ThemeStore
     @State private var text = ""
+    @FocusState private var fieldFocus: Bool
 
     private var open: [PaceTodo] {
         Array((session.state?.todos ?? []).filter { !$0.done }.prefix(3))
@@ -262,6 +263,7 @@ struct QuickTodoBar: View {
                 Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundStyle(PaceColor.stillWater)
                     .accessibilityHidden(true)
                 TextField("Add a to-do", text: $text)
+                    .focused($fieldFocus)
                     .font(.paceBody(16)).foregroundStyle(PaceColor.pine)
                     .submitLabel(.done)
                     .onSubmit(add)
@@ -275,6 +277,10 @@ struct QuickTodoBar: View {
             }
             .padding(.horizontal, 14).frame(minHeight: 48)
             .background(PaceColor.white)
+            .contentShape(Rectangle()).onTapGesture { fieldFocus = true }
+            .dropDestination(for: String.self) { ids, _ in
+                session.drop(ids, onTodos: true); return !ids.isEmpty
+            }
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
 

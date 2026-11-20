@@ -10,6 +10,8 @@ struct TaskRow: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var extras: ExtrasStore
     @State private var confirmDelete = false
+    @State private var showMove = false
+    @State private var moveDate = Date()
     /// A clear circle on every task. Off only where a parent draws its own.
     var showCircle: Bool = true
     let instance: PaceInstance
@@ -87,6 +89,12 @@ struct TaskRow: View {
             }
 
             Menu {
+                Button { showMove = true } label: {
+                    Label("Move to another day", systemImage: "calendar.badge.clock")
+                }
+                Button { session.drop([instance.task.id], onTodos: true) } label: {
+                    Label("Make it a to-do", systemImage: "checklist")
+                }
                 Button { session.archiveTask(instance.task.id) } label: {
                     Label("Archive", systemImage: "archivebox")
                 }
@@ -118,7 +126,25 @@ struct TaskRow: View {
         .padding(.vertical, 6)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("task.\(instance.task.id)")
+        .contentShape(Rectangle())
         .draggable(instance.task.id)
+        .sheet(isPresented: $showMove) {
+            VStack(spacing: 12) {
+                Text("Move to").font(.paceHeading(20)).padding(.top, 20)
+                DatePicker("Day", selection: $moveDate, displayedComponents: .date)
+                    .datePickerStyle(.graphical).padding(.horizontal, 16)
+                    .accessibilityIdentifier("task.moveDate")
+                Button("Move") {
+                    session.moveTask(instance.task.id, to: PaceState.dayKey(for: moveDate)); showMove = false
+                }
+                .font(.paceBody(17)).fontWeight(.bold).foregroundStyle(PaceColor.white)
+                .frame(maxWidth: .infinity).frame(height: 50)
+                .background(PaceColor.stillWater).clipShape(Capsule()).padding(.horizontal, 20)
+                .accessibilityIdentifier("task.moveGo")
+                Spacer()
+            }
+            .presentationDetents([.large])
+        }
         .confirmationDialog("Delete this task?", isPresented: $confirmDelete) {
             Button("Delete", role: .destructive) { session.deleteTask(instance.task.id) }
         }
