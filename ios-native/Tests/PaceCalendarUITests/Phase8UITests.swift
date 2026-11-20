@@ -36,23 +36,25 @@ final class Phase8UITests: XCTestCase {
         XCTAssertTrue(any("settings.privacy").exists, "privacy row missing")
         XCTAssertTrue(del.waitForExistence(timeout: 5))
         del.tap()
-        XCTAssertTrue(any("delete.sheet").waitForExistence(timeout: 8), "delete sheet did not open")
+        XCTAssertTrue(any("delete.title").waitForExistence(timeout: 8), "delete sheet did not open")
         XCTAssertTrue(any("delete.confirm").exists)
         shot("80-delete-sheet")
         any("delete.cancel").tap()
-        XCTAssertTrue(any("settings.screen").waitForExistence(timeout: 8), "cancel must keep the account and return")
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 8), "cancel must keep the account and return")
     }
 
     func testBugAndFeedbackIcons() throws {
         app.buttons["tab.more"].tap()
+        for _ in 0..<10 where !any("more.bug").exists { app.swipeUp() }
         XCTAssertTrue(any("more.bug").waitForExistence(timeout: 10), "bug row missing")
         any("more.bug").tap()
-        XCTAssertTrue(any("bug.screen").waitForExistence(timeout: 8))
+        XCTAssertTrue(any("bug.text").waitForExistence(timeout: 8))
         XCTAssertFalse(app.buttons["bug.send"].isEnabled, "empty report must not send")
         shot("81-bug")
         app.navigationBars.buttons.firstMatch.tap()
+        for _ in 0..<10 where !any("more.feedback").exists { app.swipeUp() }
         any("more.feedback").tap()
-        XCTAssertTrue(any("feedback.screen").waitForExistence(timeout: 8))
+        XCTAssertTrue(any("feedback.text").waitForExistence(timeout: 8))
         XCTAssertTrue(any("feedback.anonymous").exists, "anonymous choice missing")
         shot("82-feedback")
     }

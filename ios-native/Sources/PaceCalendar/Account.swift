@@ -98,6 +98,7 @@ struct DeleteAccountSheet: View {
                 Text("Delete my account")
                     .font(.paceHeading(24)).fontWeight(.semibold)
                     .foregroundStyle(theme.inkOnBackground)
+                    .accessibilityIdentifier("delete.title")
                 Text("This erases your tasks, goals, habits and settings from our servers and removes your sign-in. It cannot be undone.")
                     .font(.paceBody(16)).foregroundStyle(theme.inkOnBackground)
                 if deleter.usesPassword {
@@ -133,8 +134,6 @@ struct DeleteAccountSheet: View {
             .padding(22)
             .background(ThemedBackground())
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("delete.sheet")
     }
 }
 
