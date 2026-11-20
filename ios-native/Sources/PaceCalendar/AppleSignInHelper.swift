@@ -13,6 +13,8 @@ final class AppleSignInHelper: NSObject,
     ASAuthorizationControllerPresentationContextProviding {
 
     private var rawNonce: String?
+    /// Set after each sign-in; account deletion hands it to Firebase to revoke the Apple token.
+    private(set) var lastAuthCode: String?
     private var continuation: CheckedContinuation<(idToken: String, rawNonce: String), Error>?
 
     func signIn() async throws -> (idToken: String, rawNonce: String) {
@@ -48,6 +50,7 @@ final class AppleSignInHelper: NSObject,
             continuation = nil
             return
         }
+        if let codeData = credential.authorizationCode { lastAuthCode = String(data: codeData, encoding: .utf8) }
         continuation?.resume(returning: (idToken: idToken, rawNonce: rawNonce))
         continuation = nil
     }

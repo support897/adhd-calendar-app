@@ -335,6 +335,7 @@ struct MoreView: View {
             .scrollContentBackground(.hidden)
             .background(ThemedBackground())
             .navigationTitle("More")
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { ReportIcons() } }
             .accessibilityIdentifier("more.list")
         }
     }

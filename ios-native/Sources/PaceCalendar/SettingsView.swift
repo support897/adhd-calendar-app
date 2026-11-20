@@ -113,6 +113,8 @@ struct SettingsView: View {
                 .foregroundStyle(theme.accentOnSystemSurface)
                 .accessibilityIdentifier("settings.signOut")
             }
+
+            AccountLegalSection()
         }
         .scrollContentBackground(.hidden)
         .background(ThemedBackground())

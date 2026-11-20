@@ -11,9 +11,6 @@ packages:
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS.git
     from: 8.0.0
-  RevenueCat:
-    url: https://github.com/RevenueCat/purchases-ios.git
-    from: 5.0.0
 targets:
   PaceCalendar:
     type: application
@@ -49,22 +46,19 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: shop.ilseplacencia.pace
         PRODUCT_NAME: PaceCalendar
         CODE_SIGN_ENTITLEMENTS: Sources/PaceCalendar/Pace.entitlements
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "2.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
     dependencies:
       - target: PaceWidgets
-      - target: PaceWatch
       - package: Firebase
         product: FirebaseAuth
       - package: Firebase
         product: FirebaseFirestore
       - package: GoogleSignIn
         product: GoogleSignIn
-      - package: RevenueCat
-        product: RevenueCat
   PaceWidgets:
     type: app-extension
     platform: iOS
