@@ -1,3 +1,4 @@
-CustomerFlowUITests,ImprovedUITests/testYearViewStands
+CustomerFlowUITests/testKeyboardAtOnceAndYears,CustomerFlowUITests/testYearsSwipeAndOpenMonth,CustomerFlowUITests/testAddGoalBySentence
 iPhone 17 Pro
-# r8
+# r9
+# r10
