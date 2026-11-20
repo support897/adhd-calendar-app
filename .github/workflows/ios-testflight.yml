@@ -120,6 +120,7 @@ jobs:
           xcodegen generate
           for p in Sources/PaceCalendar/Info.plist Sources/PaceWidgets/Info.plist Sources/PaceWatch/Info.plist; do
             plutil -replace CFBundleVersion -string "$BUILD_NO" "$p"
+            plutil -replace CFBundleShortVersionString -string "2.0" "$p"
             plutil -replace ITSAppUsesNonExemptEncryption -bool false "$p"
             plutil -p "$p" | grep -E "CFBundleVersion|CFBundleShortVersionString"
           done
