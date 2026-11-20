@@ -111,4 +111,25 @@ final class CustomerFlowUITests: XCTestCase {
         sw.tap()
         shot("16-dark-green-bg")
     }
+
+    func testKeyboardAtOnceAndYears() throws {
+        app.buttons["tab.add"].tap()
+        app.buttons["plus.task"].tap()
+        XCTAssertTrue(any("wizard.text").waitForExistence(timeout: 10))
+        let up = NSPredicate(format: "count > 0")
+        let ex = XCTNSPredicateExpectation(predicate: up, object: app.keyboards)
+        XCTAssertEqual(XCTWaiter().wait(for: [ex], timeout: 6), .completed, "keyboard did not open at once")
+        shot("30-keyboard-at-once")
+        app.buttons["task.cancel"].tap()
+        app.buttons["tab.calendar"].tap()
+        app.buttons["Year"].tap()
+        XCTAssertTrue(any("year.grid").waitForExistence(timeout: 10))
+        let t0 = any("year.title").label
+        app.buttons["year.next"].tap()
+        Thread.sleep(forTimeInterval: 0.6)
+        XCTAssertNotEqual(t0, any("year.title").label, "year did not change")
+        shot("31-year-next")
+        any("year.month.3").tap()
+        XCTAssertTrue(any("calendar.monthGrid").waitForExistence(timeout: 8), "month did not open from year")
+    }
 }
