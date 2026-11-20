@@ -1,3 +1,3 @@
-CustomerFlowUITests/testAddGoalBySentence
-iPhone 16e
-# r7
+CustomerFlowUITests,ImprovedUITests/testYearViewStands
+iPhone 17 Pro
+# r8
