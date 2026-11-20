@@ -84,4 +84,34 @@ final class ScreenTourUITests: XCTestCase {
             }
         }
     }
+
+    func testHabitWizardLook() throws {
+        XCTAssertTrue(app.staticTexts["proof.greeting"].waitForExistence(timeout: 20))
+        Thread.sleep(forTimeInterval: 2); dismissAlerts()
+        app.buttons["tab.habits"].tap()
+        let add = app.buttons["habits.add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+        let f = app.textFields["wizard.habitName"]
+        XCTAssertTrue(f.waitForExistence(timeout: 10))
+        f.tap(); f.typeText("Drink water")
+        Thread.sleep(forTimeInterval: 1); snap("20-habit-name")
+        func next() { let n = app.buttons["wizard.next"]; if n.isHittable { n.tap() } else { app.swipeUp(); n.tap() }; Thread.sleep(forTimeInterval: 1.2) }
+        next(); snap("21-habit-often")
+        let many = app.buttons["Many times a day"]
+        XCTAssertTrue(many.waitForExistence(timeout: 5)); many.tap()
+        Thread.sleep(forTimeInterval: 1); snap("22-habit-perday")
+        next(); snap("23-habit-when")
+        next(); snap("24-habit-look")
+        app.swipeUp(); snap("25-habit-look-b")
+        app.swipeUp(); snap("26-habit-look-c")
+        let n = app.buttons["wizard.next"]
+        for _ in 0..<4 where !n.isHittable { app.swipeDown() }
+        next(); snap("27-habit-ready")
+        next()
+        XCTAssertTrue(app.staticTexts["Drink water"].waitForExistence(timeout: 15))
+        snap("28-habit-list")
+        let newKind = app.buttons["task.kind.new"]
+        _ = newKind
+    }
 }

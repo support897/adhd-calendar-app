@@ -63,7 +63,7 @@ final class P4UITests: XCTestCase {
         XCTAssertTrue(habitField.waitForExistence(timeout: 10))
         habitField.tap()
         habitField.typeText("Meditate")
-        for _ in 0..<6 {
+        for _ in 0..<10 {
             let n = app.buttons["wizard.next"]
             if !n.exists { break }
             if n.isHittable { n.tap() }
