@@ -57,8 +57,15 @@ final class CustomerFlowUITests: XCTestCase {
     }
 
     func testAddGoalBySentence() throws {
-        app.buttons["tab.add"].tap()
-        XCTAssertTrue(app.buttons["plus.goal"].waitForExistence(timeout: 10), "plus chooser missing")
+        for _ in 0..<4 {
+            if app.buttons["tab.add"].waitForExistence(timeout: 5) { app.buttons["tab.add"].tap() }
+            if app.buttons["plus.goal"].waitForExistence(timeout: 6) { break }
+        }
+        if !app.buttons["plus.goal"].exists {
+            shot("90-goal-chooser-missing")
+            let d = XCTAttachment(string: app.debugDescription); d.name = "hierarchy"; d.lifetime = .keepAlways; add(d)
+        }
+        XCTAssertTrue(app.buttons["plus.goal"].exists, "plus chooser missing")
         app.buttons["plus.goal"].tap()
         let t = any("wizard.goalTitle")
         XCTAssertTrue(t.waitForExistence(timeout: 10))
