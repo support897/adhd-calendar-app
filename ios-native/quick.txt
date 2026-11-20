@@ -1,4 +1,3 @@
-CustomerFlowUITests/testKeyboardAtOnceAndYears,CustomerFlowUITests/testYearsSwipeAndOpenMonth,CustomerFlowUITests/testAddGoalBySentence
+CustomerFlowUITests/testAddGoalBySentence,CustomerFlowUITests/testAddTaskBySentenceThenDetails
 iPhone 17 Pro
-# r9
-# r10
+# r11
