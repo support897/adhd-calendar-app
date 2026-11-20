@@ -357,7 +357,7 @@ struct CalendarView: View {
                             .overlay(Rectangle().stroke(PaceColor.waterMid.opacity(0.7), lineWidth: 0.5))
                     }
                 }
-                .background(PaceColor.waterLight.opacity(0.35))
+                .background(PaceColor.white)
                 let cells = monthCells
                 let rows = stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<min($0 + 7, cells.count)]) }
                 VStack(spacing: 0) {
@@ -408,7 +408,7 @@ struct CalendarView: View {
                 return !ids.isEmpty
             }
         } else {
-            Rectangle().fill(PaceColor.white.opacity(0.7)).frame(maxWidth: .infinity).frame(height: 54)
+            Rectangle().fill(PaceColor.waterLight.opacity(0.3)).frame(maxWidth: .infinity).frame(height: 54)
                 .overlay(Rectangle().stroke(PaceColor.waterMid.opacity(0.7), lineWidth: 0.5))
         }
     }

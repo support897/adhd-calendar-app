@@ -139,8 +139,10 @@ struct HabitsView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(theme.inkOnCard)
                 HStack(spacing: 6) {
-                    Text(habit.freqLabel).font(.paceBody(12)).fontWeight(.semibold)
-                        .foregroundStyle(WizardLook.color(habit.color))
+                    if habit.freq != "daily" {
+                        Text(habit.freqLabel).font(.paceBody(12)).fontWeight(.semibold)
+                            .foregroundStyle(WizardLook.color(habit.color))
+                    }
                     if let k = CategoryStore.find(habit.cat) {
                         Text(k.label).font(.paceBody(12)).fontWeight(.semibold).foregroundStyle(PaceColor.white)
                             .padding(.horizontal, 8).padding(.vertical, 2)
