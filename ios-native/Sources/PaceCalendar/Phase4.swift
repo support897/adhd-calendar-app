@@ -249,12 +249,8 @@ struct WizardShell<Content: View>: View {
 }
 
 enum WizardLook {
-    static let colours = ["#5B6BD5", "#4858C4", "#8E7CC3", "#6B5BB0", "#35704E", "#3F536E", "#21392E", "#7A8699"]
-    static let icons = ["star.fill", "heart.fill", "book.fill", "figure.walk", "cart.fill", "phone.fill",
-                        "envelope.fill", "house.fill", "briefcase.fill", "pills.fill", "fork.knife", "dumbbell.fill",
-                        "music.note", "pawprint.fill", "graduationcap.fill", "creditcard.fill",
-                        "bed.double.fill", "drop.fill", "leaf.fill", "bolt.fill", "sun.max.fill", "moon.fill",
-                        "paintbrush.fill", "camera.fill", "gift.fill", "car.fill", "bicycle", "cup.and.saucer.fill"]
+    static let colours = ["#5B6BD5", "#4858C4", "#8E7CC3", "#6B5BB0", "#35704E", "#2F8F83", "#3F536E", "#21392E", "#7A8699", "#D9534F", "#E07A5F", "#F2A541", "#E9C46A", "#8AB17D", "#2A9D8F", "#4CC9F0", "#4361EE", "#B5179E", "#F28DB2", "#8D6E63"]
+    static var icons: [String] { IconBank.all }
     static func color(_ hex: String) -> Color {
         if hex.hasPrefix("#"), hex.count == 7, let v = UInt32(hex.dropFirst(), radix: 16) { return Color(hex: v) }
         return PaceColor.stillWater
@@ -264,40 +260,15 @@ enum WizardLook {
 struct LookPicker: View {
     @Binding var colorHex: String
     @Binding var icon: String
+    var hint: String = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Colour").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
                 .foregroundStyle(PaceColor.waterDeep)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 10)], spacing: 10) {
-                ForEach(WizardLook.colours, id: \.self) { hex in
-                    Button { colorHex = hex } label: {
-                        Circle().fill(WizardLook.color(hex)).frame(width: 40, height: 40)
-                            .overlay(Circle().stroke(PaceColor.pine, lineWidth: colorHex == hex ? 3 : 0).padding(-4))
-                    }
-                    .buttonStyle(.plain).frame(minHeight: 44)
-                    .accessibilityLabel("Colour")
-                    .accessibilityAddTraits(colorHex == hex ? .isSelected : [])
-                }
-            }
-            Text("Icon: you choose, tap again to remove").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
+            ColourRow(colorHex: $colorHex)
+            Text("Icon: tap one, tap again to remove").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
                 .foregroundStyle(PaceColor.waterDeep)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 10)], spacing: 10) {
-                ForEach(WizardLook.icons, id: \.self) { name in
-                    Button { icon = (icon == name) ? "" : name } label: {
-                        Image(systemName: name)
-                            .font(.system(size: 20))
-                            .foregroundStyle(icon == name ? PaceColor.white : WizardLook.color(colorHex))
-                            .frame(width: 48, height: 48)
-                            .background(icon == name ? WizardLook.color(colorHex) : PaceColor.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(PaceColor.waterMid, lineWidth: icon == name ? 0 : 1))
-                    }
-                    .buttonStyle(.plain).frame(minHeight: 48)
-                    .accessibilityLabel("Icon")
-                    .accessibilityAddTraits(icon == name ? .isSelected : [])
-                }
-            }
+            IconGrid(icon: $icon, colorHex: colorHex, suggestions: IconBank.suggest(for: hint))
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("wizard.look")
@@ -757,40 +728,127 @@ struct HabitWizard: View {
     @State private var name = ""
     @State private var icon = ""
     @State private var colorHex = "#5B6BD5"
+    @State private var cat: String? = nil
+    @State private var freq = "daily"
+    @State private var wdays: Set<Int> = [2, 3, 4, 5, 6]
+    @State private var perDay = 2
+    @State private var remind = true
+    @State private var times: [Date] = [HabitWizard.at(9, 0)]
+
+    static func at(_ h: Int, _ m: Int) -> Date {
+        Calendar.current.date(bySettingHour: h, minute: m, second: 0, of: Date()) ?? Date()
+    }
+    private var cleanName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var shownIcon: String { icon.isEmpty ? (IconBank.best(for: cleanName) ?? "star.fill") : icon }
+    private var timeCount: Int { freq == "perday" ? perDay : 1 }
+    private var prompts = ["What will you do?", "How often?", "When should Pace remind you?", "Make it yours.", "Ready?"]
+    private var shownTimes: [Date] {
+        (0..<timeCount).map { i in i < times.count ? times[i] : HabitWizard.at(min(9 + i * 4, 21), 0) }
+    }
 
     var body: some View {
-        WizardShell(step: step, total: 3,
-                    prompt: step == 0 ? "What will you do?" : step == 1 ? "Pick a look." : "Ready?",
-                    nextTitle: step == 2 ? "Start the streak" : "Next",
-                    canNext: step != 0 || !name.trimmingCharacters(in: .whitespaces).isEmpty,
+        WizardShell(step: step, total: 5,
+                    prompt: prompts[step],
+                    nextTitle: step == 4 ? "Start the streak" : "Next",
+                    canNext: step != 0 || !cleanName.isEmpty,
                     back: { step -= 1 },
                     next: {
-                        if step < 2 { withAnimation { step += 1 } } else {
-                            session.addHabit(name: name.trimmingCharacters(in: .whitespacesAndNewlines))
-                            extras.celebrate()
-                            PlusClose.fire()
-                            dismiss()
-                        }
+                        if step < 4 { withAnimation { step += 1 } } else { save() }
                     }) {
             switch step {
             case 0:
-                TextField("Like: drink water", text: $name)
-                    .font(.paceBody(18)).foregroundStyle(PaceColor.pine)
-                    .padding(14).background(PaceColor.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
-                    .accessibilityIdentifier("wizard.habitName")
+                VStack(alignment: .leading, spacing: 12) {
+                    TextField("Like: drink water", text: $name)
+                        .font(.paceBody(18)).foregroundStyle(PaceColor.pine)
+                        .padding(14).background(PaceColor.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(PaceColor.waterMid, lineWidth: 1))
+                        .accessibilityIdentifier("wizard.habitName")
+                    HStack(spacing: 10) {
+                        Image(systemName: shownIcon).font(.system(size: 20)).foregroundStyle(PaceColor.white)
+                            .frame(width: 42, height: 42).background(WizardLook.color(colorHex))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        Text("Pace picks an icon from your words. You can change it.")
+                            .font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
+                    }
+                }
             case 1:
-                LookPicker(colorHex: $colorHex, icon: $icon)
+                VStack(alignment: .leading, spacing: 14) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 8)], alignment: .leading, spacing: 8) {
+                        WizardChip(label: "Every day", on: freq == "daily") { freq = "daily" }
+                        WizardChip(label: "Certain days", on: freq == "pick") { freq = "pick" }
+                        WizardChip(label: "Many times a day", on: freq == "perday") { freq = "perday" }
+                        WizardChip(label: "Once a week", on: freq == "weekly") { freq = "weekly" }
+                    }
+                    .accessibilityIdentifier("habit.freq")
+                    if freq == "pick" || freq == "weekly" {
+                        Text(freq == "pick" ? "Which days?" : "Which day?").font(.paceBody(13)).fontWeight(.bold)
+                            .textCase(.uppercase).foregroundStyle(PaceColor.waterDeep)
+                        HStack(spacing: 6) {
+                            ForEach(Array(["S", "M", "T", "W", "T", "F", "S"].enumerated()), id: \.offset) { i, l in
+                                let d = i + 1
+                                let on = wdays.contains(d)
+                                Button {
+                                    if freq == "weekly" { wdays = [d] }
+                                    else if on { if wdays.count > 1 { wdays.remove(d) } } else { wdays.insert(d) }
+                                } label: {
+                                    Text(l).font(.paceBody(15)).fontWeight(.bold)
+                                        .foregroundStyle(on ? PaceColor.white : PaceColor.stillWater)
+                                        .frame(maxWidth: .infinity).frame(height: 44)
+                                        .background(on ? PaceColor.stillWater : PaceColor.white)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(PaceColor.waterMid, lineWidth: on ? 0 : 1))
+                                }
+                                .buttonStyle(.plain).accessibilityIdentifier("habit.day.\(d)")
+                            }
+                        }
+                    }
+                    if freq == "perday" {
+                        Stepper("\(perDay) times a day", value: $perDay, in: 2...8)
+                            .font(.paceBody(17)).foregroundStyle(PaceColor.pine)
+                            .padding(12).background(PaceColor.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .accessibilityIdentifier("habit.perDay")
+                    }
+                }
+            case 2:
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Remind me", isOn: $remind).font(.paceBody(17)).foregroundStyle(PaceColor.pine)
+                        .tint(PaceColor.stillWater)
+                        .padding(12).background(PaceColor.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityIdentifier("habit.remind")
+                    if remind {
+                        ForEach(0..<timeCount, id: \.self) { i in
+                            DatePicker(timeCount > 1 ? "Time \(i + 1)" : "Time",
+                                       selection: Binding(get: { shownTimes[i] },
+                                                          set: { v in
+                                                              var t = shownTimes; t[i] = v; times = t }),
+                                       displayedComponents: .hourAndMinute)
+                                .font(.paceBody(17)).foregroundStyle(PaceColor.pine)
+                                .padding(12).background(PaceColor.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .accessibilityIdentifier("habit.time.\(i)")
+                        }
+                    }
+                }
+            case 3:
+                VStack(alignment: .leading, spacing: 16) {
+                    KindPicker(title: "Which category?", selection: Binding(get: { cat }, set: { v in
+                        cat = v
+                        if colorHex == "#5B6BD5", let v, let k = CategoryStore.find(v) { colorHex = k.colour }
+                    }), idPrefix: "habit")
+                    LookPicker(colorHex: $colorHex, icon: $icon, hint: cleanName)
+                }
             default:
                 PaceCard {
                     HStack(spacing: 12) {
-                        Image(systemName: icon.isEmpty ? "circle.dashed" : icon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
+                        Image(systemName: shownIcon).font(.system(size: 22)).foregroundStyle(PaceColor.white)
                             .frame(width: 46, height: 46).background(WizardLook.color(colorHex))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(name).font(.paceHeading(19)).fontWeight(.semibold).foregroundStyle(PaceColor.pine)
-                            Text("Every tick builds the streak.").font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
+                            Text(cleanName).font(.paceHeading(19)).fontWeight(.semibold).foregroundStyle(PaceColor.pine)
+                            Text(summary).font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
                         }
                     }
                 }
@@ -798,6 +856,30 @@ struct HabitWizard: View {
         }
         .navigationTitle("New habit")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var summary: String {
+        var h = PaceHabit(id: "", name: "", freq: freq, wdays: Array(wdays), perDay: perDay)
+        h.times = []
+        var s = h.freqLabel
+        if remind { s += ", at " + shownTimes.map(Self.hhmm).joined(separator: ", ") }
+        return s
+    }
+    static func hhmm(_ d: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: d)
+        return String(format: "%02d:%02d", c.hour ?? 9, c.minute ?? 0)
+    }
+
+    private func save() {
+        var extra: [String: Any] = ["icon": shownIcon, "color": colorHex, "freq": freq,
+                                    "perDay": freq == "perday" ? perDay : 1,
+                                    "remind": remind, "times": shownTimes.map(Self.hhmm)]
+        if freq == "pick" || freq == "weekly" { extra["wdays"] = wdays.sorted() }
+        if let cat { extra["cat"] = cat }
+        session.addHabit(name: cleanName, extra: extra)
+        extras.celebrate()
+        PlusClose.fire()
+        dismiss()
     }
 }
 

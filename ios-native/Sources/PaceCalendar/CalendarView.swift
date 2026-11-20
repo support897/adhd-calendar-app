@@ -342,53 +342,74 @@ struct CalendarView: View {
     // MARK: Month
 
     private var monthGrid: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(monthTitle(selectedKey))
-                .font(.paceHeading(20))
-                .fontWeight(.semibold)
+                .font(.paceHeading(30))
+                .fontWeight(.bold)
                 .foregroundStyle(theme.inkOnBackground)
+                .accessibilityIdentifier("calendar.monthTitle")
 
-            let cells = monthCells
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
-                ForEach(Array(cells.enumerated()), id: \.offset) { _, key in
-                    if let key {
-                        let list = instances(on: key)
-                        Button {
-                            selectedKey = key
-                        } label: {
-                            VStack(spacing: 3) {
-                                Text(dayNumber(key))
-                                    .font(.paceBody(15))
-                                    .fontWeight(key == PaceState.todayString ? .bold : .regular)
-                                    .foregroundStyle(key == selectedKey ? PaceColor.white : theme.inkOnCard)
-                                HStack(spacing: 2) {
-                                    ForEach(Array(list.prefix(3).enumerated()), id: \.offset) { _, inst in
-                                        Circle()
-                                            .fill(dotColor(inst))
-                                            .frame(width: 5, height: 5)
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 7)
-                            .background(key == selectedKey ? PaceColor.stillWater : heat(list.count))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("calendar.cell.\(key)")
-                        .dropDestination(for: String.self) { ids, _ in
-                            ids.forEach { session.moveTask($0, to: key) }
-                            return !ids.isEmpty
-                        }
-                    } else {
-                        Color.clear.frame(height: 44)
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    ForEach(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"], id: \.self) { d in
+                        Text(d).font(.system(size: 10, weight: .bold)).foregroundStyle(PaceColor.softInk)
+                            .frame(maxWidth: .infinity).frame(height: 24)
+                            .overlay(Rectangle().stroke(PaceColor.waterMid.opacity(0.7), lineWidth: 0.5))
                     }
                 }
+                .background(PaceColor.waterLight.opacity(0.35))
+                let cells = monthCells
+                let rows = stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<min($0 + 7, cells.count)]) }
+                VStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                        HStack(spacing: 0) {
+                            ForEach(Array(row.enumerated()), id: \.offset) { _, key in
+                                monthCell(key)
+                            }
+                        }
+                    }
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("calendar.monthGrid")
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("calendar.monthGrid")
+            .clipShape(RoundedRectangle(cornerRadius: 6))
 
             dayList(selectedKey)
+        }
+    }
+
+    @ViewBuilder private func monthCell(_ key: String?) -> some View {
+        if let key {
+            let list = instances(on: key)
+            let isToday = key == PaceState.todayString
+            let isSel = key == selectedKey
+            Button { selectedKey = key } label: {
+                VStack(spacing: 4) {
+                    Text(dayNumber(key))
+                        .font(.paceBody(14)).fontWeight(isToday ? .bold : .regular)
+                        .foregroundStyle(isToday ? PaceColor.white : PaceColor.pine)
+                        .frame(width: 26, height: 26)
+                        .background(Circle().fill(isToday ? PaceColor.pine : Color.clear))
+                    HStack(spacing: 2) {
+                        ForEach(Array(list.prefix(3).enumerated()), id: \.offset) { _, inst in
+                            Circle().fill(dotColor(inst)).frame(width: 5, height: 5)
+                        }
+                    }
+                    .frame(height: 6)
+                }
+                .frame(maxWidth: .infinity).frame(height: 54)
+                .background(isSel ? PaceColor.waterLight.opacity(0.55) : PaceColor.white)
+                .overlay(Rectangle().stroke(PaceColor.waterMid.opacity(0.7), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("calendar.cell.\(key)")
+            .dropDestination(for: String.self) { ids, _ in
+                ids.forEach { session.moveTask($0, to: key) }
+                return !ids.isEmpty
+            }
+        } else {
+            Rectangle().fill(PaceColor.white.opacity(0.7)).frame(maxWidth: .infinity).frame(height: 54)
+                .overlay(Rectangle().stroke(PaceColor.waterMid.opacity(0.7), lineWidth: 0.5))
         }
     }
 

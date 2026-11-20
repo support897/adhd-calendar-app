@@ -16,6 +16,7 @@ struct HabitsView: View {
     @State private var draft: String = ""
     @State private var showAdd = false
     @State private var showWizard = false
+    @State private var bump = 0
 
     private var todayKey: String { PaceState.todayString }
 
@@ -126,15 +127,31 @@ struct HabitsView: View {
         let streak = Self.streakInfo(days: habit.days, today: todayKey)
         return HStack(spacing: 14) {
             Image(systemName: Self.symbol(for: habit.icon))
-                .font(.system(size: 19))
-                .foregroundStyle(theme.accentOnCard)
-                .frame(width: 30)
+                .font(.system(size: 18))
+                .foregroundStyle(PaceColor.white)
+                .frame(width: 38, height: 38)
+                .background(WizardLook.color(habit.color))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(habit.name)
                     .font(.paceBody(16))
                     .fontWeight(.semibold)
                     .foregroundStyle(theme.inkOnCard)
+                HStack(spacing: 6) {
+                    Text(habit.freqLabel).font(.paceBody(12)).fontWeight(.semibold)
+                        .foregroundStyle(WizardLook.color(habit.color))
+                    if let k = CategoryStore.find(habit.cat) {
+                        Text(k.label).font(.paceBody(12)).fontWeight(.semibold).foregroundStyle(PaceColor.white)
+                            .padding(.horizontal, 8).padding(.vertical, 2)
+                            .background(WizardLook.color(k.colour)).clipShape(Capsule())
+                    }
+                    if habit.remind, let t = habit.times.first {
+                        Label(habit.times.count > 1 ? "\(t) +\(habit.times.count - 1)" : t, systemImage: "bell.fill")
+                            .font(.paceBody(12)).foregroundStyle(theme.secondaryOnCard)
+                    }
+                }
+                .accessibilityIdentifier("habits.meta.\(habit.id)")
                 HStack(spacing: 5) {
                     ForEach(Array(streak.last7.enumerated()), id: \.offset) { _, day in
                         // State by shape, not by a fade: a
@@ -178,7 +195,19 @@ struct HabitsView: View {
             Spacer(minLength: 0)
 
             Button {
-                session.setHabitDay(habitId: habit.id, dayKey: todayKey, on: !ticked)
+                if habit.freq == "perday", habit.perDay > 1 {
+                    let key = "pace.hcount.\(habit.id).\(todayKey)"
+                    let n = UserDefaults.standard.integer(forKey: key)
+                    if ticked { UserDefaults.standard.set(0, forKey: key); session.setHabitDay(habitId: habit.id, dayKey: todayKey, on: false) }
+                    else {
+                        UserDefaults.standard.set(n + 1, forKey: key); bump += 1
+                        if n + 1 < habit.perDay { return }
+                        session.setHabitDay(habitId: habit.id, dayKey: todayKey, on: true)
+                    }
+                    if ticked { return }
+                } else {
+                    session.setHabitDay(habitId: habit.id, dayKey: todayKey, on: !ticked)
+                }
                 if !ticked {
                     var d = habit.days
                     d[todayKey] = true
@@ -186,9 +215,17 @@ struct HabitsView: View {
                     if Streak.milestones.contains(n) { extras.celebrate() }
                 }
             } label: {
+                if habit.freq == "perday", habit.perDay > 1, !ticked {
+                    Text("\(UserDefaults.standard.integer(forKey: "pace.hcount.\(habit.id).\(todayKey)"))/\(habit.perDay)")
+                        .font(.paceBody(14)).fontWeight(.bold).foregroundStyle(WizardLook.color(habit.color))
+                        .frame(width: 40, height: 32)
+                        .overlay(Capsule().stroke(WizardLook.color(habit.color), lineWidth: 1.5))
+                        .id(bump)
+                } else {
                 Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 26))
                     .foregroundStyle(ticked ? theme.accentOnCard : theme.iconOnCard)
+                }
             }
             .buttonStyle(.plain)
             .frame(minHeight: 44)
@@ -217,7 +254,7 @@ struct HabitsView: View {
         case "smile": return "face.smiling"
         case "wind": return "wind"
         case "activity": return "waveform.path.ecg"
-        default: return "star.fill"
+        default: return (key.isEmpty || key == "star") ? "star.fill" : key
         }
     }
 

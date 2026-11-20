@@ -216,11 +216,15 @@ final class SessionStore: ObservableObject {
         }
     }
 
-    func addHabit(name: String) {
+    func addHabit(name: String, extra: [String: Any] = [:]) {
         guard let uid = userID else { return }
         Task {
-            if let fresh = await StateStore.addHabit(uid: uid, name: name) {
+            if let fresh = await StateStore.addHabit(uid: uid, name: name, extra: extra) {
                 self.state = fresh
+                if (extra["remind"] as? Bool) == true {
+                    _ = await NotificationScheduler.requestPermission()
+                }
+                await NotificationScheduler.reschedule(state: fresh)
             }
         }
     }
@@ -230,7 +234,7 @@ final class SessionStore: ObservableObject {
     /// A new goal: the planner cuts its own words into steps,
     /// each placed in free calendar space, and the goal +
     /// steps land in one ruled write.
-    func addGoal(title: String, end: String, pace: String, mins: Int, category: String = "other") {
+    func addGoal(title: String, end: String, pace: String, mins: Int, category: String = "other", icon: String = "") {
         guard let uid = userID, let state else { return }
         let today = PaceState.todayString
         let plan = GoalPlanner.buildPlan(title: title, category: category,
@@ -258,7 +262,7 @@ final class SessionStore: ObservableObject {
         }
         let goalDict: [String: Any] = ["id": goalId, "title": title,
                                        "start": today, "end": end,
-                                       "pace": pace, "category": category]
+                                       "pace": pace, "category": category, "icon": icon]
         Task {
             if let fresh = await StateStore.addGoalWithPlan(uid: uid, goal: goalDict, steps: stepDicts) {
                 self.state = fresh

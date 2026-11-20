@@ -153,12 +153,14 @@ enum StateStore {
 
     /// P4 kind 7: a new habit in the shipped shape
     /// {id, name, icon, days, plan, tiny}.
-    static func addHabit(uid: String, name: String) async -> PaceState? {
+    static func addHabit(uid: String, name: String, extra: [String: Any] = [:]) async -> PaceState? {
         await mutate(uid: uid) { root in
             var habits = root["habits"] as? [[String: Any]] ?? []
-            habits.append(["id": UUID().uuidString.lowercased(),
+            var h: [String: Any] = ["id": UUID().uuidString.lowercased(),
                            "name": name, "icon": "star",
-                           "days": [String: Any](), "plan": "", "tiny": ""])
+                           "days": [String: Any](), "plan": "", "tiny": ""]
+            for (k, v) in extra { h[k] = v }
+            habits.append(h)
             root["habits"] = habits
         }
     }

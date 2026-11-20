@@ -47,6 +47,7 @@ struct PaceGoal: Identifiable {
     var pace: String?         // "daily" / "weekdays" / "three"
     var category: String?     // GOAL_CATEGORIES id, when stored
     var sharedGoalId: String? // set when this goal is shared (P5)
+    var icon: String? = nil
 
     /// Display-only short name for cards (named derivation):
     /// the title's first five words — whole title when five or
@@ -65,6 +66,23 @@ struct PaceHabit: Identifiable {
     var days: [String: Bool] = [:]   // day key -> ticked
     var plan: String = ""
     var tiny: String = ""
+    var color: String = "#5B6BD5"
+    var cat: String = ""
+    var freq: String = "daily"       // daily / pick / perday / weekly
+    var wdays: [Int] = []            // 1 = Sunday ... 7 = Saturday
+    var perDay: Int = 1
+    var times: [String] = []         // "HH:mm"
+    var remind: Bool = false
+
+    var freqLabel: String {
+        let names = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        switch freq {
+        case "perday": return "\(perDay) times a day"
+        case "weekly": return "Every week" + (wdays.first.map { " on \(names[min(max($0,1),7)])" } ?? "")
+        case "pick": return wdays.isEmpty ? "Every day" : wdays.sorted().map { names[min(max($0,1),7)] }.joined(separator: " ")
+        default: return "Every day"
+        }
+    }
 }
 
 struct PaceTodo: Identifiable {
@@ -245,7 +263,8 @@ struct PaceState {
                                 end: g["end"] as? String,
                                 pace: g["pace"] as? String,
                                 category: g["category"] as? String,
-                                sharedGoalId: g["sharedGoalId"] as? String)
+                                sharedGoalId: g["sharedGoalId"] as? String,
+                                icon: g["icon"] as? String)
             }
         }
 
@@ -261,7 +280,14 @@ struct PaceState {
                                  icon: (h["icon"] as? String) ?? "star",
                                  days: days,
                                  plan: (h["plan"] as? String) ?? "",
-                                 tiny: (h["tiny"] as? String) ?? "")
+                                 tiny: (h["tiny"] as? String) ?? "",
+                                 color: (h["color"] as? String) ?? "#5B6BD5",
+                                 cat: (h["cat"] as? String) ?? "",
+                                 freq: (h["freq"] as? String) ?? "daily",
+                                 wdays: (h["wdays"] as? [Any])?.compactMap { ($0 as? NSNumber)?.intValue } ?? [],
+                                 perDay: (h["perDay"] as? NSNumber)?.intValue ?? 1,
+                                 times: (h["times"] as? [String]) ?? [],
+                                 remind: (h["remind"] as? Bool) ?? false)
             }
         }
 

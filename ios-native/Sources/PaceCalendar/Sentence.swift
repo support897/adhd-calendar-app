@@ -139,7 +139,7 @@ struct TaskSentenceView: View {
                         .font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
                         .foregroundStyle(PaceColor.waterDeep)
                     HStack(spacing: 12) {
-                        Image(systemName: icon.isEmpty ? "checkmark.circle" : icon)
+                        Image(systemName: icon.isEmpty ? (IconBank.best(for: p.title) ?? "checkmark.circle") : icon)
                             .font(.system(size: 22)).foregroundStyle(PaceColor.white)
                             .frame(width: 46, height: 46).background(WizardLook.color(colorHex))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -229,7 +229,7 @@ struct TaskSentenceView: View {
             .buttonStyle(.plain).accessibilityIdentifier("task.look")
             if showLook {
                 VStack(alignment: .leading, spacing: 14) {
-                    LookPicker(colorHex: $colorHex, icon: $icon)
+                    LookPicker(colorHex: $colorHex, icon: $icon, hint: detailTitle.isEmpty ? text : detailTitle)
                     Text("Nudge").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
                         .foregroundStyle(PaceColor.waterDeep)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], alignment: .leading, spacing: 8) {
@@ -251,25 +251,7 @@ struct TaskSentenceView: View {
         ("school", "School", "book.fill"), ("money", "Money", "banknote.fill"), ("home", "Home", "house.fill"), ("personal", "Personal", "person.fill")]
 
     private var kindRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("What kind of thing is it?").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
-                .foregroundStyle(theme.secondaryOnBackground)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .leading, spacing: 8) {
-                ForEach(kinds, id: \.0) { id, label, sym in
-                    let on = catPick == id
-                    let tint = WizardLook.color(GoalsView.categoryColours[id] ?? "#5B6BD5")
-                    Button { catPick = on ? nil : id } label: {
-                        Label(label, systemImage: sym).font(.paceBody(14)).fontWeight(.semibold)
-                            .foregroundStyle(on ? PaceColor.white : tint)
-                            .frame(maxWidth: .infinity).frame(minHeight: 40)
-                            .background(on ? tint : PaceColor.white)
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(tint, lineWidth: on ? 0 : 1.5))
-                    }
-                    .buttonStyle(.plain).accessibilityIdentifier("task.kind.\(id)")
-                }
-            }
-        }
+        KindPicker(title: "What kind of thing is it?", selection: $catPick, idPrefix: "task")
     }
 
     private func save() {
@@ -300,7 +282,7 @@ struct TaskSentenceView: View {
         var task = PaceTaskFactory.make(title: finalTitle, date: day, time: timeString,
                                         durationMin: RealTime.padded(dur),
                                         category: category, color: color, source: "sentence")
-        task["icon"] = icon
+        task["icon"] = icon.isEmpty ? (IconBank.best(for: finalTitle) ?? "") : icon
         task["essential"] = essential
         task["originalText"] = text
         let s = smallest.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -332,6 +314,8 @@ struct GoalSentenceView: View {
     @State private var mins = 20
     @State private var category = "personal"
     @State private var catTouched = false
+    @State private var goalIcon = ""
+    @State private var showIcons = false
 
     private let kinds: [(String, String, String)] = [("health", "Health", "heart.fill"), ("work", "Work", "briefcase.fill"),
         ("school", "School", "book.fill"), ("money", "Money", "banknote.fill"), ("home", "Home", "house.fill"), ("personal", "Personal", "person.fill")]
@@ -380,6 +364,7 @@ struct GoalSentenceView: View {
                 }
                 if !clean.isEmpty { previewCard }
                 goalKindRow
+                goalIconRow
                 detailsCard
                 Button(action: save) {
                     Text("Make my plan")
@@ -405,26 +390,32 @@ struct GoalSentenceView: View {
         .animation(.easeOut(duration: 0.25), value: clean.isEmpty)
     }
 
-    private var goalKindRow: some View {
+    private var autoIcon: String { IconBank.best(for: clean) ?? GoalsView.symbol(for: cat) }
+    private var shownIcon: String { goalIcon.isEmpty ? autoIcon : goalIcon }
+
+    private var goalIconRow: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("What kind of goal is it?").font(.paceBody(13)).fontWeight(.bold).textCase(.uppercase)
-                .foregroundStyle(theme.secondaryOnBackground)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .leading, spacing: 8) {
-                ForEach(kinds, id: \.0) { id, label, sym in
-                    let on = cat == id
-                    let t = WizardLook.color(GoalsView.categoryColours[id] ?? "#5B6BD5")
-                    Button { category = id; catTouched = true } label: {
-                        Label(label, systemImage: sym).font(.paceBody(14)).fontWeight(.semibold)
-                            .foregroundStyle(on ? PaceColor.white : t)
-                            .frame(maxWidth: .infinity).frame(minHeight: 40)
-                            .background(on ? t : PaceColor.white)
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(t, lineWidth: on ? 0 : 1.5))
-                    }
-                    .buttonStyle(.plain).accessibilityIdentifier("goal.kind.\(id)")
+            Button { withAnimation { showIcons.toggle() } } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: shownIcon).font(.system(size: 18)).foregroundStyle(PaceColor.white)
+                        .frame(width: 38, height: 38).background(tint)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Text(showIcons ? "Hide icons" : "Pace picked this icon. Change it").font(.paceBody(14)).fontWeight(.semibold)
+                        .foregroundStyle(PaceColor.stillWater)
+                    Spacer()
                 }
             }
+            .buttonStyle(.plain).accessibilityIdentifier("goal.iconToggle")
+            if showIcons {
+                IconGrid(icon: $goalIcon, colorHex: GoalsView.categoryColours[cat] ?? "#5B6BD5", suggestions: IconBank.suggest(for: clean))
+            }
         }
+    }
+
+    private var goalKindRow: some View {
+        KindPicker(title: "What kind of goal is it?",
+                   selection: Binding(get: { cat }, set: { category = $0 ?? "other"; catTouched = true }),
+                   idPrefix: "goal")
     }
 
     private var previewCard: some View {
@@ -437,7 +428,7 @@ struct GoalSentenceView: View {
                         Circle().trim(from: 0, to: steps.isEmpty ? 0.02 : min(1, 0.12 + Double(steps.count) / 60))
                             .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                             .rotationEffect(.degrees(-90))
-                        Image(systemName: GoalsView.symbol(for: cat)).font(.system(size: 20)).foregroundStyle(tint)
+                        Image(systemName: shownIcon).font(.system(size: 20)).foregroundStyle(tint)
                     }
                     .frame(width: 60, height: 60)
                     .animation(.easeOut(duration: 0.4), value: steps.count)
@@ -528,7 +519,7 @@ struct GoalSentenceView: View {
 
     private func save() {
         guard !clean.isEmpty else { return }
-        session.addGoal(title: clean, end: endKey, pace: pace, mins: mins, category: cat)
+        session.addGoal(title: clean, end: endKey, pace: pace, mins: mins, category: cat, icon: shownIcon)
         extras.celebrate()
         PlusClose.fire()
         dismiss()

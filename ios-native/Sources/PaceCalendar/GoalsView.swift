@@ -132,7 +132,7 @@ struct GoalsView: View {
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
-                    Image(systemName: Self.symbol(for: goal.category))
+                    Image(systemName: (goal.icon?.isEmpty == false ? goal.icon! : Self.symbol(for: goal.category)))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(PaceColor.white)
                         .frame(width: 38, height: 38)
@@ -215,14 +215,15 @@ struct GoalsView: View {
         return Color(hex: palette[hash % palette.count])
     }
 
-    static let categoryColours: [String: String] = [
-        "personal": "#8E7CC3", "school": "#5B6BD5", "work": "#3F536E",
-        "health": "#35704E", "money": "#6B5BB0", "home": "#35704E",
-        "other": "#7A8699",
-    ]
+    static var categoryColours: [String: String] {
+        var d: [String: String] = ["other": "#7A8699"]
+        for k in CategoryStore.all { d[k.id] = k.colour }
+        return d
+    }
 
     /// A designed icon per card (SF Symbols; never emoji).
     static func symbol(for category: String?) -> String {
+        if let k = CategoryStore.custom.first(where: { $0.id == category }) { return k.symbol }
         switch category {
         case "school": return "book.fill"
         case "work": return "briefcase.fill"

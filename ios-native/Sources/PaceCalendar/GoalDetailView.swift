@@ -42,7 +42,7 @@ struct GoalDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 10) {
-                    Image(systemName: GoalsView.symbol(for: goal.category))
+                    Image(systemName: (goal.icon?.isEmpty == false ? goal.icon! : GoalsView.symbol(for: goal.category)))
                         .font(.system(size: 18))
                         .foregroundStyle(GoalsView.colour(for: goal))
                     Text(goal.title)

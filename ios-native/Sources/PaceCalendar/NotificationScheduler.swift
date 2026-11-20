@@ -117,6 +117,28 @@ enum NotificationScheduler {
             }
         }
 
+        // Habit reminders: at the time(s) she chose, repeating.
+        for h in state.habits where h.remind && !h.times.isEmpty {
+            for (i, t) in h.times.enumerated() {
+                let p = t.split(separator: ":").compactMap { Int($0) }
+                guard p.count == 2 else { continue }
+                var days: [Int?] = [nil]
+                if h.freq == "pick", !h.wdays.isEmpty, h.wdays.count < 7 { days = h.wdays.map { Optional($0) } }
+                if h.freq == "weekly" { days = [h.wdays.first ?? Calendar.current.component(.weekday, from: Date())] }
+                for d in days {
+                    var dc = DateComponents(); dc.hour = p[0]; dc.minute = p[1]
+                    if let d { dc.weekday = d }
+                    let content = UNMutableNotificationContent()
+                    content.title = h.name
+                    content.body = h.perDay > 1 && h.freq == "perday" ? "Time for \(h.name) (\(i + 1) of \(h.times.count))." : "Time for \(h.name)."
+                    content.sound = .default
+                    let trig = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+                    requests.append(UNNotificationRequest(identifier: "pace.habit.\(h.id).\(i).\(d ?? 0)",
+                                                          content: content, trigger: trig))
+                }
+            }
+        }
+
         // Leave-by alerts (improved round): for tasks marked
         // Can't move, warn at start minus travel minus buffer.
         let ud = UserDefaults.standard
