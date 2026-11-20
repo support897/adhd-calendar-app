@@ -158,18 +158,20 @@ private struct HeartBurst: View {
 struct KindWallSheet: View {
     @ObservedObject var wall: KindWall
     @Environment(\.dismiss) private var dismiss
+    @State private var reporting: KindPerson?
+    @State private var hiddenIDs: Set<String> = []
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Text("\(wall.total.formatted()) kind people. Every name stays here for good.")
+                    Text("\(wall.total.formatted()) kind people. Tap the flag to report a name.")
                         .font(.paceBody(15)).foregroundStyle(PaceColor.softInk)
                 }
                 if wall.people.isEmpty {
                     Text(wall.loaded ? "Be the first name on the rainbow." : "Loading the wall")
                         .font(.paceBody(16))
                 }
-                ForEach(wall.people) { p in
+                ForEach(wall.people.filter { !hiddenIDs.contains($0.id) }) { p in
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "heart.fill").foregroundStyle(Color(hex: 0xFF6BAE)).padding(.top, 3)
                         VStack(alignment: .leading, spacing: 3) {
@@ -178,9 +180,29 @@ struct KindWallSheet: View {
                                 Text(p.message).font(.paceBody(14)).foregroundStyle(PaceColor.softInk)
                             }
                         }
+                        Spacer(minLength: 0)
+                        if !p.anonymous {
+                            Button { reporting = p } label: {
+                                Image(systemName: "flag").font(.system(size: 15)).foregroundStyle(PaceColor.softInk)
+                                    .frame(width: 44, height: 44)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Report this name")
+                            .accessibilityIdentifier("wall.report.\(p.id)")
+                        }
                     }
                 }
             }
+            .confirmationDialog("Report this name?", isPresented: Binding(get: { reporting != nil }, set: { if !$0 { reporting = nil } }), titleVisibility: .visible) {
+                Button("Report and hide it", role: .destructive) {
+                    if let p = reporting {
+                        hiddenIDs.insert(p.id)
+                        Task { _ = try? await Backend.request("kind-report", body: ["id": p.id]) }
+                    }
+                    reporting = nil
+                }
+                Button("Cancel", role: .cancel) { reporting = nil }
+            } message: { Text("We hide it right away and a person checks it. Thank you for keeping the wall kind.") }
             .navigationTitle("The kind wall")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
@@ -203,6 +225,7 @@ struct KindnessView: View {
     @State private var burst = 0
     @State private var thanks: String?
     @State private var before = 0
+    @State private var joining = false
 
     static let givingBase = "https://joinaikindness.com/give/"
     private let amounts = [3, 5, 10, 20]
@@ -253,8 +276,47 @@ struct KindnessView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Add your name to the rainbow")
+                    Text("Join the rainbow, free")
                         .font(.paceHeading(19)).fontWeight(.bold).foregroundStyle(PaceColor.pine)
+                    Text("Everyone gets the same size spot. No payment needed, ever.")
+                        .font(.paceBody(13)).foregroundStyle(PaceColor.softInk)
+                    Picker("", selection: $showName) {
+                        Text("Show my name").tag(true)
+                        Text("Anonymous heart").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("kindness.nameMode")
+                    if showName {
+                        TextField("Your first name (optional)", text: $name)
+                            .font(.paceBody(16)).foregroundStyle(PaceColor.pine)
+                            .textContentType(.givenName)
+                            .padding(12).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 12))
+                            .accessibilityIdentifier("kindness.name")
+                        TextField("A kind message (optional)", text: $message, axis: .vertical)
+                            .lineLimit(2...4).font(.paceBody(16)).foregroundStyle(PaceColor.pine)
+                            .padding(12).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 12))
+                            .accessibilityIdentifier("kindness.message")
+                    }
+                    Button { Task { await join() } } label: {
+                        Text(joining ? "Joining" : "Join the rainbow")
+                            .font(.paceBody(18)).fontWeight(.heavy)
+                            .frame(maxWidth: .infinity, minHeight: 54)
+                            .background(LinearGradient(colors: [Color(hex: 0xFF6B6B), Color(hex: 0xFFB347), Color(hex: 0x5B6BD5)],
+                                                       startPoint: .leading, endPoint: .trailing))
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .disabled(joining)
+                    .accessibilityIdentifier("kindness.join")
+                    Text("Names are public and checked. Anyone can report a name from the wall and we hide it right away. Please use a first name or nickname only.")
+                        .font(.paceBody(12)).foregroundStyle(PaceColor.softInk)
+                }
+                .padding(16).background(Color.white.opacity(0.92))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Want to give a gift too? Totally optional")
+                        .font(.paceHeading(17)).fontWeight(.bold).foregroundStyle(PaceColor.pine)
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
                         ForEach(amounts, id: \.self) { a in
                             Button { amount = a; ownAmount = "" } label: {
@@ -274,36 +336,20 @@ struct KindnessView: View {
                         .padding(12).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(PaceColor.waterMid, lineWidth: 1))
                         .accessibilityIdentifier("kindness.ownField")
-                    Picker("", selection: $showName) {
-                        Text("Show my name").tag(true)
-                        Text("Anonymous heart").tag(false)
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityIdentifier("kindness.nameMode")
-                    if showName {
-                        TextField("Your name (optional)", text: $name)
-                            .font(.paceBody(16)).foregroundStyle(PaceColor.pine)
-                            .textContentType(.givenName)
-                            .padding(12).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 12))
-                            .accessibilityIdentifier("kindness.name")
-                        TextField("A kind message (optional)", text: $message, axis: .vertical)
-                            .lineLimit(2...4).font(.paceBody(16)).foregroundStyle(PaceColor.pine)
-                            .padding(12).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 12))
-                            .accessibilityIdentifier("kindness.message")
-                    }
                     Button { give() } label: {
-                        Text(chosen.map { "Give $\($0) in one tap" } ?? "Choose an amount")
-                            .font(.paceBody(18)).fontWeight(.heavy)
-                            .frame(maxWidth: .infinity, minHeight: 54)
-                            .background(LinearGradient(colors: [Color(hex: 0xFF6B6B), Color(hex: 0xFFB347), Color(hex: 0x5B6BD5)],
-                                                       startPoint: .leading, endPoint: .trailing))
-                            .foregroundStyle(.white)
+                        Text(chosen.map { "Give $\($0) on our website" } ?? "Choose an amount")
+                            .font(.paceBody(17)).fontWeight(.bold)
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .background(Color.white)
+                            .foregroundStyle(PaceColor.waterDeep)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(PaceColor.stillWater, lineWidth: 1.5))
                     }
                     .disabled(chosen == nil)
                     .accessibilityIdentifier("kindness.give")
-                    Text("Opens our website in Safari. Pay with Apple Pay, Google Pay, PayPal or card. Your amount and choices are filled in for you. Giving is always optional and never needed to use Pace.")
+                    Text("Opens joinaikindness.com in Safari. Pay there with Apple Pay, Google Pay, PayPal or card. Pace never takes a payment and never needs one. A gift does not unlock anything in Pace and does not change your spot on the rainbow. AI Kindness is not a registered charity, so gifts are not tax deductible. Gifts go to Apex Website Solutions, the maker of Pace, and help keep these free tools free. Amounts are in AUD.")
                         .font(.paceBody(12)).foregroundStyle(PaceColor.softInk)
+                        .accessibilityIdentifier("kindness.disclosure")
                 }
                 .padding(16).background(Color.white.opacity(0.92))
                 .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -354,6 +400,30 @@ struct KindnessView: View {
         }
         c.queryItems = q
         safariURL = c.url
+    }
+
+    private func join() async {
+        joining = true; defer { joining = false }
+        let key = "pace.install.id"
+        let install = UserDefaults.standard.string(forKey: key) ?? {
+            let v = UUID().uuidString; UserDefaults.standard.set(v, forKey: key); return v }()
+        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let m = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        let body: [String: Any] = ["install": install, "anonymous": !showName || n.isEmpty,
+                                   "name": String(n.prefix(40)), "message": String(m.prefix(140))]
+        before = wall.total
+        guard let r = try? await Backend.request("kind-join", body: body), (r["ok"] as? Bool) == true else {
+            thanks = "Could not reach the rainbow. Please try again in a moment."; return
+        }
+        await wall.refresh()
+        if (r["already"] as? Bool) == true {
+            thanks = "You are already on the rainbow. Thank you."
+        } else {
+            thanks = (showName && !n.isEmpty) ? "Welcome, \(n). You are on the rainbow." : "Welcome. Your heart is on the rainbow."
+            replay += 1; burst += 1
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        before = wall.total
     }
 
     /// Back from Safari: re-read the wall. Only a real rise in the count plays the celebration.

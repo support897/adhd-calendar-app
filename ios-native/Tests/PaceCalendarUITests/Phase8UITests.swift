@@ -91,5 +91,10 @@ final class Phase8UITests: XCTestCase {
         any("kindness.rainbow").tap()
         XCTAssertTrue(any("kindness.wall").waitForExistence(timeout: 8), "wall did not open")
         shot("84-wall")
+        app.buttons["Done"].tap()
+        for _ in 0..<6 where !any("kindness.disclosure").exists { app.swipeUp() }
+        XCTAssertTrue(any("kindness.join").exists, "free join button missing")
+        XCTAssertTrue(any("kindness.disclosure").exists, "gift disclosure missing")
+        shot("85-kindness-join")
     }
 }
