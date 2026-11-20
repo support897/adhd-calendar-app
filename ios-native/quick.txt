@@ -1,3 +1,3 @@
-CustomerFlowUITests/testAddGoalBySentence,CustomerFlowUITests/testAddTaskBySentenceThenDetails
+Phase8UITests/testDeleteAccountSheetAndPrivacyRow,Phase8UITests/testBugAndFeedbackIcons,Phase8UITests/testKindnessRainbow
 iPhone 17 Pro
-# r11
+# p8-1
