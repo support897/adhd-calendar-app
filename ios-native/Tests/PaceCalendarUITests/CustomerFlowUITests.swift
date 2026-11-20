@@ -16,6 +16,7 @@ final class CustomerFlowUITests: XCTestCase {
     private func any(_ id: String) -> XCUIElement { app.descendants(matching: .any)[id] }
 
     private func typeInto(_ el: XCUIElement, _ text: String) {
+        for _ in 0..<20 where !el.isHittable { Thread.sleep(forTimeInterval: 0.5) }
         for _ in 0..<3 { el.tap(); Thread.sleep(forTimeInterval: 0.8); if app.keyboards.count > 0 { break } }
         el.typeText(text)
     }
