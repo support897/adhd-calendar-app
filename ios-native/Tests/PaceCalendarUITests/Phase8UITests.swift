@@ -82,13 +82,13 @@ final class Phase8UITests: XCTestCase {
     }
 
     func testKindnessRainbow() throws {
-        app.buttons["tab.more"].tap()
-        app.buttons["more.kindness"].tap()
+        tapUntil(app.buttons["tab.more"], appears: app.buttons["more.kindness"])
+        tapUntil(app.buttons["more.kindness"], appears: any("kindness.screen"))
         XCTAssertTrue(any("kindness.screen").waitForExistence(timeout: 8))
         XCTAssertTrue(any("kindness.rainbow").exists)
         Thread.sleep(forTimeInterval: 3)
         shot("83-kindness")
-        any("kindness.rainbow").tap()
+        tapUntil(any("kindness.rainbow"), appears: any("kindness.wall"))
         XCTAssertTrue(any("kindness.wall").waitForExistence(timeout: 8), "wall did not open")
         shot("84-wall")
         app.buttons["Done"].tap()
