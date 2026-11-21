@@ -347,7 +347,7 @@ struct KindnessView: View {
                     }
                     .disabled(chosen == nil)
                     .accessibilityIdentifier("kindness.give")
-                    Text("Opens joinaikindness.com in Safari. Pay there with Apple Pay, Google Pay, PayPal or card. Pace never takes a payment and never needs one. A gift does not unlock anything in Pace and does not change your spot on the rainbow. AI Kindness is not a registered charity, so gifts are not tax deductible. Gifts go to Apex Website Solutions, the maker of Pace, and help keep these free tools free. Amounts are in AUD.")
+                    Text("Opens joinaikindness.com in Safari. Pay there with Apple Pay, Google Pay, PayPal or card. Pace never takes a payment and never needs one. A gift does not unlock anything in Pace and does not change your spot on the rainbow. AI Kindness is not a registered charity, so gifts are not tax deductible. Gifts go to Join AI Kindness and help keep these free tools free. Amounts are in AUD.")
                         .font(.paceBody(12)).foregroundStyle(PaceColor.softInk)
                         .accessibilityIdentifier("kindness.disclosure")
                 }
