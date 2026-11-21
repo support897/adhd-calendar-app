@@ -3,7 +3,7 @@ import FirebaseAuth
 import UIKit
 
 /// One small client for the website backend (Supabase edge functions):
-/// bug and feedback reports (we email the sender and the owner) and the kindness wall.
+/// bug and feedback reports (we email the sender and the owner).
 enum Backend {
     static let base = "https://fipingffwixtwrlcgffi.supabase.co/functions/v1"
     static let key = "sb_publishable_VT3CZgUUnHePy-ms2-K9KQ_gUsdVm92"

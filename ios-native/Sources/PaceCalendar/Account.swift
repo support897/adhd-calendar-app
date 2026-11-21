@@ -9,9 +9,9 @@ import UserNotifications
 /// Account deletion (App Review 5.1.1(v)) and the legal links.
 /// Order: sign in again, erase her data, revoke Apple, delete the sign-in, clear this phone.
 enum PaceLinks {
-    static let privacy = URL(string: "https://joinaikindness.com/pace/privacy.html")!
-    static let support = URL(string: "https://joinaikindness.com/pace/support.html")!
-    static let terms = URL(string: "https://joinaikindness.com/terms.html")!
+    static let privacy = URL(string: "https://support897.github.io/pace-calendar-site/privacy.html")!
+    static let support = URL(string: "https://support897.github.io/pace-calendar-site/support.html")!
+    static let terms = URL(string: "https://support897.github.io/pace-calendar-site/privacy.html")!
 }
 
 @MainActor

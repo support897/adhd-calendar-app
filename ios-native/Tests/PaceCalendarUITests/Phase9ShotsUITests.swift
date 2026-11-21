@@ -43,6 +43,5 @@ final class Phase9ShotsUITests: XCTestCase {
         app.terminate(); app.launch()
         _ = app.staticTexts["proof.greeting"].waitForExistence(timeout: 25)
         app.buttons["tab.more"].tap(); Thread.sleep(forTimeInterval: 1.5); snap("96-more")
-        app.buttons["more.kindness"].tap(); Thread.sleep(forTimeInterval: 4); snap("97-kindness")
     }
 }

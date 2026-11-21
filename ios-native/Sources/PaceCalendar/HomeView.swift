@@ -4,7 +4,7 @@ import SwiftUI
 /// (2) Goals, (3) the calendar calm behind them, then —
 /// round 2, her order of 16 Nov — (4) Habits and (5) Talk
 /// standing on the bar themselves, then (6) More, the quiet
-/// hub (to do, progress, settings, Plus, kindness first).
+/// hub (to do, progress, settings).
 /// ProofView is retired here by name, per the P3 commission —
 /// its greeting anchor lives on in TodayView.
 struct HomeView: View {
@@ -175,7 +175,6 @@ struct HomeView: View {
 
 /// MORE — the quiet hub and the menu. FIRST at the very
 /// top, above everything else, stands her door by name:
-/// "Join the AI kindness revolution" (her words, 14 Nov).
 /// Then talk, to do, habits, progress, Plus, settings.
 struct MoreView: View {
     @EnvironmentObject private var session: SessionStore
@@ -183,17 +182,6 @@ struct MoreView: View {
     var body: some View {
         NavigationStack {
             List {
-                NavigationLink {
-                    KindnessView()
-                } label: {
-                    Label("Join the AI kindness revolution", systemImage: "heart")
-                        .font(.paceBody(16))
-                        .fontWeight(.semibold)
-                        .foregroundStyle(PaceColor.pine)
-                }
-                .accessibilityIdentifier("more.kindness")
-                .listRowBackground(PaceColor.white)
-
                 NavigationLink {
                     TalkView()
                 } label: {

@@ -1,7 +1,7 @@
 import XCTest
 
 /// Phase 8: the review fixes and the new doors. Delete account sheet,
-/// privacy row, bug and feedback icons, the kindness rainbow.
+/// privacy row, bug and feedback icons.
 final class Phase8UITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -66,7 +66,7 @@ final class Phase8UITests: XCTestCase {
     }
 
     func testBugAndFeedbackIcons() throws {
-        tapUntil(app.buttons["tab.more"], appears: app.buttons["more.kindness"])
+        tapUntil(app.buttons["tab.more"], appears: app.buttons["more.settings"])
         for _ in 0..<10 where !any("more.bug").exists { app.swipeUp() }
         XCTAssertTrue(any("more.bug").waitForExistence(timeout: 10), "bug row missing")
         tapUntil(any("more.bug"), appears: any("bug.text"))
@@ -79,22 +79,5 @@ final class Phase8UITests: XCTestCase {
         XCTAssertTrue(any("feedback.text").waitForExistence(timeout: 8))
         XCTAssertTrue(any("feedback.anonymous").exists, "anonymous choice missing")
         shot("82-feedback")
-    }
-
-    func testKindnessRainbow() throws {
-        tapUntil(app.buttons["tab.more"], appears: app.buttons["more.kindness"])
-        tapUntil(app.buttons["more.kindness"], appears: any("kindness.screen"))
-        XCTAssertTrue(any("kindness.screen").waitForExistence(timeout: 8))
-        XCTAssertTrue(any("kindness.rainbow").exists)
-        Thread.sleep(forTimeInterval: 3)
-        shot("83-kindness")
-        tapUntil(any("kindness.rainbow"), appears: any("kindness.wall"))
-        XCTAssertTrue(any("kindness.wall").waitForExistence(timeout: 8), "wall did not open")
-        shot("84-wall")
-        app.buttons["Done"].tap()
-        for _ in 0..<6 where !any("kindness.disclosure").exists { app.swipeUp() }
-        XCTAssertTrue(any("kindness.join").exists, "free join button missing")
-        XCTAssertTrue(any("kindness.disclosure").exists, "gift disclosure missing")
-        shot("85-kindness-join")
     }
 }

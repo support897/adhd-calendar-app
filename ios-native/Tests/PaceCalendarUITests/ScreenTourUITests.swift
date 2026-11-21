@@ -73,7 +73,7 @@ final class ScreenTourUITests: XCTestCase {
         // More -> every row
         app.buttons["tab.more"].tap()
         Thread.sleep(forTimeInterval: 1)
-        for id in ["todos", "habits", "progress", "settings", "tools", "kindness"] {
+        for id in ["todos", "habits", "progress", "settings", "tools"] {
             let row = app.buttons["more." + id]
             if !row.exists { app.swipeUp() }
             if row.exists && row.isHittable {

@@ -22,26 +22,6 @@ final class P6UITests: XCTestCase {
         app = nil
     }
 
-    func testMenuKindnessFirst() throws {
-        app.buttons["tab.more"].tap()
-        let kindness = app.buttons["more.kindness"]
-        let talk = app.buttons["more.talk"]
-        XCTAssertTrue(kindness.waitForExistence(timeout: 10))
-        XCTAssertTrue(talk.exists)
-        XCTAssertTrue(kindness.frame.minY < talk.frame.minY,
-                      "the kindness door must stand FIRST in the menu")
-        XCTAssertTrue(kindness.label.contains("Join the AI kindness revolution"))
-
-        kindness.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["kindness.screen"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["kindness.amount.10"].exists)
-        app.buttons["kindness.amount.10"].tap()
-        // Giving is collected in Safari — the sheet presents.
-        let done = app.buttons["Done"]
-        XCTAssertTrue(done.waitForExistence(timeout: 15))
-        done.tap()
-    }
-
     func testTalkParsesOnDevice() throws {
         app.buttons["tab.more"].tap()
         app.buttons["more.talk"].tap()

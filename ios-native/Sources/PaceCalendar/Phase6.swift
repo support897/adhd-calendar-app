@@ -41,7 +41,7 @@ struct TourView: View {
         TourStep(tab: nil, plus: true, art: "SkipPoint", title: "The big plus",
                  line: "Add a task, goal, habit or to-do. One small step at a time.", icon: "plus", action: nil),
         TourStep(tab: "more", plus: false, art: "SkipPoint", title: "More",
-                 line: "Settings, progress, rewards, kindness and your calendars live here.", icon: "ellipsis.circle.fill", action: nil),
+                 line: "Settings, progress, rewards and your calendars live here.", icon: "ellipsis.circle.fill", action: nil),
         TourStep(tab: "calendar", plus: false, art: "SkipFront", title: "Bring your calendars in",
                  line: "iCloud, Google, Outlook, Exchange. I read them all and never change them.", icon: "calendar.badge.plus", action: "Connect my calendars"),
         TourStep(tab: nil, plus: false, art: "SkipFront", title: "Gentle nudges",
